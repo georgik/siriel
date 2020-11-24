@@ -1,0 +1,6 @@
+vacsie mnozstvo animacii na jednu postavicku
+padak zanechava stopu
+chodenie sikmo
+projektil a bomba
+do eventu zabudovat menu
+pri preskoku do miestnosti by nemal zastavit

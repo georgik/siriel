@@ -1,0 +1,267 @@
+Postupny vyvoj Siriela 3.5:
+      > Vyvojovy jazyk: Turbo Pascal 7.0
+Inspiracia z hry DIZZY od CODE MASTERS
+
+Vedlajsie zdroje inspiracie:
+          Solomon's keys, Super Robin Hood.
+
+Znaky
+      + Vylepsienie
+      - Zhorsenie/Odobratie
+      # Moj komentar
+
+Specialne podakovania:
+          #oOZy, Misu, Joshua, Marsel, Dorling, Jurou, TRAMP, RAMbo,
+          Mumeniev, Gallgharry
+
+
+        Siriel3 v.:0.98
+          - zakladna verzia, ktora pracovala v rozliseni 320x200 a povodne
+            z nej mala byt adventura. Z toho vsak po case z technickych
+            problemov a nedokonaleho programu zislo a tak ostalo len
+            jadro.
+          + pouzivanie texturovej technologie prechodu
+          + animovane sprajty
+          + zvuk
+
+        Siriel 3.5 v.:0.98
+          - vylepsenie predoslej verzia, odburanie prechodu cez miesnosti
+          + grafika 640x480
+          + nove nacitavanie map a vyhotoveny jednoduchy editor
+          - prechod cez textury - chyba
+
+        1.00
+          + vsetko sa nacitava z jedneho blokoveho suboru
+          + znacne vylepsenie, ale stale obsahoval kixy pri nacitavani
+            novych miestnosti a nejake dalsie vady
+          + zablokovanie prechodu cez textury a doplnenie predmetov
+            10 funkcii
+          + predmety su schopne detekovat texturu (mury)
+
+        1.01
+          + opravenie kixov, zostali este nejake problemy pri prekryti
+            animovanych sprajtov
+
+        1.02
+          + daju sa pouzit uz aj samostatne datadisky s priponou *.dat
+          + opravenie niektorych nedostatkov pri objavovani miestnosti
+          + program si vyhladava, v ktorom datovom subore je font
+          + program dokaze detekovat, ci sa nejedna o falosny datadisk
+          - odstranenie zhasinania pri ziskani zivota a pri vyzbierani
+            predmetov
+          + vstavany tester miestnosti
+          + kontrola verzie datadisku
+          + vstavany editor miestnosti
+
+       1.03
+          + pridany padak (napad - Juraj Jurdik)
+          + opraveny vypis zivotov
+          + oprava chyb kurzoru
+          + pridany typ hry BLUDISKO
+          + predmet zhasinajuci/rozsvecujuci bludisko
+          + postava, ktora sa nahodne pohybuje + odraza od textur (NUM>0)
+          + moznost intro a outro animacie pri kazdom leveli
+          + briefing
+          + predmet schopny zhmotnit a dematerializovat texturu do povodnej
+            urovne
+          + uprava pokladania objektov - pri prekryti animovanych casti
+            nedochadza ku chybe
+          + moznost timeru
+          + oprava editoru - aku texturu zoberie, taku aj polozi
+          + opravenie odrazu postavy, ktora prechadza cez vsetko
+          + pridany novy typ ukoncovaca
+          + oprava vykreslenia obrazovky pri strate zivota
+          + oprava vykreslovania funkcnych predmetov z vyssich urovni
+          + triedenie datadiskov podla abecedy
+          + pridana adresa WWW stranky
+
+          + moznost vypnutia animacii
+          + oprava inicializacie grafiky
+
+1999>>>>>>
+
+       1.04
+          + help (napad - #oOZy)
+          + pauza (napad - #oOZy)
+          + moznost jazykovych mutacii (napad - Misu)
+            + anglicka a slovenska
+          + moznost vyberu scrolloveho suboru
+          + opraveny vypis koncoveho hesla
+          + ak nebol najdeny DATADISK, vypise chybu (bug found- Misu)
+          + kontrola CRC pre MAIN.DAT
+          + kontrola CRC pre datadisky
+            + oprava kontroly pre MIAN a novy subor
+          + indikator kontroly
+          + optimalizacia grafickych algoritmov
+          + novy styl vypisu do okien
+          + uvodny screen sa taha do XMS
+
+
+       1.05
+ 6. 2.    + otazka pri ukoncovani hry
+ 7. 2.    + pridane predmety, ktore mozno zobrat
+          + predmety idu cez XMS
+          + oprava a doplnenie editoru o nevy typ veci
+          + prikazy na kontorlu udalosti +(8.2.)
+10. 2.    + novy vzhlad panelu a novy algoritmus na vykreslovanie
+12. 2.    + opraveny bug v bludisku - predmet nebolo vidiet a jeho
+            zaciatocne miesto preblikavalo
+          + pridana moznost ignoracie textur (su povazovane za pozadie)
+          + pri bludisku je moznost posuvu do izometrickeho obrazu
+13. 2.    - z doposial nevysvetlenych pricin sa program rozhodol, ze
+            bude padat. No, ale kde je pes zakopany ? Skuste ho najst
+            v listingu, ktory ma iba 15 000 riadkov !
+O hodinu neskor.
+          + Hura ! Nasiel som to. Program si v jednej procedure kopiroval
+            textury do noveho pola a to prekrylo instrukcie.
+          # preniesol som niektore funkcie do unitov, lebo kompilator hlasil
+            prilis velky segment kodu a EXE subor sa skratil o 10 kb !?
+          + moznost vlozenia viacerych map do jedneho levelu
+ 14.00    # presunul som 32kb zdrojoveho textu do unity
+ 16.02    # zacali haluzit mapy
+ 17.41    + novy typ objektu - chater (kecac)
+ 18.30    # Uz to vyzera slubne.....
+15. 2     # Taku haluz, aku to zacalo robit po prehravani animacii ste
+            este nevideli ! A uz nerobi a ja stale neviem preco !
+          + Nove syntaxy pre spracovanie udalosti
+          + menu sa vzdy nastavi na posledny prejdeny level
+18. 2.    + prehravac animacii pracuje bez chyb. (aspon zatial)
+22. 2.    + oprva nacitavanie score
+27. 2.    + pocet obrazkov animovanych predmetov zvyseny na 80
+28. 2.    + prisery sa po prechode do novej miestnosti, alebo zabiti vracaju
+            na povodnu suradnicu
+          + pri hi-score vypisuje aj pocet bodov
+          + nacitavanie textu z klavesnice ignoruje sipky ako textove znaky
+          - ak je pusteny zvuk, program pri vybere tretieho datadisku
+            havaruje !
+5. 3.     -- Program nefunguje ? spravne na pocitacoch rychlejsich nez 166 MHz
+          + menu moze obsahovat az 64 poloziek
+          + ak nenajde Siriel3.cfg vyhlasi chybu
+          + odstraneny problem padania pri vybere datadiskov
+          + Voaaaaaaaaaa, konecne som nasiel tu volovinu, preco padalo
+            nahravanie zvukov - zakazdym ostal otvoreny zvukovy subor
+            a on ho nanovo otvaral
+
+
+        1.06
+6. 3.     + 3 prikazy na kontrolu vrecka
+7. 3.     + pocet moznych veci zvyseny na 160
+          + 256 pridavnych premmenych na kontrolu udalosti
+          + prikaz na zablokovanie pouzitia predmetu
+8. 3.     + prikaz na vykreslenie obrazku (640x480x256)
+          + odstraneny nahodne sa zjavujuci neexistujuci predmet
+12. 3.    + ak nie je vec pouzita, vypise ju
+          + opravene chybove hlasenie ak nenajde siriel3.cfg
+          + opravene chybove hlasenie ak nenajde main.dat
+          + prikazy na manipulaciu zo zivotmi
+          + ukoncovaci prikaz
+          + nastavenie zdrzania pri inicializacii
+          + typ prisery - Strela
+13. 3.    + predmet pri zobrati, ak sa prekryva s dalsim nezanechava stopu.
+14. 3.    + pridany zvuk pre fireball
+15. 3.    + ak prejde hru, pocty bodov a zivotov sa vratia na povodnu uroven
+          + ak sa vec, ktoru prave zobral nachadza pri nejakej pohyblivej,
+            nezanechava stopu.
+16. 3.    + moznost pouzitia joysticku
+17. 3.    + Siriel moze behat cez animovane predmety, bez toho, aby
+            poskodil pozadie
+20. 3.    + opravena chyba v animingu (vykresloval iba stvorce)
+21. 3.    + opravena chyba s alokaciou XMS
+23. 3.    + opravene cakanie na ESC ak nie je zvuk
+          + pridane copyrights
+
+
+
+        1.07
+11. 4.    + konecne som opravil setup, tak aby fungoval poriadne
+15. 4.    + opravena stopa, ktoru zanechaval pri prechode na ine mapy
+23. 4.    + moznost menenia fontov
+24. 4.    + moznost vytvorenia pozadia v kazdej miestnosti
+          + menenie obrazkov pozadia miestnosti priamo z programu
+          + uprava adresy
+          + obrazky kontrolovane z menu bezia cez usporny XMS mod
+          # exe subor dosiahol velkost 176 000 b
+          + navadzacia jednotka - moznost dobre/zlej jednotky, kazda
+            moze mat svoj obrazok
+          + pri premene vydava zvuk
+          + nastavenie velkosti scanovanej plochy v bludisku
+25. 4.    + priechodniky medzi miestnostami - efektivnejsie nez presuv
+            pomocou predmetu
+          # exe subor presiahol velkost 181 kb
+          + jednotka sa stava okmazite zlou, ak cas dobra je 0
+26. 4.    + smart jump - Da sa nastavit to, ze Siriel  neskace tak daleko
+27. 4.    + moznost vy/zapnutia cesty
+          + vytahy
+1.  5.    + optimalizovany algoritmus na paletu
+3.  5.    # Hu, nejaky bug, vsetko pada !! :(
+          # 10 minut neskor - mam ju - zapisoval som do neexistujuceho pola :)
+9.  5.    + zmena obrazku predmetu za jazdy
+          + zmena predmetu na animavany a naopak
+          + firebally zacinaju z rovnakych suradnic
+10. 5.    # Prekrocenie 17 000 riadkov zdrojoveho textu !
+          + predmet, ktory vykazuje zvukovu aktivitu
+          + tichy fireball
+11. 5.    + fireball schopny vydavat viac zvukov
+13. 5.    + pri odomikani dveri sa len vypise dana textura
+16. 5.    + oprava brania veci pri krajoch obrazovky XY(0,0)
+20. 5.    + opravene zhasinanie miestnosti v starsom datadisku
+          + oprava pohybu priserky - gravitacia
+
+
+        1.08
+4.  6.    + lubovolna startovacia miestnost
+          + odstraneny problem so "zasekavanim" klavesnice
+          + zmrazenie priser a tzv. God mod
+          + zvacseny rozsah pre kontrolu predmetu v okoli postavy
+          + odstranene zbytocne preblikavanie postavy
+5.  6.    + odstranene vydavanie zvuku pri freez mode
+          + automaticky smartjump
+          + vyberove menu prikraslene grafikou
+7.  6.    + po prechode fireballu neostava stopa
+8.  6.    + ramiky urobene v uspornom mode
+9.  6.    + odstranena chyba s detekciou zvukovky
+          + dorobene dalsie okna
+          + shadow text
+10. 6.    + do vypisovacieho objektu pridany vstup z klavesnice
+          + navy sposob presnejsieho centrovania
+11. 6.    + moznost nastavenia startovacej udalosti
+          + frejmy vo vypise
+          + nova definicia prikazov v evente
+          + predmet, cez ktory sa neda prejst ani v God mode
+          # dlzka listingu - 18 000 riadkov, EXE 195 kb
+12. 6.    + frejmy pokladaju svoje pozadie
+          # asi budem musiet z enginu odstranit editor, pretoze
+            program je prilis velky na to, aby sa vliezol do pamate
+          + osamostatneny editor
+13. 6.    + dokoncenie pokladania frejmov
+15. 6.    + oprava palety po animacii
+
+
+   __  ___   __   ___    __  ___  ___   __   ___  ____
+  / _)(  _) /  \ (  ,)  / _)(  _)/ __) /  \ (  _)(_  _)
+ ( (/\ ) _)( () ) )  \ ( (/\ ) _)\__ \( () ) ) _)  )(
+  \__/(___) \__/ (_)\_) \__/(___)(___/ \__/ (_)   (__)
+-------------------------------------------------------
+
+Smile mark:    XX:-D
+
+Name:          Juraj Michalek
+
+Work:          Student
+
+Street:        Lanska 926/3-14
+City:          Pov. Bystica
+ZIP:           017 01
+State:         Slovakia
+
+tel.:          0822 / 32 76 25
+e-mail:        georgi@post.sk
+
+URL:           http://www.geocities.com/Area51/Stargate/3929
+
+Inters:        computers, programming, guitar, DrD, fighting fantasy
+               Speccy, weapons
+
+MOTTO:         Nenechaj sa prenasledovat svojim vlastnym tienom,
+               otoc sa a podaj mu ruku, inak ta bude prenasledovat
+               cely zivot.
