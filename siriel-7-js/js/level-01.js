@@ -36,6 +36,7 @@ function renderMap() {
     var context=canvas.getContext('2d');
     var line, column;
     var maxTileId = globalTiles.length;
+    var textures = globalTiles.Tiles["textures"];
     for(line = 0; line < map.length; line++) {
         var mapLine = map[line];
         for (column = 0; column < mapLine.length; column++) {
@@ -43,8 +44,14 @@ function renderMap() {
             if (tileId >= globalTiles.length) {
                 tileId = 0;
             }
-            context.putImageData(globalTiles[tileId], 16*column, 16*line);
+            context.putImageData(textures[tileId], 16*column, 16*line);
         }
+    }
+}
+
+function tilesReady(name) {
+    if (name == "textures") {
+        renderMap();
     }
 }
 
@@ -60,21 +67,23 @@ function processOnLoad(event) {
      var tempCanvas = document.getElementById("temp-canvas");
     var tempContext = tempCanvas.getContext("2d");
 
- Tiles = new TileSet();
+    globalTiles = new TileSet();
     // parse a spritesheet into tiles
     //Tiles.addSpriteSheet("resources/tiles/tilea2.png","anyName");
-    Tiles.addSpriteSheet("img/texture-basic.png","basic");
+    globalTiles.addSpriteSheet("img/texture-basic.png", "textures");
+    globalTiles.addSpriteSheet("img/animations-basic.png", "animations");
+    globalTiles.addSpriteSheet("img/objects-basic.png", "objects");
 
     // Tiles parser from - https://stackoverflow.com/questions/15444987/using-html5-canvas-to-parse-an-image-into-a-tileset
     function TileSet() {
-        this.Tiles = [];
+        this.Tiles = {};
         this.tileHeight = 16;
         this.tileWidth = 16;
         this.tileCount = 4;
 
         this.addSpriteSheet = function (spriteSheetLoc, name) {
 
-var tileSheet = new Image();
+        var tileSheet = new Image();
             var me=this;  // me==this==TileSet
 
             tileSheet.onload = function() {
@@ -89,20 +98,21 @@ var tileSheet = new Image();
                 tempCanvas.width = tileSheet.width;
                 tempCanvas.height = tileSheet.height;
                 tempContext.drawImage(tileSheet, 0, 0);
+                me.Tiles[name] = [];
                 for(var i=0; i<tilesY; i++) {
 
                     for(var j=0; j<tilesX; j++) {
 
                         // Store the image data of each tile in the array.
-                        me.Tiles.push(tempContext.getImageData(j*me.tileWidth, i*me.tileHeight, me.tileWidth, me.tileHeight));
+                        me.Tiles[name].push(tempContext.getImageData(j*me.tileWidth, i*me.tileHeight, me.tileWidth, me.tileHeight));
                     }
                 }
 
                 // this is just a test
                 // display the last tile in a canvas
                 //context.putImageData(me.Tiles[me.Tiles.length-1],0,0);
-                globalTiles = me.Tiles;
-                renderMap();
+                //globalTiles = me.Tiles;
+                tilesReady(name);
 
 
             }
