@@ -1,5 +1,5 @@
 
-map = [
+var map = [
   "----------------------------------------",
   "----------------------------------------",
   "----------------------------------------",
@@ -28,7 +28,42 @@ map = [
   "----------------------------------------",
   "----------------------------------------",
 ];
+var gameObjectString = `[ZNNA]=1,8,17,1,3,10
+[ZNNA]=1,10,17,1,3,10
+[ZNNA]=1,12,17,1,3,10
+[ZANA]=6,17,29,1,3,50
+[ZNNA]=2,38,29,1,3,5
+[ZNNA]=2,40,29,1,3,5
+[ZNNA]=2,42,29,1,3,5
+[ZNNA]=2,67,29,1,3,5
+[ZNNA]=2,0,37,1,3,5
+[ZNNA]=2,2,37,1,3,5
+[ZNNA]=2,4,37,1,3,5
+[ZNNA]=2,6,37,1,3,5
+[ZNNA]=2,8,37,1,3,5
+[ZNNA]=2,0,27,1,3,5
+[ZNNA]=2,6,15,1,3,5`;
+/*
+[YNN~]=10,76,34,9,1
+*/
 
+
+var gameObjects = [
+];
+
+function gameObjectFromString(definition) {
+    var data = definition.split("=");
+    var items = data[1].split(',');
+    var gameObject = {
+        tileId: items[0],
+        x: items[1]*8,
+        y: items[2]*8 + 8,
+        room: items[3],
+        take: items[4],
+        score: items[5]
+    }
+    gameObjects.push(gameObject);
+}
 
 var globalTiles;
 function renderMap() {
@@ -49,9 +84,28 @@ function renderMap() {
     }
 }
 
+function renderGameObjects() {
+    var canvas=document.getElementById("objects-canvas");
+    var context=canvas.getContext('2d');
+    var objectIndex;
+    var objectsTexture = globalTiles.Tiles["objects"];
+    var gameObject;
+    for(objectIndex = 0; objectIndex < gameObjects.length; objectIndex++) {
+        gameObject = gameObjects[objectIndex];
+        context.putImageData(objectsTexture[gameObject.tileId], gameObject.x, gameObject.y);
+    }
+}
+
 function tilesReady(name) {
     if (name == "textures") {
         renderMap();
+    } else if (name == "objects") {
+        var lineIndex;
+        var lines = gameObjectString.split('\n');
+        for(lineIndex = 0; lineIndex <lines.length; lineIndex++) {
+            gameObjectFromString(lines[lineIndex]);
+        }
+        renderGameObjects();
     }
 }
 
@@ -59,10 +113,6 @@ function processOnLoad(event) {
     var canvas=document.getElementById("background-canvas");
     var context=canvas.getContext('2d');
     var image=new Image();
-/*    image.onload=function(){
-        context.drawImage(image,0,0,canvas.width,canvas.height);
-    };
-*/
 
      var tempCanvas = document.getElementById("temp-canvas");
     var tempContext = tempCanvas.getContext("2d");
@@ -108,10 +158,6 @@ function processOnLoad(event) {
                     }
                 }
 
-                // this is just a test
-                // display the last tile in a canvas
-                //context.putImageData(me.Tiles[me.Tiles.length-1],0,0);
-                //globalTiles = me.Tiles;
                 tilesReady(name);
 
 
@@ -120,8 +166,6 @@ function processOnLoad(event) {
             tileSheet.src = spriteSheetLoc;
         }
     }
-
-    //    image.src="img/texture-basic.png";
 }
 
 window.addEventListener("load", processOnLoad);

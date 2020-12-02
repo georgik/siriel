@@ -83,14 +83,37 @@
       background-position-x: -144px;
       background-position-y: -47px;
     }
+    .canvas-container {
+      position: relative;
+    }
+    .drawing-canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    #background-canvas {
+      z-index: 0;
+    }
+    #object-cavas {
+      z-index: 1;
+    }
+    #temp-canvas {
+      display: none;
+    }
+    #avatar {
+      position: absolute;
+      left: 88px;
+      top: 88px;
+    }
   </style>
   <script type="text/javascript" src="js/level-01.js">
   </script>
   </head>
   <body>
-    Siriel 7 - Work In Progress
-    <div class="avatar"></div>
-    <div class="avatar left"></div>
+    Siriel 7 - Work In Progress - more info:
+    <a href="https://georgik.rocks">Georgik.Rocks</a>.
+
+    <!--<div class="avatar left"></div>
     <div class="avatar right"></div>
     <div class="avatar up"></div>
     <div class="avatar jump-up"></div>
@@ -99,8 +122,12 @@
     <div class="avatar parachute"></div>
     <div class="avatar stars"></div>
     <div class="back"></div>
-    <div class="none"></div>
-    <canvas id="background-canvas" width="640px" height="480px"></canvas>
+    <div class="none"></div>-->
+    <div class="canvas-container">
+      <canvas id="background-canvas" class="drawing-canvas" width="640px" height="480px"></canvas>
+      <canvas id="objects-canvas" class="drawing-canvas" width="640px" height="480px"></canvas>
+      <div id="avatar" class="avatar"></div>
+    </div>
     <canvas id="temp-canvas"></canvas>
   </body>
 </html>
