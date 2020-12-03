@@ -48,8 +48,9 @@ var gameObjectString = `[ZNNA]=1,8,17,1,3,10
 */
 
 
-var gameObjects = [
-];
+var gameObjects = [];
+var avatar;
+var avatarStep = 4;
 
 function gameObjectFromString(definition) {
     var data = definition.split("=");
@@ -109,6 +110,48 @@ function tilesReady(name) {
     }
 }
 
+function keyDownHandler(event) {
+    event = event || window.event;
+    if (event.keyCode == '38') {
+        // up arrow
+        avatar.y -= avatarStep;
+    }
+    else if (event.keyCode == '40') {
+        // down arrow
+        avatar.y += avatarStep;
+    }
+    else if (event.keyCode == '37') {
+        // left arrow
+        avatar.x -= avatarStep;
+    }
+    else if (event.keyCode == '39') {
+       // right arrow
+       avatar.x += avatarStep;
+    }
+
+    if (avatar.x < 0) {
+        avatar.x = 0;
+    } else if (avatar.x > 640) {
+        avatar.x = 640;
+    }
+
+    if (avatar.y < 0) {
+        avatar.y = 0;
+    } else if (avatar.y > 480) {
+        avatar.y = 480;
+    }
+
+    avatar.style.left = avatar.x + 'px';
+    avatar.style.top = avatar.y + 'px';
+}
+
+function registerControls() {
+    avatar = document.getElementById("avatar");
+    avatar.x = 88;
+    avatar.y = 88;
+    document.onkeydown = keyDownHandler;
+}
+
 function processOnLoad(event) {
     var canvas=document.getElementById("background-canvas");
     var context=canvas.getContext('2d');
@@ -165,7 +208,9 @@ function processOnLoad(event) {
             // load the spritesheet .png into tileSheet Image()
             tileSheet.src = spriteSheetLoc;
         }
-    }
+    };
+
+    registerControls();
 }
 
 window.addEventListener("load", processOnLoad);
