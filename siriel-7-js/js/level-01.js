@@ -51,6 +51,7 @@ var gameObjectString = `[ZNNA]=1,8,17,1,3,10
 var gameObjects = [];
 var avatar;
 var avatarStep = 4;
+var backgroundCanvas;
 
 function gameObjectFromString(definition) {
     var data = definition.split("=");
@@ -86,8 +87,8 @@ function renderMap() {
 }
 
 function renderGameObjects() {
-    var canvas=document.getElementById("objects-canvas");
-    var context=canvas.getContext('2d');
+    //var canvas=document.getElementById("objects-canvas");
+    var context=backgroundCanvas.getContext('2d');
     var objectIndex;
     var objectsTexture = globalTiles.Tiles["objects"];
     var gameObject;
@@ -110,8 +111,17 @@ function tilesReady(name) {
     }
 }
 
+function checkCollisionWithBackground(x, y) {
+    var context=backgroundCanvas.getContext('2d');
+    var data = context.getImageData(x, y, 1, 1).data;
+    var rgb = [ data[0], data[1], data[2] ];
+    return ((rgb[0] + rgb[1] + rgb[2]) > 0 );
+}
+
 function keyDownHandler(event) {
     event = event || window.event;
+    var oldX = avatar.x;
+    var oldY = avatar.y;
     if (event.keyCode == '38') {
         // up arrow
         avatar.y -= avatarStep;
@@ -141,6 +151,16 @@ function keyDownHandler(event) {
         avatar.y = 480;
     }
 
+    var checkPoint = 13;
+    if ( (checkCollisionWithBackground(avatar.x, avatar.y)) ||
+        (checkCollisionWithBackground(avatar.x + checkPoint, avatar.y)) ||
+        (checkCollisionWithBackground(avatar.x, avatar.y + checkPoint)) ||
+        (checkCollisionWithBackground(avatar.x + checkPoint, avatar.y + checkPoint))
+    ) {
+        avatar.x = oldX;
+        avatar.y = oldY;
+    }
+
     avatar.style.left = avatar.x + 'px';
     avatar.style.top = avatar.y + 'px';
 }
@@ -153,8 +173,8 @@ function registerControls() {
 }
 
 function processOnLoad(event) {
-    var canvas=document.getElementById("background-canvas");
-    var context=canvas.getContext('2d');
+    backgroundCanvas=document.getElementById("background-canvas");
+    var context=backgroundCanvas.getContext('2d');
     var image=new Image();
 
      var tempCanvas = document.getElementById("temp-canvas");
