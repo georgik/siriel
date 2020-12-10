@@ -118,6 +118,28 @@ function checkCollisionWithBackground(x, y) {
     return ((rgb[0] + rgb[1] + rgb[2]) > 0 );
 }
 
+function applyMove(item, deltaX, deltaY) {
+    if ((deltaY == 0) && (deltaX == 0)) {
+        return;
+    }
+    var newX = item.x + deltaX;
+    var newY = item.y + deltaY;
+    var checkPoint = 13;
+    if ( (checkCollisionWithBackground(newX, newY)) ||
+    (checkCollisionWithBackground(newX + checkPoint, newY)) ||
+    (checkCollisionWithBackground(newX, newY + checkPoint)) ||
+    (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))
+    ) {
+        return;
+    }
+    item.x = newX;
+    item.y = newY;
+    item.style.left = item.x + 'px';
+    item.style.top = item.y + 'px';
+
+
+}
+
 function keyDownHandler(event) {
     event = event || window.event;
     var oldX = avatar.x;
@@ -165,11 +187,16 @@ function keyDownHandler(event) {
     avatar.style.top = avatar.y + 'px';
 }
 
+function heartBeat() {
+    applyMove(avatar, 0, 4);
+}
+
 function registerControls() {
     avatar = document.getElementById("avatar");
     avatar.x = 88;
     avatar.y = 88;
     document.onkeydown = keyDownHandler;
+    setInterval(heartBeat, 100);
 }
 
 function processOnLoad(event) {
