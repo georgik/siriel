@@ -126,17 +126,23 @@ function applyMove(item, deltaX, deltaY) {
     var newY = item.y + deltaY;
     var checkPoint = 13;
 
+    var collisionPointTopLeft = checkCollisionWithBackground(newX, newY + checkPoint);
+    var collisionPointTopRight = checkCollisionWithBackground(newX + checkPoint, newY);
+    var collisionPointBottomLeft = checkCollisionWithBackground(newX, newY + checkPoint);
+    var collisionPointBottomRight = checkCollisionWithBackground(newX + checkPoint, newY + checkPoint);
+
     /* Slope climb detection - left */
-    if ((deltaX < 0) && (deltaY == 0) &&
-        (checkCollisionWithBackground(newX, newY + checkPoint))) {
+    if ((deltaX != 0) && (deltaY == 0) &&
+        (collisionPointBottomLeft || collisionPointBottomRight) &&
+        (!collisionPointTopLeft || !collisionPointTopRight)) {
         newY -= avatarStep;
     }
 
     /* Slope climb detection - right */
-    if ((deltaX > 0) && (deltaY == 0) &&
+    /*if ((deltaX > 0) && (deltaY == 0) &&
         (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))) {
         newY -= avatarStep;
-    }
+    }*/
 
     if ((checkCollisionWithBackground(newX, newY)) ||
         (checkCollisionWithBackground(newX + checkPoint, newY)) ||
