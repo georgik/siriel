@@ -69,8 +69,6 @@ function gameObjectFromString(definition) {
 
 var globalTiles;
 function renderMap() {
-    var canvas=document.getElementById("background-canvas");
-    var context=canvas.getContext('2d');
     var line, column;
     var maxTileId = globalTiles.length;
     var textures = globalTiles.Tiles["textures"];
@@ -81,20 +79,18 @@ function renderMap() {
             if (tileId >= globalTiles.length) {
                 tileId = 0;
             }
-            context.putImageData(textures[tileId], 16*column, 16*line);
+            backgroundContext.putImageData(textures[tileId], 16*column, 16*line);
         }
     }
 }
 
 function renderGameObjects() {
-    //var canvas=document.getElementById("objects-canvas");
-    var context=backgroundCanvas.getContext('2d');
     var objectIndex;
     var objectsTexture = globalTiles.Tiles["objects"];
     var gameObject;
     for(objectIndex = 0; objectIndex < gameObjects.length; objectIndex++) {
         gameObject = gameObjects[objectIndex];
-        context.putImageData(objectsTexture[gameObject.tileId], gameObject.x, gameObject.y);
+        backgroundContext.putImageData(objectsTexture[gameObject.tileId], gameObject.x, gameObject.y);
     }
 }
 
@@ -111,9 +107,13 @@ function tilesReady(name) {
     }
 }
 
+var backgroundContext = null;
+
 function checkCollisionWithBackground(x, y) {
-    var context=backgroundCanvas.getContext('2d');
-    var data = context.getImageData(x, y, 1, 1).data;
+    if (backgroundContext == null) {
+        return;
+    }
+    var data = backgroundContext.getImageData(x, y, 1, 1).data;
     var rgb = [ data[0], data[1], data[2] ];
     return ((rgb[0] + rgb[1] + rgb[2]) > 0 );
 }
@@ -125,19 +125,35 @@ function applyMove(item, deltaX, deltaY) {
     var newX = item.x + deltaX;
     var newY = item.y + deltaY;
     var checkPoint = 13;
-    if ( (checkCollisionWithBackground(newX, newY)) ||
-    (checkCollisionWithBackground(newX + checkPoint, newY)) ||
-    (checkCollisionWithBackground(newX, newY + checkPoint)) ||
-    (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))
+
+    /* Slope climb detection - left */
+    if ((deltaX < 0) && (deltaY == 0) &&
+        (checkCollisionWithBackground(newX, newY + checkPoint))) {
+        newY -= avatarStep;
+    }
+
+    /* Slope climb detection - right */
+    if ((deltaX > 0) && (deltaY == 0) &&
+        (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))) {
+        newY -= avatarStep;
+    }
+
+    if ((checkCollisionWithBackground(newX, newY)) ||
+        (checkCollisionWithBackground(newX + checkPoint, newY)) ||
+        (checkCollisionWithBackground(newX, newY + checkPoint)) ||
+        (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))
     ) {
         return;
     }
+
+    if ((newX < 0) || (newX > 640) || (newY > 480) || (newY < 0)) {
+        return;
+    }
+
     item.x = newX;
     item.y = newY;
     item.style.left = item.x + 'px';
     item.style.top = item.y + 'px';
-
-
 }
 
 function keyDownHandler(event) {
@@ -146,48 +162,24 @@ function keyDownHandler(event) {
     var oldY = avatar.y;
     if (event.keyCode == '38') {
         // up arrow
-        avatar.y -= avatarStep;
+        // avatar.y -= avatarStep;
     }
     else if (event.keyCode == '40') {
         // down arrow
-        avatar.y += avatarStep;
+        //avatar.y += avatarStep;
     }
     else if (event.keyCode == '37') {
         // left arrow
-        avatar.x -= avatarStep;
+        applyMove(avatar, -avatarStep, 0);
     }
     else if (event.keyCode == '39') {
        // right arrow
-       avatar.x += avatarStep;
+       applyMove(avatar, avatarStep, 0);
     }
-
-    if (avatar.x < 0) {
-        avatar.x = 0;
-    } else if (avatar.x > 640) {
-        avatar.x = 640;
-    }
-
-    if (avatar.y < 0) {
-        avatar.y = 0;
-    } else if (avatar.y > 480) {
-        avatar.y = 480;
-    }
-
-    var checkPoint = 13;
-    if ( (checkCollisionWithBackground(avatar.x, avatar.y)) ||
-        (checkCollisionWithBackground(avatar.x + checkPoint, avatar.y)) ||
-        (checkCollisionWithBackground(avatar.x, avatar.y + checkPoint)) ||
-        (checkCollisionWithBackground(avatar.x + checkPoint, avatar.y + checkPoint))
-    ) {
-        avatar.x = oldX;
-        avatar.y = oldY;
-    }
-
-    avatar.style.left = avatar.x + 'px';
-    avatar.style.top = avatar.y + 'px';
 }
 
 function heartBeat() {
+    // gravity
     applyMove(avatar, 0, 4);
 }
 
@@ -201,10 +193,10 @@ function registerControls() {
 
 function processOnLoad(event) {
     backgroundCanvas=document.getElementById("background-canvas");
-    var context=backgroundCanvas.getContext('2d');
+    backgroundContext=backgroundCanvas.getContext('2d');
     var image=new Image();
 
-     var tempCanvas = document.getElementById("temp-canvas");
+    var tempCanvas = document.getElementById("temp-canvas");
     var tempContext = tempCanvas.getContext("2d");
 
     globalTiles = new TileSet();
