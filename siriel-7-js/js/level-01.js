@@ -52,6 +52,9 @@ var gameObjects = [];
 var avatar;
 var avatarStep = 4;
 var backgroundCanvas;
+var backgroundContext = null;
+var objectCanvas;
+var objectContext = null;
 
 function gameObjectFromString(definition) {
     var data = definition.split("=");
@@ -90,7 +93,7 @@ function renderGameObjects() {
     var gameObject;
     for(objectIndex = 0; objectIndex < gameObjects.length; objectIndex++) {
         gameObject = gameObjects[objectIndex];
-        backgroundContext.putImageData(objectsTexture[gameObject.tileId], gameObject.x, gameObject.y);
+        objectContext.putImageData(objectsTexture[gameObject.tileId], gameObject.x, gameObject.y);
     }
 }
 
@@ -106,8 +109,6 @@ function tilesReady(name) {
         renderGameObjects();
     }
 }
-
-var backgroundContext = null;
 
 function checkCollisionWithBackground(x, y) {
     if (backgroundContext == null) {
@@ -200,6 +201,10 @@ function registerControls() {
 function processOnLoad(event) {
     backgroundCanvas=document.getElementById("background-canvas");
     backgroundContext=backgroundCanvas.getContext('2d');
+
+    objectCanvas = document.getElementById("objects-canvas");
+    objectContext = objectCanvas.getContext('2d');
+
     var image=new Image();
 
     var tempCanvas = document.getElementById("temp-canvas");
