@@ -55,6 +55,7 @@ var backgroundCanvas;
 var backgroundContext = null;
 var objectCanvas;
 var objectContext = null;
+var keyboard = {};
 
 function gameObjectFromString(definition) {
     var data = definition.split("=");
@@ -120,8 +121,9 @@ function checkCollisionWithBackground(x, y) {
 }
 
 function applyMove(item, deltaX, deltaY) {
+    item.lastPositionChanged = false;
     if ((deltaY == 0) && (deltaX == 0)) {
-        return;
+        return false;
     }
     var newX = item.x + deltaX;
     var newY = item.y + deltaY;
@@ -150,51 +152,127 @@ function applyMove(item, deltaX, deltaY) {
         (checkCollisionWithBackground(newX, newY + checkPoint)) ||
         (checkCollisionWithBackground(newX + checkPoint, newY + checkPoint))
     ) {
-        return;
+        return false;
     }
 
     if ((newX < 0) || (newX > 640) || (newY > 480) || (newY < 0)) {
-        return;
+        return false;
     }
 
     item.x = newX;
     item.y = newY;
+    item.lastPositionChanged = true;
     item.style.left = item.x + 'px';
     item.style.top = item.y + 'px';
+    return true;
 }
 
 function keyDownHandler(event) {
     event = event || window.event;
-    var oldX = avatar.x;
-    var oldY = avatar.y;
     if (event.keyCode == '38') {
         // up arrow
-        // avatar.y -= avatarStep;
+        keyboard.up = true;
     }
-    else if (event.keyCode == '40') {
+    if (event.keyCode == '40') {
         // down arrow
-        //avatar.y += avatarStep;
+        keyboard.down = true;
     }
     else if (event.keyCode == '37') {
         // left arrow
-        applyMove(avatar, -avatarStep, 0);
+        keyboard.left = true;
     }
     else if (event.keyCode == '39') {
        // right arrow
-       applyMove(avatar, avatarStep, 0);
+       keyboard.right = true;
     }
 }
 
+function keyUpHandler(event) {
+  if (event.keyCode == '38') {
+    keyboard.up = false;
+  }
+  if (event.keyCode == '40') {
+    keyboard.down = false;
+  }
+  if (event.keyCode == '37') {
+    // left arrow
+    keyboard.left = false;
+  } else if (event.keyCode == '39') {
+    // right arrow
+    keyboard.right = false;
+  }
+}
+
+function classListAdd(item, className) {
+  if (!item.classList.contains(className)) {
+    item.classList.add(className);
+  }
+}
+
+function classListRemove(item, className) {
+  if (item.classList.contains(className)) {
+    item.classList.remove(className);
+  }
+}
+
 function heartBeat() {
+  if (keyboard.up) {
+    if ((avatar.yEnergy == 0) && (!avatar.lastPositionChanged)) {
+      avatar.yEnergy = 10;
+
+      if (keyboard.right) {
+        classListAdd(avatar, 'jump-right');
+      } else if (keyboard.left) {
+        classListAdd(avatar, 'jump-left');
+      } else {
+        classListAdd(avatar, 'jump-up');
+      }
+    }
+  }
+
+  if (keyboard.left) {
+    applyMove(avatar, -avatarStep, 0);
+    classListAdd(avatar, 'left');
+  } else {
+    classListRemove(avatar, 'left');
+  }
+
+
+  if (keyboard.right) {
+    applyMove(avatar, avatarStep, 0);
+    classListAdd(avatar, 'right');
+  } else {
+    classListRemove(avatar, 'right');
+  }
+
+  // Jump
+  if (avatar.yEnergy > 0) {
+    avatar.yEnergy--;
+
+    if (!applyMove(avatar, 0, -4)) {
+      // Collision with ceiling object
+      avatar.yEnergy = 0;
+    }
+  } else {
+    classListRemove(avatar, 'jump-up');
+    classListRemove(avatar, 'jump-left');
+    classListRemove(avatar, 'jump-right');
     // gravity
     applyMove(avatar, 0, 4);
+  }
 }
 
 function registerControls() {
     avatar = document.getElementById("avatar");
     avatar.x = 88;
     avatar.y = 88;
+    avatar.yEnergy = 0;
+    avatar.lastPositionChanged = false;
     document.onkeydown = keyDownHandler;
+    document.onkeyup = keyUpHandler;
+    keyboard.left = false;
+    keyboard.right = false;
+    keyboard.up = false;
     setInterval(heartBeat, 100);
 }
 
