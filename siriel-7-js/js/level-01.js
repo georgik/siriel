@@ -120,6 +120,17 @@ function checkCollisionWithBackground(x, y) {
     return ((rgb[0] + rgb[1] + rgb[2]) > 0 );
 }
 
+function getCollisionWithGameObjects(x, y) {
+  var collisionList = [];
+  for(var index = 0; index < gameObjects.length; index++) {
+    var gameObject = gameObjects[index];
+    if ((gameObject.x == x) && (gameObject.y == y)) {
+      collisionList.push(gameObject);
+    }
+  }
+  return collisionList;
+}
+
 function applyMove(item, deltaX, deltaY) {
     item.lastPositionChanged = false;
     if ((deltaY == 0) && (deltaX == 0)) {
@@ -259,6 +270,13 @@ function heartBeat() {
     classListRemove(avatar, 'jump-right');
     // gravity
     applyMove(avatar, 0, 4);
+  }
+
+  var collisionList = getCollisionWithGameObjects(avatar.x, avatar.y);
+  if (collisionList.length > 0) {
+    for (var index = 0; index < collisionList.length; index++) {
+      console.log("Collision:" + collisionList[index].score);
+    }
   }
 }
 
