@@ -8,7 +8,7 @@ dosbox \
     -c 'mount d siriel-3.5-dos' \
     -c 'd:' \
     -c 'cd d:\BIN' \
-    -c 'move L10NSK.CFG SIRIEL3.CFG'
+    -c 'COPY L10NSK.CFG SIRIEL3.CFG' \
     -c 'SI35.EXE' \
     -c 'exit'
 
