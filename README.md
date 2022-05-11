@@ -10,6 +10,12 @@ Requirements: dosbox
 
 Controls: Keyboard (arrows, spaces, enter), Gamepad
 
+Start the game:
+
+```
+./run-siriel-3.5-en_US.sh
+```
+
 ### Gamepad support
 
 Change value in the file `BIN/SIRIEL3.CFG`:
