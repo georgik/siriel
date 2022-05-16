@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+which dosbox >/dev/null || {
+    echo "dosbox command not found. Please install dosbox"
+    exit 1
+}
+
 dosbox \
     -machine vesa_oldvbe \
     -fullscreen \
