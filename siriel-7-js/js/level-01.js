@@ -59,6 +59,8 @@ var keyboard = {};
 var score = 0;
 var displayedScore = 0;
 
+const SCORE_STEP = 3;
+
 // Type of game objects
 const COLLECTIBLE = '3';
 
@@ -76,11 +78,19 @@ function gameObjectFromString(definition) {
     gameObjects.push(gameObject);
 }
 
+// Redraw scene. Clear the canvas and redraw all game objects.
+function redraw() {
+    objectContext.clearRect(0, 0, objectCanvas.width, objectCanvas.height);
+    renderMap();
+    renderGameObjects();
+}
+
 // Remove game object from the list of gameobjects based on identity
 function removeGameObject(gameObject) {
     var index = gameObjects.indexOf(gameObject);
     if (index > -1) {
         gameObjects.splice(index, 1);
+        redraw();
     }
 }
 
@@ -253,8 +263,8 @@ function processCollisionWithGameObject(gameObject) {
 // If difference is less than ten, update the displayed score just once.
 function updateDisplayedScore() {
   var scoreDifference = score - displayedScore;
-  if (scoreDifference > 10) {
-    displayedScore += 10;
+  if (scoreDifference > SCORE_STEP) {
+    displayedScore += SCORE_STEP;
   } else if (scoreDifference > 0) {
     displayedScore += scoreDifference;
   }
