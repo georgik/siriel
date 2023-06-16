@@ -56,6 +56,11 @@ var backgroundContext = null;
 var objectCanvas;
 var objectContext = null;
 var keyboard = {};
+var score = 0;
+var displayedScore = 0;
+
+// Type of game objects
+const COLLECTIBLE = '3';
 
 function gameObjectFromString(definition) {
     var data = definition.split("=");
@@ -69,6 +74,14 @@ function gameObjectFromString(definition) {
         score: items[5]
     }
     gameObjects.push(gameObject);
+}
+
+// Remove game object from the list of gameobjects based on identity
+function removeGameObject(gameObject) {
+    var index = gameObjects.indexOf(gameObject);
+    if (index > -1) {
+        gameObjects.splice(index, 1);
+    }
 }
 
 var globalTiles;
@@ -226,6 +239,29 @@ function classListRemove(item, className) {
   }
 }
 
+// Process collision with game object.
+// In case of collectible objects, remove the object and increase the score.
+function processCollisionWithGameObject(gameObject) {
+  if (gameObject.take == COLLECTIBLE) {
+    score += gameObject.score;
+    removeGameObject(gameObject);
+  }
+}
+
+// Update displayed score if value is lower than score.
+// Step 10 score points at a time.
+// If difference is less than ten, update the displayed score just once.
+function updateDisplayedScore() {
+  var scoreDifference = score - displayedScore;
+  if (scoreDifference > 10) {
+    displayedScore += 10;
+  } else if (scoreDifference > 0) {
+    displayedScore += scoreDifference;
+  }
+  scoreElement = document.getElementById('hud-score-value');
+  scoreElement.innerHTML = displayedScore;
+}
+
 function heartBeat() {
   if (keyboard.up) {
     if ((avatar.yEnergy == 0) && (!avatar.lastPositionChanged)) {
@@ -276,7 +312,12 @@ function heartBeat() {
   if (collisionList.length > 0) {
     for (var index = 0; index < collisionList.length; index++) {
       console.log("Collision:" + collisionList[index].score);
+      processCollisionWithGameObject(collisionList[index]);
     }
+  }
+
+  if (score != displayedScore) {
+    updateDisplayedScore();
   }
 }
 
