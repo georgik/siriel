@@ -59,8 +59,6 @@ var keyboard = {};
 var score = 0;
 var displayedScore = 0;
 
-const SCORE_STEP = 3;
-
 // Type of game objects
 const COLLECTIBLE = '3';
 
@@ -73,7 +71,7 @@ function gameObjectFromString(definition) {
         y: items[2]*8 + 8,
         room: items[3],
         take: items[4],
-        score: items[5]
+        score: parseInt(items[5])
     }
     gameObjects.push(gameObject);
 }
@@ -259,15 +257,22 @@ function processCollisionWithGameObject(gameObject) {
 }
 
 // Update displayed score if value is lower than score.
-// Step 10 score points at a time.
+// Use 10 steps to update the score.
 // If difference is less than ten, update the displayed score just once.
 function updateDisplayedScore() {
   var scoreDifference = score - displayedScore;
-  if (scoreDifference > SCORE_STEP) {
-    displayedScore += SCORE_STEP;
-  } else if (scoreDifference > 0) {
-    displayedScore += scoreDifference;
+
+  var scoreStep = Math.floor(scoreDifference / 10);
+  if (scoreStep < 1) {
+    scoreStep = 1;
   }
+
+  displayedScore += scoreStep;
+
+  if (displayedScore > score) {
+    displayedScore = score;
+  }
+
   scoreElement = document.getElementById('hud-score-value');
   scoreElement.innerHTML = displayedScore;
 }
