@@ -62,6 +62,9 @@ var displayedScore = 0;
 // Type of game objects
 const COLLECTIBLE = '3';
 
+// Delay between engine heartbeat
+const ENGINE_HEARTBEAT_INTERVAL = 50;
+
 function gameObjectFromString(definition) {
     var data = definition.split("=");
     var items = data[1].split(',');
@@ -347,7 +350,7 @@ function registerControls() {
     keyboard.left = false;
     keyboard.right = false;
     keyboard.up = false;
-    setInterval(heartBeat, 100);
+    setInterval(heartBeat, ENGINE_HEARTBEAT_INTERVAL);
 }
 
 function processOnLoad(event) {
