@@ -1,10 +1,16 @@
 import Phaser from 'phaser';
 
+type ObjectProperty = {
+    collectible: boolean;
+    hazardous: boolean;
+    gravity: boolean;
+};
+
 enum GameObjectTypes {
     TELEPORT, PEAR, CHERRY, STOP_WHEEL, // ... add all other types here
 }
 
-const GameObjectProperties = {
+const GameObjectProperties: { [key in GameObjectTypes]: ObjectProperty } = {
     [GameObjectTypes.TELEPORT]: { collectible: false, hazardous: false, gravity: false },
     [GameObjectTypes.PEAR]: { collectible: true, hazardous: false, gravity: true },
     [GameObjectTypes.CHERRY]: { collectible: true, hazardous: false, gravity: true },
@@ -75,9 +81,22 @@ export class MainScene extends Phaser.Scene {
 
         for (let i = 0; i < totalObjects; i++) {
             const randomType = Phaser.Math.Between(GameObjectTypes.TELEPORT, GameObjectTypes.STOP_WHEEL);
-            const objSprite = this.physics.add.sprite(Phaser.Math.Between(0, this.cameras.main.width), Phaser.Math.Between(0, this.cameras.main.height), 'objects', randomType);
+            const objSprite = this.physics.add.sprite(Phaser.Math.Between(0, this.cameras.main.width), 
+                                                      Phaser.Math.Between(0, this.cameras.main.height), 
+                                                      'objects',
+                                                      randomType);
 
             objSprite.setData('type', randomType);
+
+            // Set gravity if defined for the game object type
+            if (GameObjectProperties[randomType as GameObjectTypes].gravity) {
+                (objSprite.body as Phaser.Physics.Arcade.Body).setGravityY(300);
+            } else {
+                const body = objSprite.body as Phaser.Physics.Arcade.Body;
+                (objSprite.body as Phaser.Physics.Arcade.Body).setGravityY(0);
+                (objSprite.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+                (objSprite.body as Phaser.Physics.Arcade.Body).setVelocity(0);
+            }
         }
 
         // Enable physics for avatar movement
