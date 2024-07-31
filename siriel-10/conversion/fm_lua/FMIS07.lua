@@ -34,7 +34,7 @@ level = {
         {'type': 'trigger', 'position': {'x': 51, 'y': 45}, 'value': 5, 'name': 'XANA', 'layer': 'A', 'other_data': ['1', '8']},
         {'type': 'special', 'position': {'x': 62, 'y': 20}, 'value': 45, 'name': 'YANA', 'layer': 'A', 'other_data': ['1', '51'], 'animated': False, 'dangerous': False},
         {'type': 'special', 'position': {'x': 53, 'y': 24}, 'value': 1, 'name': 'YASA', 'layer': 'A', 'other_data': ['4', '3'], 'animated': False, 'dangerous': False},
-        {'type': 'special', 'position': {'x': 49, 'y': 24}, 'value': 0, 'name': 'YASA', 'layer': 'A', 'other_data': ['4', '3'], 'animated': False, 'dangerous': False},
+        {'type': 'specrial', 'position': {'x': 49, 'y': 24}, 'value': 0, 'name': 'YASA', 'layer': 'A', 'other_data': ['4', '3'], 'animated': False, 'dangerous': False},
         {'type': 'special', 'position': {'x': 74, 'y': 19}, 'value': 0, 'name': 'YASA', 'layer': 'A', 'other_data': ['4', '3'], 'animated': False, 'dangerous': False}
     ],
     map = [[
