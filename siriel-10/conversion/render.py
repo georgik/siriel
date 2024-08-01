@@ -47,8 +47,8 @@ AVATAR_COLOR = (0, 255, 0)
 BACKGROUND_COLOR = (0, 0, 0)
 
 # Load the texture
-texture = Image.open('img/texture2.webp')
-texture = texture.convert('RGBA')
+texture = Image.open('img/texture2.png')
+# texture = texture.convert('RGBA')
 texture_width, texture_height = texture.size
 
 # Convert texture to a list of surfaces
