@@ -35,15 +35,12 @@ map_data = [str(line).strip() for line in map_data if isinstance(line, str) and 
 
 # Debug: Print the cleaned map data to check its contents
 print("Cleaned Map Data:")
-for line in map_data:
-    print(line)
 
 map_width = max(len(line) for line in map_data)
 map_height = len(map_data)
 
 # Constants
 TILE_SIZE = 16  # Tiles are 16x16 in the texture
-TILES_PER_ROW = 19
 SCREEN_WIDTH = map_width * TILE_SIZE
 SCREEN_HEIGHT = map_height * TILE_SIZE
 AVATAR_COLOR = (0, 255, 0)
