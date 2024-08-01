@@ -82,7 +82,7 @@ while running:
     # Render the map
     for y, line in enumerate(map_data):
         for x, char in enumerate(line):
-            tile_index = ord(char) - ord(' ') - 14
+            tile_index = ord(char) - ord('.')
             
             if 0 <= tile_index < len(tile_surfaces):
                 screen.blit(tile_surfaces[tile_index], (x * TILE_SIZE, y * TILE_SIZE))

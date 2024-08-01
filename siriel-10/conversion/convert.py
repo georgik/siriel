@@ -2,7 +2,7 @@ import os
 import re
 
 # Character baseline for map data transformation
-baseline = 0x20
+baseline = 0x2E
 
 # Directory paths
 mie_dir = './fm'
@@ -38,7 +38,7 @@ def convert_mie_to_lua(mie_file):
             if line == "":
                 in_map_section = False
             else:
-                map_line = ''.join(chr(baseline + (ord(ch) - 0x0f)) if ch != '' else '.' for ch in line)
+                map_line = ''.join(chr(baseline + (ord(ch) - 0x0f)) for ch in line)
                 map_data.append(map_line)
             continue
         
@@ -81,8 +81,12 @@ def convert_mie_to_lua(mie_file):
                 objects.append(obj_properties)
     
     # Format messages and objects
-    formatted_messages = ",\n        ".join([str(msg) for msg in messages])
-    formatted_objects = ",\n        ".join([str(obj) for obj in objects])
+    formatted_messages = ",\n        ".join([f"{{lang = '{msg['lang']}', text = '{msg['text']}'}}" for msg in messages])
+    formatted_objects = ",\n        ".join([
+        f"{{type = '{obj['type']}', position = {{x = {obj['position']['x']}, y = {obj['position']['y']}}}, value = {obj['value']}, name = '{obj['name']}', layer = '{obj['layer']}', other_data = {{{', '.join(obj['other_data'])}}}}}"
+        for obj in objects
+    ])
+    formatted_map = ",\n        ".join([f'"{line}"' for line in map_data])
     
     lua_content = f"""
 -- {os.path.basename(mie_file)}
@@ -90,15 +94,15 @@ level = {{
     name = "{level_name}",
     start_position = {{ x = {start_position['x']}, y = {start_position['y']} }},
     sound_start = "{sound_start}",
-    messages = [
+    messages = {{
         {formatted_messages}
-    ],
-    objects = [
+    }},
+    objects = {{
         {formatted_objects}
-    ],
-    map = [[
-        {'\n        '.join(map_data)}
-    ]]
+    }},
+    map = {{
+        {formatted_map}
+    }}
 }}
 """
     return lua_content

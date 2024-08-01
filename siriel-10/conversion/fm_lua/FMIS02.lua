@@ -4,57 +4,57 @@ level = {
     name = ">LIGHT",
     start_position = { x = 312, y = 70 },
     sound_start = "ZPARA",
-    messages = [
+    messages = {
         
-    ],
-    objects = [
-        {'type': 'collectible', 'position': {'x': 13, 'y': 17}, 'value': 10, 'name': 'ZANA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 5, 'y': 17}, 'value': 10, 'name': 'ZANA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 9, 'y': 25}, 'value': 5, 'name': 'ZANA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 38, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 40, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 42, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 44, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 46, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 48, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 50, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 52, 'y': 45}, 'value': 50, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 30, 'y': 21}, 'value': 50, 'name': 'ZANA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 59, 'y': 30}, 'value': 5, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 61, 'y': 31}, 'value': 5, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 63, 'y': 31}, 'value': 5, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 61, 'y': 29}, 'value': 5, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'collectible', 'position': {'x': 63, 'y': 29}, 'value': 5, 'name': 'ZNNA', 'layer': 'A', 'other_data': ['1', '3']},
-        {'type': 'special', 'position': {'x': 14, 'y': 27}, 'value': 14, 'name': 'YASA', 'layer': 'A', 'other_data': ['2', '3'], 'animated': False, 'dangerous': False},
-        {'type': 'special', 'position': {'x': 54, 'y': 45}, 'value': 64, 'name': 'YASA', 'layer': 'A', 'other_data': ['2', '44'], 'animated': False, 'dangerous': False}
-    ],
-    map = [[
-        .......................................
-        .......................................
-        .......................................
-        .......................................
-        .......................................
-        .......................................
-        ...................(...(...............
-        .......................................
-        ..<;..<;.............(.................
-        ..................%....................
-        .................%"(...(...............
-        .......!$.......%".(((((...............
-        ....:9..#$...%!!"......................
-        .........#$............................
-        ..........#$.................%"........
-        ..:88889...#!!!!!$..........%".........
-        .................#$.......%!6$.........
-        ..................#$.....%"..#!!!!!....
-        ...................#$...%".............
-        ....................#$.%"..............
-        .......................................
-        ..................%!!!!!!!$............
-        ..................'.......#............
-        ................%!"....................
-        !!!!!!!!!!!!!!!!6!!!!!!!!!!!!!!!!!!!!!!
-        .......................................
-        .......................................
-    ]]
+    },
+    objects = {
+        {type = 'collectible', position = {x = 13, y = 17}, value = 10, name = 'ZANA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 5, y = 17}, value = 10, name = 'ZANA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 9, y = 25}, value = 5, name = 'ZANA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 38, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 40, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 42, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 44, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 46, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 48, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 50, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 52, y = 45}, value = 50, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 30, y = 21}, value = 50, name = 'ZANA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 59, y = 30}, value = 5, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 61, y = 31}, value = 5, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 63, y = 31}, value = 5, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 61, y = 29}, value = 5, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'collectible', position = {x = 63, y = 29}, value = 5, name = 'ZNNA', layer = 'A', other_data = {1, 3}},
+        {type = 'special', position = {x = 14, y = 27}, value = 14, name = 'YASA', layer = 'A', other_data = {2, 3}},
+        {type = 'special', position = {x = 54, y = 45}, value = 64, name = 'YASA', layer = 'A', other_data = {2, 44}}
+    },
+    map = {
+        ".......................................",
+        ".......................................",
+        ".......................................",
+        ".......................................",
+        ".......................................",
+        ".......................................",
+        "...................6...6...............",
+        ".......................................",
+        "..JI..JI.............6.................",
+        "..................3....................",
+        ".................306...6...............",
+        "......./2.......30.66666...............",
+        "....HG..12...3//0......................",
+        ".........12............................",
+        "..........12.................30........",
+        "..HFFFFG...1/////2..........30.........",
+        ".................12.......3/D2.........",
+        "..................12.....30..1/////....",
+        "...................12...30.............",
+        "....................12.30..............",
+        ".......................................",
+        "..................3///////2............",
+        "..................5.......1............",
+        "................3/0....................",
+        "////////////////D//////////////////////",
+        ".......................................",
+        "......................................."
+    }
 }
