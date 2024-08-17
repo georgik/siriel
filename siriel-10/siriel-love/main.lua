@@ -17,9 +17,9 @@ function love.load()
     mapData = level.map
 end
 
--- Update function (for animation)
+-- Update function (for animation and controls)
 function love.update(dt)
-    avatar.update(dt)
+    avatar.update(dt, mapData)
 end
 
 -- Draw function
@@ -29,4 +29,14 @@ function love.draw()
 
     -- Draw the avatar
     avatar.draw()
+end
+
+-- Key pressed event
+function love.keypressed(key)
+    avatar.keypressed(key)
+end
+
+-- Key released event
+function love.keyreleased(key)
+    avatar.keyreleased(key)
 end
