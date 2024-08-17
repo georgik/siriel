@@ -3,6 +3,7 @@ local map = {}
 local tileset
 local tileSize = 16
 local tiles = {}
+local margin = 8
 
 -- Function to load the tileset
 function map.loadTileset(tilesetPath)
@@ -49,7 +50,7 @@ function map.draw(mapData)
             local char = string.sub(line, x, x)
             local tileIndex = string.byte(char) - string.byte('.')
             if tileIndex >= 0 and tileIndex < #tiles then
-                love.graphics.draw(tileset, tiles[tileIndex + 1], (x - 1) * tileSize, (y - 1) * tileSize)
+                love.graphics.draw(tileset, tiles[tileIndex + 1], (x - 1) * tileSize + margin, (y - 1) * tileSize + margin)
             end
         end
     end

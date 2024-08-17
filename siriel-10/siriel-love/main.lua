@@ -3,8 +3,11 @@ local avatar = require("avatar")
 
 -- Load function
 function love.load()
+
+    love.window.setMode(640, 480, {fullscreen = false, vsync = true})
+    -- love.window.setMode(0, 0, {fullscreen = true, fullscreentype = "desktop"})
     -- Load the map
-    local level = map.load("fm_lua/FMIS12.lua")
+    local level = map.load("fm_lua/FMIS01.lua")
     if not level then
         error("Failed to load level")
     end
@@ -33,6 +36,10 @@ end
 
 -- Key pressed event
 function love.keypressed(key)
+    if key == "escape" then
+        love.event.quit()
+    end
+
     avatar.keypressed(key)
 end
 
