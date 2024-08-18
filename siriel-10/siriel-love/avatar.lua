@@ -11,6 +11,9 @@ local acceleration = { x = 0, y = 800 } -- Gravity
 local speed = 100
 local jumpVelocity = -300
 local isJumping = false
+local isFalling = false
+local isParachuting = false
+local parachuteSpeed = 100
 local currentAnimation = "idle" -- Possible values: "idle", "left", "right"
 local mapData
 
@@ -45,24 +48,65 @@ function avatar.update(dt, map)
         end
     end
 
-    -- Update position based on velocity
-    velocity.y = velocity.y + acceleration.y * dt
+    -- Check if avatar is on solid ground
+    local onGround = checkCollision(avatarPosition.x + 4, avatarPosition.y + tileSize) and
+                     checkCollision(avatarPosition.x + tileSize - 12, avatarPosition.y + tileSize)
 
-    avatarPosition.x = avatarPosition.x + velocity.x * dt
-    avatarPosition.y = avatarPosition.y + velocity.y * dt
-
-    -- Collision detection
-    if checkCollision(avatarPosition.x, avatarPosition.y + tileSize) then
+    -- Apply gravity if not on solid ground and not parachuting
+    if not onGround then
+        if isParachuting then
+            velocity.y = parachuteSpeed
+        else
+            velocity.y = velocity.y + acceleration.y * dt
+        end
+        isJumping = true
+        isFalling = true
+    else
         velocity.y = 0
         isJumping = false
-        avatarPosition.y = math.floor(avatarPosition.y / tileSize) * tileSize
+        isFalling = false
+        isParachuting = false -- Stop parachuting when on the ground
     end
 
-    -- Prevent falling out of the map
-    if avatarPosition.y > love.graphics.getHeight() then
-        avatarPosition.y = love.graphics.getHeight() - tileSize
-        velocity.y = 0
-        isJumping = false
+    -- Calculate new X position
+    local newX = avatarPosition.x + velocity.x * dt
+
+    -- Horizontal collision detection and slope climbing
+    if velocity.x ~= 0 then
+        if not checkCollision(newX + 4, avatarPosition.y) and not checkCollision(newX + tileSize - 12, avatarPosition.y + tileSize - 1) then
+            avatarPosition.x = newX
+        else
+            -- Check for slope climbing
+            if not isJumping and not checkCollision(newX + 4, avatarPosition.y - tileSize) and not checkCollision(newX + tileSize - 12, avatarPosition.y - tileSize) then
+                avatarPosition.x = newX
+                avatarPosition.y = avatarPosition.y - tileSize
+            else
+                velocity.x = 0
+            end
+        end
+    end
+
+    -- Calculate new Y position if gravity is applied
+    if isFalling then
+        local newY = avatarPosition.y + velocity.y * dt
+
+        -- Vertical collision detection
+        if velocity.y < 0 then -- Jumping
+            if checkCollision(avatarPosition.x + 4, newY) or checkCollision(avatarPosition.x + tileSize - 12, newY) then
+                velocity.y = 0
+            else
+                avatarPosition.y = newY
+            end
+        else -- Falling
+            avatarPosition.y = newY
+        end
+
+        -- Prevent falling out of the map
+        if avatarPosition.y > love.graphics.getHeight() then
+            avatarPosition.y = love.graphics.getHeight() - tileSize
+            velocity.y = 0
+            isJumping = false
+        end
     end
 end
 
@@ -97,8 +141,8 @@ end
 
 -- Check collision with the map tiles
 function checkCollision(x, y)
-    local tileX = math.floor(x / tileSize) + 1
-    local tileY = math.floor(y / tileSize) + 1
+    local tileX = math.floor((x - 8) / tileSize) + 1 -- Consider margin
+    local tileY = math.floor((y - 8) / tileSize) + 1 -- Consider margin
 
     if mapData[tileY] then
         local tile = string.sub(mapData[tileY], tileX, tileX)
@@ -106,6 +150,19 @@ function checkCollision(x, y)
     end
 
     return false
+end
+
+function avatar.isFalling()
+    return velocity.y > 0
+end
+
+function avatar.getPosition()
+    return { x = avatarPosition.x, y = avatarPosition.y }
+end
+
+function avatar.startParachute()
+    isParachuting = true
+    velocity.y = parachuteSpeed
 end
 
 return avatar

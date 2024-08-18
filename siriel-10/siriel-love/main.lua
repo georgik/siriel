@@ -1,11 +1,10 @@
 local map = require("map")
 local avatar = require("avatar")
+local parachute = require("parachute")
 
--- Load function
 function love.load()
-
     love.window.setMode(640, 480, {fullscreen = false, vsync = true})
-    -- love.window.setMode(0, 0, {fullscreen = true, fullscreentype = "desktop"})
+
     -- Load the map
     local level = map.load("fm_lua/FMIS01.lua")
     if not level then
@@ -16,25 +15,24 @@ function love.load()
     map.loadTileset("assets/texture2.png")
     avatar.load("assets/siriel-avatar.png", level.start_position)
 
+    -- Load the parachute
+    parachute.load()
+
     -- Store the map data for rendering
     mapData = level.map
 end
 
--- Update function (for animation and controls)
 function love.update(dt)
     avatar.update(dt, mapData)
+    parachute.update(dt, avatar.isFalling(), avatar.getPosition())
 end
 
--- Draw function
 function love.draw()
-    -- Draw the map
     map.draw(mapData)
-
-    -- Draw the avatar
     avatar.draw()
+    parachute.draw()
 end
 
--- Key pressed event
 function love.keypressed(key)
     if key == "escape" then
         love.event.quit()
@@ -43,7 +41,6 @@ function love.keypressed(key)
     avatar.keypressed(key)
 end
 
--- Key released event
 function love.keyreleased(key)
     avatar.keyreleased(key)
 end
