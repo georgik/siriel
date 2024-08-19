@@ -5,6 +5,7 @@ local tileSize = 16
 local tiles = {}
 local margin = 8
 
+-- Function to load the tileset
 function map.loadTileset(tilesetPath)
     tileset = love.graphics.newImage(tilesetPath)
     local tilesetWidth = tileset:getWidth() / tileSize
@@ -17,6 +18,7 @@ function map.loadTileset(tilesetPath)
     end
 end
 
+-- Function to load a Lua map file
 function map.load(filename)
     print("Loading map file:", filename)
     local status, chunk = pcall(love.filesystem.load, filename)
@@ -41,6 +43,7 @@ function map.load(filename)
     return nil
 end
 
+-- Function to draw the map
 function map.draw(mapData)
     for y, line in ipairs(mapData) do
         for x = 1, #line do
