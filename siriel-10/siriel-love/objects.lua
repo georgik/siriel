@@ -33,15 +33,8 @@ function objects.load(objectData)
 
     -- Process each object from the level
     for _, obj in ipairs(objectData) do
-        local tileIndex = objectTileIndexMap[obj.name]
-        if tileIndex then
-            table.insert(staticObjects, {
-                quad = love.graphics.newQuad((tileIndex) * tileSize, 0, tileSize, tileSize, staticTileset:getDimensions()),
-                x = obj.position.x * 8 + 8,
-                y = obj.position.y * 8 + 16
-            })
-        else
-            -- Handle animated objects or other special cases if necessary
+        if obj.animated then
+            -- Handle animated objects
             table.insert(animatedObjects, {
                 quads = animationQuads[tonumber(obj.other_data[1])],
                 frame = 1,
@@ -49,6 +42,16 @@ function objects.load(objectData)
                 y = obj.position.y * 8 + 16,
                 timer = 0
             })
+        else
+            -- Handle static objects
+            local tileIndex = objectTileIndexMap[obj.name]
+            if tileIndex then
+                table.insert(staticObjects, {
+                    quad = love.graphics.newQuad(tileIndex * tileSize, 0, tileSize, tileSize, staticTileset:getDimensions()),
+                    x = obj.position.x * 8 + 8,
+                    y = obj.position.y * 8 + 16
+                })
+            end
         end
     end
 end
@@ -56,18 +59,19 @@ end
 -- Update function for animated objects
 function objects.update(dt)
     for _, obj in ipairs(animatedObjects) do
+        -- Increment the timer for the animation
         obj.timer = obj.timer + dt
-        if obj.timer >= 0.1 then
+        if obj.timer >= 0.1 then  -- Adjust the speed of the animation as needed
             obj.timer = 0
             obj.frame = obj.frame + 1
             if obj.frame > #obj.quads then
-                obj.frame = 1
+                obj.frame = 1  -- Loop back to the first frame
             end
         end
     end
 end
 
--- Draw function for objects
+-- Draw function for objects with logging
 function objects.draw()
     for _, obj in ipairs(staticObjects) do
         love.graphics.draw(staticTileset, obj.quad, obj.x, obj.y)
@@ -77,5 +81,6 @@ function objects.draw()
         love.graphics.draw(animatedTileset, obj.quads[obj.frame], obj.x, obj.y)
     end
 end
+
 
 return objects
