@@ -36,17 +36,17 @@ function objects.load(objectData)
         local tileIndex = objectTileIndexMap[obj.name]
         if tileIndex then
             table.insert(staticObjects, {
-                quad = love.graphics.newQuad((tileIndex - 1) * tileSize, 0, tileSize, tileSize, staticTileset:getDimensions()),
-                x = obj.position.x * tileSize + 8,
-                y = obj.position.y * tileSize + 8
+                quad = love.graphics.newQuad((tileIndex) * tileSize, 0, tileSize, tileSize, staticTileset:getDimensions()),
+                x = obj.position.x * 8 + 8,
+                y = obj.position.y * 8 + 16
             })
         else
             -- Handle animated objects or other special cases if necessary
             table.insert(animatedObjects, {
                 quads = animationQuads[tonumber(obj.other_data[1])],
                 frame = 1,
-                x = obj.position.x * tileSize + 8,
-                y = obj.position.y * tileSize + 8,
+                x = obj.position.x * 8 + 8,
+                y = obj.position.y * 8 + 16,
                 timer = 0
             })
         end
