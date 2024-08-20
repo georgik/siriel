@@ -3,10 +3,13 @@ local avatar = require("avatar")
 local parachute = require("parachute")
 local objects = require("objects")
 
+local frameTime = 1 / 12  -- 12 frames per second
+local accumulator = 0
+
 -- Load function
 function love.load()
     love.window.setMode(640, 480, {fullscreen = false, vsync = true})
-    
+
     -- Load the map
     local level = map.load("fm_lua/FMIS01.lua")
     if not level then
@@ -24,8 +27,17 @@ end
 
 -- Update function (for animation and controls)
 function love.update(dt)
-    avatar.update(dt, mapData)
-    objects.update(dt)
+    accumulator = accumulator + dt
+
+    if accumulator < frameTime then
+        love.timer.sleep(frameTime - accumulator)
+    end
+
+    while accumulator >= frameTime do
+        avatar.update(frameTime, mapData)
+        objects.update(frameTime)
+        accumulator = accumulator - frameTime
+    end
 end
 
 -- Draw function
