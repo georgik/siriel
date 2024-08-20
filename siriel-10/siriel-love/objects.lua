@@ -35,8 +35,9 @@ function objects.load(objectData)
     for _, obj in ipairs(objectData) do
         if obj.animated then
             -- Handle animated objects
+            local tileIndex = objectTileIndexMap[obj.name] + 4
             table.insert(animatedObjects, {
-                quads = animationQuads[tonumber(obj.other_data[1])],
+                quads = animationQuads[tileIndex],
                 frame = 1,
                 x = obj.position.x * 8 + 8,
                 y = obj.position.y * 8 + 16,
