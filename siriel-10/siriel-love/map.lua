@@ -4,10 +4,17 @@ local tileset
 local tileSize = 16
 local tiles = {}
 local margin = 8
+local tilesetData
 
--- Function to load the tileset
+-- Function to load the tileset and prepare pixel data
 function map.loadTileset(tilesetPath)
-    tileset = love.graphics.newImage(tilesetPath)
+    -- Load the image data first
+    local imageData = love.image.newImageData(tilesetPath)
+    tilesetData = imageData
+
+    -- Create the image from the image data
+    tileset = love.graphics.newImage(imageData)
+
     local tilesetWidth = tileset:getWidth() / tileSize
 
     for y = 0, (tileset:getHeight() / tileSize) - 1 do
@@ -16,6 +23,15 @@ function map.loadTileset(tilesetPath)
             table.insert(tiles, quad)
         end
     end
+end
+
+-- Expose tiles and tilesetData to other modules
+function map.getTiles()
+    return tiles
+end
+
+function map.getTilesetData()
+    return tilesetData
 end
 
 -- Function to load a Lua map file

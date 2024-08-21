@@ -7,8 +7,12 @@ local avatarTimer = 0
 local avatarPosition = {}
 local tileSize = 16
 local velocity = { x = 0, y = 0 }
-local acceleration = { x = 0, y = 800 } -- Gravity
-local speed = 100
+local acceleration = { x = 0, y = 4 } -- Gravity
+local checkPointLeft = 0
+local checkPointRight = 14
+local tilesPerRow = 19
+local stepUp = 4
+local speed = 4
 local jumpVelocity = -300
 local isJumping = false
 local isFalling = false
@@ -16,6 +20,7 @@ local isParachuting = false
 local parachuteSpeed = 100
 local currentAnimation = "idle" -- Possible values: "idle", "left", "right"
 local mapData
+local tiles, tilesetData
 
 -- Function to load the avatar sprite sheet and initial position
 function avatar.load(imagePath, startPosition)
@@ -31,6 +36,12 @@ function avatar.load(imagePath, startPosition)
     -- Set the initial position of the avatar
     avatarPosition.x = startPosition.x
     avatarPosition.y = startPosition.y
+end
+
+-- Function to initialize tiles and tilesetData from the map module
+function avatar.init(mapTiles, mapTilesetData)
+    tiles = mapTiles
+    tilesetData = mapTilesetData
 end
 
 -- Update function for animation and movement
@@ -49,15 +60,15 @@ function avatar.update(dt, map)
     end
 
     -- Check if avatar is on solid ground
-    local onGround = checkCollision(avatarPosition.x + 4, avatarPosition.y + tileSize) and
-                     checkCollision(avatarPosition.x + tileSize - 12, avatarPosition.y + tileSize)
+    local onGround = checkCollision(avatarPosition.x + checkPointLeft, avatarPosition.y + tileSize) and
+                     checkCollision(avatarPosition.x + checkPointRight, avatarPosition.y + tileSize)
 
     -- Apply gravity if not on solid ground and not parachuting
     if not onGround then
         if isParachuting then
             velocity.y = parachuteSpeed
         else
-            velocity.y = velocity.y + acceleration.y * dt
+            velocity.y = acceleration.y
         end
         isJumping = true
         isFalling = true
@@ -69,17 +80,17 @@ function avatar.update(dt, map)
     end
 
     -- Calculate new X position
-    local newX = avatarPosition.x + velocity.x * dt
+    local newX = avatarPosition.x + velocity.x
 
     -- Horizontal collision detection and slope climbing
     if velocity.x ~= 0 then
-        if not checkCollision(newX + 4, avatarPosition.y) and not checkCollision(newX + tileSize - 12, avatarPosition.y + tileSize - 1) then
+        if not checkCollision(newX + checkPointLeft, avatarPosition.y + tileSize - 1) and not checkCollision(newX +  checkPointRight, avatarPosition.y + tileSize - 1) then
             avatarPosition.x = newX
         else
             -- Check for slope climbing
-            if not isJumping and not checkCollision(newX + 4, avatarPosition.y - tileSize) and not checkCollision(newX + tileSize - 12, avatarPosition.y - tileSize) then
+            if not isJumping and not checkCollision(newX + checkPointLeft, avatarPosition.y + tileSize - stepUp) and not checkCollision(newX + checkPointRight, avatarPosition.y + tileSize - 2) then
                 avatarPosition.x = newX
-                avatarPosition.y = avatarPosition.y - tileSize
+                avatarPosition.y = avatarPosition.y - stepUp
             else
                 velocity.x = 0
             end
@@ -88,26 +99,44 @@ function avatar.update(dt, map)
 
     -- Calculate new Y position if gravity is applied
     if isFalling then
-        local newY = avatarPosition.y + velocity.y * dt
+        local newY = avatarPosition.y + velocity.y
 
         -- Vertical collision detection
         if velocity.y < 0 then -- Jumping
-            if checkCollision(avatarPosition.x + 4, newY) or checkCollision(avatarPosition.x + tileSize - 12, newY) then
+            if checkCollision(avatarPosition.x + checkPointLeft, newY + tileSize - 1) or checkCollision(avatarPosition.x + checkPointRight, newY + tileSize - 1) then
                 velocity.y = 0
             else
-                avatarPosition.y = newY
+                if not checkCollision(avatarPosition.x + checkPointLeft, newY + tileSize - 1) and not checkCollision(avatarPosition.x + checkPointRight, newY + tileSize - 1) then
+                    avatarPosition.y = newY
+                end
             end
         else -- Falling
-            avatarPosition.y = newY
+            if not checkCollision(avatarPosition.x + checkPointLeft, newY + tileSize - 1) and not checkCollision(avatarPosition.x + checkPointRight, newY + tileSize - 1) then
+                avatarPosition.y = newY
+            end
         end
 
-        -- Prevent falling out of the map
-        if avatarPosition.y > love.graphics.getHeight() then
-            avatarPosition.y = love.graphics.getHeight() - tileSize
-            velocity.y = 0
-            isJumping = false
+    end
+
+    -- Prevent falling out of the map
+    if avatarPosition.y > love.graphics.getHeight() then
+        avatarPosition.y = love.graphics.getHeight() - tileSize
+        velocity.y = 0
+        isJumping = false
+    else
+        if avatarPosition.y < 0 then
+            avatarPosition = 0
         end
     end
+
+    if avatarPosition.x > love.graphics.getWidth() then
+        avatarPosition.x = love.graphics.getWidth()
+    else
+        if avatarPosition.x < 0 then
+            avatarPosition.x = 0
+        end
+    end
+    
 end
 
 -- Draw function for the avatar
@@ -139,18 +168,43 @@ function avatar.keyreleased(key)
     end
 end
 
--- Check collision with the map tiles
+-- Check collision with the map tiles based on pixel transparency
 function checkCollision(x, y)
-    local tileX = math.floor((x - 8) / tileSize) + 1 -- Consider margin
-    local tileY = math.floor((y - 8) / tileSize) + 1 -- Consider margin
+    x = math.floor(x)
+    y = math.floor(y)
+    local tileX = math.floor((x - 8) / tileSize) + 1
+    local tileY = math.floor((y - 8) / tileSize) + 1
 
     if mapData[tileY] then
         local tile = string.sub(mapData[tileY], tileX, tileX)
-        return tile ~= "."
+        if tile == "." then
+            return false -- No collision for fully transparent tile
+        else
+            -- Determine the exact pixel position within the tile
+            local pixelX = (x - 8) % tileSize
+            local pixelY = (y - 8) % tileSize
+
+            -- Get the tile index
+            local tileIndex = string.byte(tile) - string.byte(".")
+
+            if tileIndex >= 0 and tileIndex < #tiles then
+                print("X,Y", tileIndex * tileSize + pixelX, pixelY)
+
+                -- Get pixel color
+                local r, g, b, a = tilesetData:getPixel((tileIndex % tilesPerRow) * tileSize + pixelX, (tileIndex / tilesPerRow) * tileSize + pixelY)
+                -- Check if the pixel is not fully transparent
+                
+                if a > 0 then
+                    return true
+                end
+
+            end
+        end
     end
 
     return false
 end
+
 
 function avatar.isFalling()
     return velocity.y > 0

@@ -18,6 +18,10 @@ function love.load()
 
     -- Load the tileset for the map and the avatar
     map.loadTileset("assets/texture2.png")
+    
+    -- Initialize the avatar with the tiles and tilesetData
+    avatar.init(map.getTiles(), map.getTilesetData())
+
     avatar.load("assets/siriel-avatar.png", level.start_position)
     objects.load(level.objects)
 
@@ -50,7 +54,7 @@ function love.draw()
 
     -- Draw the avatar
     avatar.draw()
-    
+
     -- Draw the parachute
     parachute.draw()
 end
