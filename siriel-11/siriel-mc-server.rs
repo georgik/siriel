@@ -34,8 +34,8 @@ fn setup(
         }
     }
 
-    for z in -25..25 {
-        for x in -25..25 {
+    for z in -50..50 {
+        for x in -50..50 {
             layer
                 .chunk
                 .set_block([x, SPAWN_Y, z], BlockState::GRASS_BLOCK);
@@ -52,15 +52,17 @@ fn setup(
     let map_end = level_data.find("}").expect("End of map section not found");
     let map_data = &level_data[map_start + 7..map_end];
 
-    let map: Vec<String> = map_data
+    let level_map: Vec<String> = map_data
         .lines()
         .map(|line| line.trim()) // Trim leading/trailing whitespace
         .filter(|line| !line.is_empty() && !line.starts_with("map") && !line.starts_with('{') && !line.starts_with('}'))
         .map(|line| line.trim_matches(&['"', ',', ' '][..]).to_string()) // Remove quotes, commas, and extra spaces
         .collect();
 
+    let map_height = level_map.len();
 
-    for (y, row) in map.iter().enumerate() {
+    for (y, row) in level_map.iter().enumerate() {
+        let reversed_y = map_height - 1 - y; // Reverse Y-axis
         for (x, tile) in row.chars().enumerate() {
             print!("{}", tile);
             let block_state = match tile {
@@ -72,17 +74,17 @@ fn setup(
                 _ => BlockState::DIRT,
             };
 
-            // Inflate the tile into a 5x5 horizontal space and stack 5 vertically
-
-            layer.chunk.set_block(
-                [x as i32, SPAWN_Y + y as i32, 1 as i32],
-                BlockState::GRASS_BLOCK,
-            );
+            // Create depth by duplicating tiles along the Z-axis
+            for z_offset in 0..3 {
+                layer.chunk.set_block(
+                    [x as i32, SPAWN_Y + reversed_y as i32, z_offset as i32],
+                    block_state,
+                );
+            }
 
         }
         println!(".");
     }
-
     // layer.chunk.set_block(CHEST_POS, BlockState::CHEST);
 
     let layer_id = commands.spawn(layer).id();
@@ -112,6 +114,7 @@ fn init_clients(
             &mut VisibleChunkLayer,
             &mut VisibleEntityLayers,
             &mut Position,
+            &mut Look,
             &mut GameMode,
         ),
         Added<Client>,
@@ -123,6 +126,7 @@ fn init_clients(
         mut visible_chunk_layer,
         mut visible_entity_layers,
         mut pos,
+        mut look,
         mut game_mode,
     ) in &mut clients
     {
@@ -131,10 +135,16 @@ fn init_clients(
         layer_id.0 = layer;
         visible_chunk_layer.0 = layer;
         visible_entity_layers.0.insert(layer);
-        pos.set([0.0, f64::from(SPAWN_Y) + 1.0, 0.0]);
+        pos.set([8.0, 65.0, 20.0]);
+
+        // Adjust the yaw to turn the avatar around 180 degrees
+        look.yaw = 190.0; // Yaw in degrees, 180 = facing the opposite direction
+        look.pitch = -10.0; // Pitch should remain unchanged unless you want to look up/down
+
         *game_mode = GameMode::Creative;
     }
 }
+
 
 fn toggle_gamemode_on_sneak(
     mut clients: Query<&mut GameMode>,
