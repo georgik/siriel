@@ -6,7 +6,7 @@ use valence::entity::chicken::ChickenEntityBundle;
 use valence::entity::Velocity;
 use rand::Rng;
 use valence::interact_block::InteractBlockEvent;
-
+use valence::inventory::HeldItem;
 
 const SPAWN_Y: i32 = 64;
 const CHEST_POS: [i32; 3] = [0, SPAWN_Y + 1, 3];
@@ -28,7 +28,9 @@ pub fn main() {
                       open_chest,
                       despawn_disconnected_clients,
                       handle_block_destruction,
-                      wander_chickens))
+                      wander_chickens,
+                      digging,
+                      place_blocks,))
         .run();
 }
 
@@ -143,10 +145,10 @@ fn setup(
     ));
 
 
-    commands.spawn(Inventory::with_title(
-        InventoryKind::Generic9x3,
-        "Destructible Blocks".italic().bold().color(Color::GREEN),
-    ));
+    // commands.spawn(Inventory::with_title(
+    //     InventoryKind::Generic9x3,
+    //     "Destructible Blocks".italic().bold().color(Color::GREEN),
+    // ));
 }
 
 fn init_clients(
@@ -248,5 +250,78 @@ fn open_chest(
         }
         let open_inventory = OpenInventory::new(inventories.single());
         commands.entity(event.client).insert(open_inventory);
+    }
+}
+
+
+
+fn digging(
+    clients: Query<&GameMode>,
+    mut layers: Query<&mut ChunkLayer>,
+    mut events: EventReader<DiggingEvent>,
+) {
+    let mut layer = layers.single_mut();
+
+    for event in events.read() {
+        let Ok(game_mode) = clients.get(event.client) else {
+            continue;
+        };
+
+        if (*game_mode == GameMode::Creative && event.state == DiggingState::Start)
+            || (*game_mode == GameMode::Survival && event.state == DiggingState::Stop)
+        {
+            layer.set_block(event.position, BlockState::AIR);
+        }
+    }
+}
+
+fn place_blocks(
+    mut clients: Query<(&mut Inventory, &GameMode, &HeldItem)>,
+    mut layers: Query<&mut ChunkLayer>,
+    mut events: EventReader<InteractBlockEvent>,
+) {
+    let mut layer = layers.single_mut();
+
+    for event in events.read() {
+        let Ok((mut inventory, game_mode, held)) = clients.get_mut(event.client) else {
+            continue;
+        };
+        if event.hand != Hand::Main {
+            continue;
+        }
+
+        // get the held item
+        let slot_id = held.slot();
+        let stack = inventory.slot(slot_id);
+        if stack.is_empty() {
+            // no item in the slot
+            continue;
+        };
+
+        let Some(block_kind) = BlockKind::from_item_kind(stack.item) else {
+            // can't place this item as a block
+            continue;
+        };
+
+        if *game_mode == GameMode::Survival {
+            // check if the player has the item in their inventory and remove
+            // it.
+            if stack.count > 1 {
+                let amount = stack.count - 1;
+                inventory.set_slot_amount(slot_id, amount);
+            } else {
+                inventory.set_slot(slot_id, ItemStack::EMPTY);
+            }
+        }
+        let real_pos = event.position.get_in_direction(event.face);
+        let state = block_kind.to_state().set(
+            PropName::Axis,
+            match event.face {
+                Direction::Down | Direction::Up => PropValue::Y,
+                Direction::North | Direction::South => PropValue::Z,
+                Direction::West | Direction::East => PropValue::X,
+            },
+        );
+        layer.set_block(real_pos, state);
     }
 }
