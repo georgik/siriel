@@ -1,11 +1,17 @@
-
 extern crate valence;
 use valence::prelude::*;
 
 use std::fs;
 use valence::entity::chicken::ChickenEntityBundle;
+use valence::entity::Velocity;
+use rand::Rng;
+use valence::interact_block::InteractBlockEvent;
+
 
 const SPAWN_Y: i32 = 64;
+const CHEST_POS: [i32; 3] = [0, SPAWN_Y + 1, 3];
+#[derive(Component)]
+struct WanderingChicken;
 
 pub fn main() {
     App::new()
@@ -14,12 +20,39 @@ pub fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
+        .add_event::<BlockDestroyEvent>()
         .add_systems(Startup, setup)
         .add_systems(Update,
                      (init_clients,
                       toggle_gamemode_on_sneak,
-                      despawn_disconnected_clients))
+                      open_chest,
+                      despawn_disconnected_clients,
+                      handle_block_destruction,
+                      wander_chickens))
         .run();
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Event)]
+pub struct BlockDestroyEvent {
+    pub block_pos: [i32; 3],
+    pub client_id: Entity,
+}
+
+fn wander_chickens(
+    mut chickens: Query<(&mut Position, &mut Velocity), With<WanderingChicken>>,
+    server: Res<Server>,
+) {
+    let mut rng = rand::thread_rng();
+    let delta_time = 1.0 / server.tick_rate().get() as f32;
+
+    for (mut pos, mut vel) in chickens.iter_mut() {
+        if rng.gen_bool(0.1) { // 10% chance to change direction
+            let angle = rng.gen_range(0.0..std::f64::consts::TAU) as f32;
+            vel.0 = Vec3::new(angle.cos(), 0.0, angle.sin());
+        }
+        pos.0.x += vel.0.x as f64 * delta_time as f64;
+        pos.0.z += vel.0.z as f64 * delta_time as f64;
+    }
 }
 
 fn setup(
@@ -87,7 +120,7 @@ fn setup(
         }
         println!(".");
     }
-    // layer.chunk.set_block(CHEST_POS, BlockState::CHEST);
+    layer.chunk.set_block(CHEST_POS, BlockState::CHEST);
 
     let layer_id = commands.spawn(layer).id();
     // commands.spawn(layer);
@@ -98,15 +131,22 @@ fn setup(
     );
 
     commands.spawn(inventory);
+
     // Spawn a chicken
-    // commands.spawn((
-    //     ChickenEntityBundle {
-    //         layer: EntityLayerId(layer_id),
-    //         position: Position::new([1.0, f64::from(SPAWN_Y) + 1.0, 0.0]),
-    //         ..Default::default()
-    //     },
-    //     WanderingChicken,
-    // ));
+    commands.spawn((
+        ChickenEntityBundle {
+            layer: EntityLayerId(layer_id),
+            position: Position::new([1.0, f64::from(SPAWN_Y) + 1.0, 0.0]),
+            ..Default::default()
+        },
+        WanderingChicken,
+    ));
+
+
+    commands.spawn(Inventory::with_title(
+        InventoryKind::Generic9x3,
+        "Destructible Blocks".italic().bold().color(Color::GREEN),
+    ));
 }
 
 fn init_clients(
@@ -140,8 +180,8 @@ fn init_clients(
         pos.set([8.0, 65.0, 20.0]);
 
         // Adjust the yaw to turn the avatar around 180 degrees
-        look.yaw = 190.0; // Yaw in degrees, 180 = facing the opposite direction
-        look.pitch = -10.0; // Pitch should remain unchanged unless you want to look up/down
+        look.yaw = 195.0; // Yaw in degrees, 180 = facing the opposite direction
+        look.pitch = -20.0; // Pitch should remain unchanged unless you want to look up/down
 
         *game_mode = GameMode::Creative;
     }
@@ -166,3 +206,47 @@ fn toggle_gamemode_on_sneak(
 }
 
 
+fn handle_block_destruction(
+    mut events: EventReader<BlockDestroyEvent>,
+    mut layers: Query<&mut ChunkLayer>,
+) {
+    for event in events.read() {
+        if let Ok(mut layer) = layers.get_single_mut() {
+            // Convert block position to ChunkPos via BlockPos.
+            let block_pos = BlockPos::new(event.block_pos[0], event.block_pos[1], event.block_pos[2]);
+            let chunk_pos: ChunkPos = block_pos.into();
+
+            // Get a mutable reference to the chunk.
+            if let Some(chunk) = layer.chunk_mut(chunk_pos) {
+                chunk.set_block(
+                    event.block_pos[0] as u32,
+                    event.block_pos[1] as u32,
+                    event.block_pos[2] as u32,
+                    BlockState::AIR,
+                );
+                println!(
+                    "Block at {:?} destroyed by client {:?}",
+                    event.block_pos, event.client_id
+                );
+            } else {
+                println!("Chunk not found for block position {:?}", event.block_pos);
+            }
+        } else {
+            println!("No layer found to handle block destruction.");
+        }
+    }
+}
+
+fn open_chest(
+    mut commands: Commands,
+    inventories: Query<Entity, (With<Inventory>, Without<Client>)>,
+    mut events: EventReader<InteractBlockEvent>,
+) {
+    for event in events.read() {
+        if event.position != CHEST_POS.into() {
+            continue;
+        }
+        let open_inventory = OpenInventory::new(inventories.single());
+        commands.entity(event.client).insert(open_inventory);
+    }
+}
