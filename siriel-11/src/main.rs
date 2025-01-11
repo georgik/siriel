@@ -1,3 +1,5 @@
+
+extern crate valence;
 use valence::prelude::*;
 
 use std::fs;

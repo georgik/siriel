@@ -1,0 +1,5 @@
+[package]
+name = "siriel"
+
+[dependencies]
+valence = { path = "../../valence" }
