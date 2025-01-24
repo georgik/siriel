@@ -7,6 +7,8 @@ use valence::entity::Velocity;
 use rand::Rng;
 use valence::interact_block::InteractBlockEvent;
 use valence::inventory::HeldItem;
+use valence::message::ChatMessageEvent;
+use valence::protocol::packets::play::{ChatMessageC2s, ChatMessageS2c};
 
 const SPAWN_Y: i32 = 64;
 const CHEST_POS: [i32; 3] = [0, SPAWN_Y + 1, 3];
@@ -30,9 +32,44 @@ pub fn main() {
                       handle_block_destruction,
                       wander_chickens,
                       digging,
-                      place_blocks,))
+                      place_blocks,
+                      event_handler,
+                     ))
         .run();
 }
+
+fn event_handler(
+    mut clients: Query<(&Username, &Properties, &UniqueId, &mut Client)>, // Client query
+    mut messages: EventReader<ChatMessageEvent>,
+    mut block_interacts: EventReader<InteractBlockEvent>,
+    mut layers: Query<&mut ChunkLayer>,
+) {
+    let mut layer = layers.single_mut();
+
+    // Step 1: Extract all messages
+    let mut extracted_messages = Vec::new();
+    for ChatMessageEvent {
+        client,
+        message,
+        ..
+    } in messages.read()
+    {
+        if let Ok((username, _, _, _)) = clients.get(*client) {
+            println!("Message from {}: {:?}", username, message);
+            extracted_messages.push((username.clone(), message.clone()));
+        }
+    }
+
+    // Step 2: Broadcast extracted messages to all clients
+    for (username, message) in extracted_messages {
+        for (_, _, _, mut client) in &mut clients {
+            client.send_chat_message(
+                format!("{}: {}", username.as_str(), message).italic(),
+            );
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Event)]
 pub struct BlockDestroyEvent {
