@@ -135,14 +135,14 @@ fn setup(
     commands.spawn(inventory);
 
     // Spawn a chicken
-    commands.spawn((
-        ChickenEntityBundle {
-            layer: EntityLayerId(layer_id),
-            position: Position::new([1.0, f64::from(SPAWN_Y) + 1.0, 0.0]),
-            ..Default::default()
-        },
-        WanderingChicken,
-    ));
+    // commands.spawn((
+    //     ChickenEntityBundle {
+    //         layer: EntityLayerId(layer_id),
+    //         position: Position::new([1.0, f64::from(SPAWN_Y) + 1.0, 0.0]),
+    //         ..Default::default()
+    //     },
+    //     WanderingChicken,
+    // ));
 
 
     // commands.spawn(Inventory::with_title(
@@ -154,6 +154,7 @@ fn setup(
 fn init_clients(
     mut clients: Query<
         (
+            &mut Client,
             &mut EntityLayerId,
             &mut VisibleChunkLayer,
             &mut VisibleEntityLayers,
@@ -166,6 +167,7 @@ fn init_clients(
     layers: Query<Entity, (With<ChunkLayer>, With<EntityLayer>)>,
 ) {
     for (
+        mut client,
         mut layer_id,
         mut visible_chunk_layer,
         mut visible_entity_layers,
@@ -186,6 +188,9 @@ fn init_clients(
         look.pitch = -20.0; // Pitch should remain unchanged unless you want to look up/down
 
         *game_mode = GameMode::Creative;
+        client.send_chat_message(
+            "Welcome to Digital Twin world.".italic(),
+        );
     }
 }
 
