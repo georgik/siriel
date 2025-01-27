@@ -12,6 +12,8 @@ use valence::protocol::packets::play::{ChatMessageC2s, ChatMessageS2c};
 
 const SPAWN_Y: i32 = 64;
 const CHEST_POS: [i32; 3] = [0, SPAWN_Y + 1, 3];
+const REDSTONE_LAMP_POS: [i32; 3] = [2, SPAWN_Y + 1, 3];
+const LEVER_POS: [i32; 3] = [3, SPAWN_Y + 1, 3];
 #[derive(Component)]
 struct WanderingChicken;
 
@@ -159,7 +161,11 @@ fn setup(
         }
         println!(".");
     }
+
+    // Add blocks that we're watching
     layer.chunk.set_block(CHEST_POS, BlockState::CHEST);
+    layer.chunk.set_block(REDSTONE_LAMP_POS, BlockState::REDSTONE_LAMP);
+    layer.chunk.set_block(LEVER_POS, BlockState::LEVER.set(PropName::Facing, PropValue::East),);
 
     let layer_id = commands.spawn(layer).id();
     // commands.spawn(layer);
