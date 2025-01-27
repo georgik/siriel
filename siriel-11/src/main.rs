@@ -70,6 +70,47 @@ fn event_handler(
             );
         }
     }
+
+    for event in block_interacts.read() {
+        if event.position == LEVER_POS.into() {
+            // Convert the BlockPos to ChunkPos
+            let chunk_pos: ChunkPos = event.position.into();
+
+            // Access the chunk containing the lever
+            if let Some(chunk) = layer.chunk(chunk_pos) {
+                // Calculate local coordinates within the chunk
+                let x = event.position.x.rem_euclid(16) as u32;
+                let y = event.position.y as u32;
+                let z = event.position.z.rem_euclid(16) as u32;
+
+                // Get the block state of the lever
+                let mut block_state = chunk.block(x, y, z);
+                let powered = block_state.state.get(PropName::Powered) == Some(PropValue::True);
+
+                // Toggle the powered state of the lever
+                let new_lever_state = block_state.state.set(PropName::Powered, (!powered).into());
+                layer.set_block(event.position, new_lever_state);
+
+                // Update the redstone lamp based on the lever state
+                let new_lamp_state = if powered {
+                    BlockState::REDSTONE_LAMP.set(PropName::Lit, false.into())
+                } else {
+                    BlockState::REDSTONE_LAMP.set(PropName::Lit, true.into())
+                };
+                layer.set_block(REDSTONE_LAMP_POS, new_lamp_state);
+
+                println!(
+                    "Lever toggled to {}. Lamp updated to {}.",
+                    if !powered { "ON" } else { "OFF" },
+                    if !powered { "LIT" } else { "UNLIT" }
+                );
+            } else {
+                println!("Chunk not loaded for the lever position.");
+            }
+        }
+    }
+
+
 }
 
 
