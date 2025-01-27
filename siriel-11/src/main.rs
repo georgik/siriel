@@ -77,11 +77,11 @@ fn event_handler(
             let chunk_pos: ChunkPos = event.position.into();
 
             // Access the chunk containing the lever
-            if let Some(chunk) = layer.chunk(chunk_pos) {
+            if let Some(chunk) = layer.chunk_mut(chunk_pos) {
                 // Calculate local coordinates within the chunk
-                let x = event.position.x.rem_euclid(16) as u32;
+                let x = event.position.x as u32;
                 let y = event.position.y as u32;
-                let z = event.position.z.rem_euclid(16) as u32;
+                let z = event.position.z as u32;
 
                 // Get the block state of the lever
                 let mut block_state = chunk.block(x, y, z);
@@ -89,7 +89,7 @@ fn event_handler(
 
                 // Toggle the powered state of the lever
                 let new_lever_state = block_state.state.set(PropName::Powered, (!powered).into());
-                layer.set_block(event.position, new_lever_state);
+                layer.set_block(event.position, new_lever_state); // Update without replacing the lever
 
                 // Update the redstone lamp based on the lever state
                 let new_lamp_state = if powered {
@@ -109,6 +109,7 @@ fn event_handler(
             }
         }
     }
+
 
 
 }
@@ -302,6 +303,12 @@ fn handle_block_destruction(
     mut layers: Query<&mut ChunkLayer>,
 ) {
     for event in events.read() {
+        if event.block_pos == LEVER_POS {
+            // Prevent the lever from being destroyed
+            println!("Attempt to destroy lever blocked.");
+            continue;
+        }
+
         if let Ok(mut layer) = layers.get_single_mut() {
             // Convert block position to ChunkPos via BlockPos.
             let block_pos = BlockPos::new(event.block_pos[0], event.block_pos[1], event.block_pos[2]);
@@ -352,6 +359,12 @@ fn digging(
     let mut layer = layers.single_mut();
 
     for event in events.read() {
+        if event.position == LEVER_POS.into() {
+            // Prevent the lever from being replaced or removed
+            println!("Digging event ignored for lever.");
+            continue;
+        }
+
         let Ok(game_mode) = clients.get(event.client) else {
             continue;
         };
