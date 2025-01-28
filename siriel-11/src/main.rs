@@ -1,4 +1,5 @@
 extern crate valence;
+use bevy::prelude::TimerMode;
 use valence::prelude::*;
 
 use std::fs;
@@ -9,6 +10,21 @@ use valence::interact_block::InteractBlockEvent;
 use valence::inventory::HeldItem;
 use valence::message::ChatMessageEvent;
 use valence::protocol::packets::play::{ChatMessageC2s, ChatMessageS2c};
+
+// Blink
+use valence::command_macros::Command;
+use bevy::time::{Time, Timer};
+use bevy::time::TimePlugin;
+use valence::command::AddCommand;
+use valence::command::handler::CommandResultEvent;
+
+#[derive(Component)]
+struct Blinking {
+    is_active: bool,
+    timer: Timer,
+}
+
+
 
 const SPAWN_Y: i32 = 64;
 const CHEST_POS: [i32; 3] = [0, SPAWN_Y + 1, 3];
@@ -24,7 +40,10 @@ pub fn main() {
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
+        .add_plugins(TimePlugin)
         .add_event::<BlockDestroyEvent>()
+        .add_event::<CommandResultEvent<BlinkCommand>>()
+        .add_command::<BlinkCommand>()
         .add_systems(Startup, setup)
         .add_systems(Update,
                      (init_clients,
@@ -36,9 +55,76 @@ pub fn main() {
                       digging,
                       place_blocks,
                       event_handler,
+                      handle_blink_command,
+                      handle_blinking
                      ))
         .run();
 }
+
+fn handle_blinking(
+    mut query: Query<(&mut Blinking, &mut ChunkLayer)>,
+    time: Res<Time>, // Bevy's Time resource for delta time
+) {
+    for (mut blinking, mut layer) in query.iter_mut() {
+        if blinking.is_active {
+            // Tick the timer
+            blinking.timer.tick(time.delta());
+
+            // If the timer has finished, toggle the lamp
+            if blinking.timer.finished() {
+                let chunk_pos = ChunkPos::new(REDSTONE_LAMP_POS[0] >> 4, REDSTONE_LAMP_POS[2] >> 4);
+
+                if let Some(chunk) = layer.chunk_mut(chunk_pos) {
+                    let block_state = chunk.block(
+                        REDSTONE_LAMP_POS[0] as u32,
+                        REDSTONE_LAMP_POS[1] as u32,
+                        REDSTONE_LAMP_POS[2] as u32,
+                    );
+                    let powered = block_state.state.get(PropName::Lit) == Some(PropValue::True);
+
+                    let new_lamp_state = if powered {
+                        BlockState::REDSTONE_LAMP.set(PropName::Lit, false.into())
+                    } else {
+                        BlockState::REDSTONE_LAMP.set(PropName::Lit, true.into())
+                    };
+                    layer.set_block(REDSTONE_LAMP_POS, new_lamp_state);
+
+                    println!("Lamp toggled to {}", if powered { "OFF" } else { "ON" });
+                }
+            }
+        }
+    }
+}
+
+#[derive(Command, Debug, Clone)]
+#[paths("blink")]
+enum BlinkCommand {
+    #[paths("start")]
+    Start,
+    #[paths("stop")]
+    Stop,
+}
+
+fn handle_blink_command(
+    mut events: EventReader<CommandResultEvent<BlinkCommand>>,
+    mut query: Query<&mut Blinking>,
+) {
+    for event in events.read() {
+        let mut blinking = query.single_mut();
+        match event.result {
+            BlinkCommand::Start => {
+                blinking.is_active = true;
+                blinking.timer.reset(); // Ensure the timer starts fresh
+                println!("Blinking started.");
+            }
+            BlinkCommand::Stop => {
+                blinking.is_active = false;
+                println!("Blinking stopped.");
+            }
+        }
+    }
+}
+
 
 fn event_handler(
     mut clients: Query<(&Username, &Properties, &UniqueId, &mut Client)>, // Client query
@@ -234,6 +320,13 @@ fn setup(
     //     InventoryKind::Generic9x3,
     //     "Destructible Blocks".italic().bold().color(Color::GREEN),
     // ));
+
+    commands.spawn((
+        Blinking {
+            is_active: false,
+            timer: Timer::from_seconds(1.0, TimerMode::Repeating), // 1-second interval
+        },
+    ));
 }
 
 fn init_clients(
