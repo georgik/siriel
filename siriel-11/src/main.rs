@@ -63,34 +63,44 @@ pub fn main() {
 
 fn handle_blinking(
     mut query: Query<(&mut Blinking, &mut ChunkLayer)>,
-    time: Res<Time>, // Bevy's Time resource for delta time
+    time: Res<Time>,
 ) {
     for (mut blinking, mut layer) in query.iter_mut() {
-        if blinking.is_active {
-            // Tick the timer
-            blinking.timer.tick(time.delta());
+        if !blinking.is_active {
+            continue;
+        }
 
-            // If the timer has finished, toggle the lamp
-            if blinking.timer.finished() {
-                let chunk_pos = ChunkPos::new(REDSTONE_LAMP_POS[0] >> 4, REDSTONE_LAMP_POS[2] >> 4);
+        // Tick the timer
+        blinking.timer.tick(time.delta());
 
-                if let Some(chunk) = layer.chunk_mut(chunk_pos) {
-                    let block_state = chunk.block(
-                        REDSTONE_LAMP_POS[0] as u32,
-                        REDSTONE_LAMP_POS[1] as u32,
-                        REDSTONE_LAMP_POS[2] as u32,
-                    );
-                    let powered = block_state.state.get(PropName::Lit) == Some(PropValue::True);
+        if blinking.timer.finished() {
+            // Extract chunk and block positions
+            let (x, y, z) = (REDSTONE_LAMP_POS[0], REDSTONE_LAMP_POS[1], REDSTONE_LAMP_POS[2]);
+            let chunk_pos = ChunkPos::new(x >> 4, z >> 4);
 
-                    let new_lamp_state = if powered {
-                        BlockState::REDSTONE_LAMP.set(PropName::Lit, false.into())
-                    } else {
-                        BlockState::REDSTONE_LAMP.set(PropName::Lit, true.into())
-                    };
-                    layer.set_block(REDSTONE_LAMP_POS, new_lamp_state);
+            // Access the chunk and toggle the lamp
+            if let Some(chunk) = layer.chunk_mut(chunk_pos) {
+                // Retrieve the current block state
+                let block_state = chunk.block(x as u32, y as u32, z as u32);
+                let is_lit = block_state.state.get(PropName::Lit) == Some(PropValue::True);
 
-                    println!("Lamp toggled to {}", if powered { "OFF" } else { "ON" });
-                }
+                // Toggle the `Lit` property
+                let new_state = if is_lit {
+                    BlockState::REDSTONE_LAMP.set(PropName::Lit, false.into())
+                } else {
+                    BlockState::REDSTONE_LAMP.set(PropName::Lit, true.into())
+                };
+
+                // Set the new block state
+                chunk.set_block(x as u32, y as u32, z as u32, new_state);
+                layer.set_block([x, y, z], new_state); // This ensures the update propagates correctly
+
+                println!(
+                    "Lamp toggled to {}",
+                    if is_lit { "OFF" } else { "ON" }
+                );
+            } else {
+                println!("Chunk not loaded for lamp position: {:?}", REDSTONE_LAMP_POS);
             }
         }
     }
@@ -110,6 +120,7 @@ fn handle_blink_command(
     mut query: Query<&mut Blinking>,
 ) {
     for event in events.read() {
+        println!("Processing blink command.");
         let mut blinking = query.single_mut();
         match event.result {
             BlinkCommand::Start => {
@@ -294,8 +305,18 @@ fn setup(
     layer.chunk.set_block(CHEST_POS, BlockState::CHEST);
     layer.chunk.set_block(REDSTONE_LAMP_POS, BlockState::REDSTONE_LAMP);
     layer.chunk.set_block(LEVER_POS, BlockState::LEVER.set(PropName::Facing, PropValue::East),);
+    // Clone the layer to reuse it
 
-    let layer_id = commands.spawn(layer).id();
+    let layer_id = commands.spawn((
+        layer, // This includes the ChunkLayer component
+        Blinking {
+            is_active: false,
+            timer: Timer::from_seconds(1.0, TimerMode::Repeating), // 1-second interval
+        },
+    )).id();
+
+     // = commands.spawn(layer_clone).id();
+
     // commands.spawn(layer);
 
     let inventory = Inventory::with_title(
@@ -321,12 +342,6 @@ fn setup(
     //     "Destructible Blocks".italic().bold().color(Color::GREEN),
     // ));
 
-    commands.spawn((
-        Blinking {
-            is_active: false,
-            timer: Timer::from_seconds(1.0, TimerMode::Repeating), // 1-second interval
-        },
-    ));
 }
 
 fn init_clients(
