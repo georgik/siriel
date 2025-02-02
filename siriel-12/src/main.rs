@@ -18,7 +18,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // Startup systems: first load the spritesheet, then load the level from Tiled.
+        // Startup systems: load the spritesheet, then load the level from Tiled.
         .add_systems(Startup, systems::setup_texture_atlas)
         .add_systems(Startup, systems::setup_level_from_tiled.after(systems::setup_texture_atlas))
         // Regular systems.
@@ -29,6 +29,7 @@ fn main() {
                 systems::animation_system,
                 systems::physics_system,
                 systems::collision_system,
+                systems::exit_on_esc, // New system to quit on ESC
             ),
         )
         .run();

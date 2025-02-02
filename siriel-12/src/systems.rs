@@ -10,7 +10,7 @@ pub struct SpriteSheetHandle {
     pub layout: Handle<TextureAtlasLayout>,
 }
 
-/// Loads the tileset image (assets/textures.png) and creates a texture atlas assuming a 4×4 grid (16×16 tiles).
+/// Loads the tileset image (assets/textures.png) and creates a texture atlas layout assuming a 4×4 grid (16×16 tiles).
 pub fn setup_texture_atlas(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -43,29 +43,33 @@ pub fn setup_level_from_tiled(
     // Process each layer.
     for layer in tiled_map.layers {
         match layer {
-            TiledLayer::TileLayer { name, data, width, height, .. } if name == "Background" => {
-                // Spawn a sprite for each nonzero tile.
-                // (Tiled GIDs are 1-indexed; subtract one for our texture atlas.)
-                for row in 0..height {
+            TiledLayer::TileLayer { name, data, width, height: declared_height, .. } if name == "Background" => {
+                // Use the actual length of the data array to compute the effective number of rows.
+                let effective_height = (data.len() as u32) / width;
+                if effective_height != declared_height {
+                    warn!("Tile layer declared height {} but data contains {} rows (effective height = {}).",
+                          declared_height, data.len(), effective_height);
+                }
+                for row in 0..effective_height {
                     for col in 0..width {
                         let idx = (row * width + col) as usize;
-                        let gid = data[idx];
-                        if gid == 0 {
-                            continue; // Skip empty tiles.
+                        if let Some(&gid) = data.get(idx) {
+                            if gid == 0 {
+                                continue; // Skip empty tiles.
+                            }
+                            let pos_x = (col as f32) * (tiled_map.tilewidth as f32);
+                            let pos_y = (row as f32) * (tiled_map.tileheight as f32);
+                            commands.spawn((
+                                Sprite::from_atlas_image(
+                                    sprite_sheet.texture.clone(),
+                                    TextureAtlas {
+                                        layout: sprite_sheet.layout.clone(),
+                                        index: (gid - 1) as usize, // Cast u32 to usize.
+                                    },
+                                ),
+                                Transform::from_translation(Vec3::new(pos_x, pos_y, 0.0)),
+                            ));
                         }
-                        let pos_x = (col as f32) * (tiled_map.tilewidth as f32);
-                        let pos_y = (row as f32) * (tiled_map.tileheight as f32);
-                        commands.spawn((
-                            Sprite::from_atlas_image(
-                                sprite_sheet.texture.clone(),
-                                TextureAtlas {
-                                    layout: sprite_sheet.layout.clone(),
-                                    index: (gid - 1) as usize, // convert 1-indexed to 0-indexed.
-                                },
-                            ),
-                            Transform::from_translation(Vec3::new(pos_x, pos_y, 0.0)),
-                            // Optionally add a Tile marker component here.
-                        ));
                     }
                 }
             }
@@ -93,7 +97,7 @@ pub fn setup_level_from_tiled(
                     if obj.object_type == "collectible" {
                         entity_commands.insert(Collectible);
                     }
-                    // (You can handle other object types similarly.)
+                    // (Handle other object types similarly if needed.)
                 }
             }
             _ => {}
@@ -161,5 +165,16 @@ pub fn collision_system(
                 println!("Collected an item!");
             }
         }
+    }
+}
+
+
+/// Quits the application when the ESC key is pressed.
+pub fn exit_on_esc(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut exit: EventWriter<AppExit>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+      //  exit.send(AppExit);
     }
 }
