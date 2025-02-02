@@ -3,7 +3,7 @@ use bevy::sprite::{Sprite, TextureAtlas, TextureAtlasLayout};
 use crate::components::*;
 use crate::level::{LEVEL_WIDTH, LEVEL_HEIGHT};
 
-/// A resource that holds both the spritesheet texture and its atlas layout.
+#[derive(Resource)]
 pub struct SpriteSheetHandle {
     pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
@@ -35,95 +35,81 @@ pub fn setup_level(
     for y in 0..LEVEL_HEIGHT {
         for x in 0..LEVEL_WIDTH {
             commands.spawn((
-                Sprite {
-                    image: sprite_sheet.texture.clone(),
-                    // For tiles we use the sprite at index 0.
-                    texture_atlas: Some(TextureAtlas {
+                Sprite::from_atlas_image(
+                    sprite_sheet.texture.clone(),
+                    TextureAtlas {
                         layout: sprite_sheet.layout.clone(),
-                        index: 0,
-                    }),
-                    ..Default::default()
-                },
+                        index: 0, // Tile sprite index.
+                    },
+                ),
                 Transform::from_translation(Vec3::new(x as f32 * 16.0, y as f32 * 16.0, 0.0)),
                 Tile,
             ));
         }
     }
 
-    // Spawn the player.
+    // Spawn the player with animation.
     commands.spawn((
-        Sprite {
-            image: sprite_sheet.texture.clone(),
-            // The player's initial sprite is at index 1.
-            texture_atlas: Some(TextureAtlas {
+        Sprite::from_atlas_image(
+            sprite_sheet.texture.clone(),
+            TextureAtlas {
                 layout: sprite_sheet.layout.clone(),
-                index: 1,
-            }),
-            ..Default::default()
-        },
+                index: 1, // Player's initial sprite.
+            },
+        ),
         Transform::from_translation(Vec3::new(100.0, 100.0, 1.0)),
         Player { lives: 3 },
-        Animation {
-            current_frame: 0,
-            frame_timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-            // Define a walking animation using sprite indices.
-            frames: vec![1, 2, 3, 4],
-        },
+        AnimationIndices { first: 1, last: 4 }, // Walking animation frames from index 1 to 4.
+        AnimationTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
     ));
 
     // Spawn a sample collectible.
     commands.spawn((
-        Sprite {
-            image: sprite_sheet.texture.clone(),
-            // The collectible uses the sprite at index 5.
-            texture_atlas: Some(TextureAtlas {
+        Sprite::from_atlas_image(
+            sprite_sheet.texture.clone(),
+            TextureAtlas {
                 layout: sprite_sheet.layout.clone(),
-                index: 5,
-            }),
-            ..Default::default()
-        },
+                index: 5, // Collectible sprite index.
+            },
+        ),
         Transform::from_translation(Vec3::new(200.0, 100.0, 1.0)),
         Collectible,
     ));
 }
 
 /// Handles left/right input for the player.
-/// Moves the player horizontally and advances the animation timer.
+/// Moves the player horizontally.
 pub fn player_input(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<(&mut Transform, &mut Animation), With<Player>>,
+    mut query: Query<&mut Transform, With<Player>>,
 ) {
-    for (mut transform, mut animation) in query.iter_mut() {
+    for mut transform in query.iter_mut() {
         let mut direction = 0.0;
-        if keyboard_input.pressed(KeyCode::Left) {
+        if keyboard_input.pressed(KeyCode::ArrowLeft) {
             direction -= 1.0;
         }
-        if keyboard_input.pressed(KeyCode::Right) {
+        if keyboard_input.pressed(KeyCode::ArrowRight) {
             direction += 1.0;
         }
-        transform.translation.x += direction * 100.0 * time.delta_seconds();
-
-        // Advance the animation timer.
-        animation.frame_timer.tick(time.delta());
-        if animation.frame_timer.finished() {
-            animation.current_frame = (animation.current_frame + 1) % animation.frames.len();
-        }
+        transform.translation.x += direction * 100.0 * time.delta_secs();
     }
 }
 
-/// Advances animations for entities with an Animation component.
-/// This system updates the sprite's atlas index to display the correct frame.
+/// Advances animations for entities with AnimationIndices and AnimationTimer components.
 pub fn animation_system(
     time: Res<Time>,
-    mut query: Query<(&mut Animation, &mut Sprite)>,
+    mut query: Query<(&AnimationIndices, &mut AnimationTimer, &mut Sprite)>,
 ) {
-    for (mut animation, mut sprite) in query.iter_mut() {
-        animation.frame_timer.tick(time.delta());
-        if animation.frame_timer.finished() {
-            animation.current_frame = (animation.current_frame + 1) % animation.frames.len();
+    for (indices, mut timer, mut sprite) in query.iter_mut() {
+        timer.tick(time.delta());
+        if timer.just_finished() {
             if let Some(ref mut atlas) = sprite.texture_atlas {
-                atlas.index = animation.frames[animation.current_frame] as u32;
+                atlas.index = if atlas.index == indices.last {
+                    indices.first
+                } else {
+                    atlas.index + 1
+                };
             }
         }
     }
@@ -135,15 +121,14 @@ pub fn physics_system(
     time: Res<Time>,
 ) {
     for mut transform in query.iter_mut() {
-        transform.translation.y -= 9.8 * time.delta_seconds();
+        transform.translation.y -= 9.8 * time.delta_secs();
     }
 }
 
 /// Checks for collisions between the player and collectibles.
-/// On collision (using a simple distance threshold), the collectible is despawned and the HUD score is increased.
+/// On collision (using a simple distance threshold), the collectible is despawned.
 pub fn collision_system(
     mut commands: Commands,
-    mut hud_state: ResMut<HudState>,
     player_query: Query<&Transform, With<Player>>,
     collectible_query: Query<(Entity, &Transform), With<Collectible>>,
 ) {
@@ -151,17 +136,8 @@ pub fn collision_system(
         for (entity, transform) in collectible_query.iter() {
             if player_transform.translation.distance(transform.translation) < 16.0 {
                 commands.entity(entity).despawn();
-                hud_state.score += 10;
-                println!("Collected an item! Score: {}", hud_state.score);
+                println!("Collected an item!");
             }
         }
     }
-}
-
-/// Updates the HUD. In this minimal demo, we simply print the current HUD state to the console.
-pub fn hud_update_system(hud_state: Res<HudState>) {
-    println!(
-        "HUD Update - Score: {}, Level Password: {:?}",
-        hud_state.score, hud_state.level_password
-    );
 }

@@ -1,37 +1,40 @@
 use bevy::prelude::*;
 
-/// Marker for the player and its lives.
+/// Marker component for the player.
 #[derive(Component)]
 pub struct Player {
     pub lives: u8,
 }
 
-/// Marker for background tiles.
+/// Marker component for background tiles.
 #[derive(Component)]
 pub struct Tile;
 
-/// Marker for collectible items.
+/// Marker component for collectible items.
 #[derive(Component)]
 pub struct Collectible;
 
-/// Marker for the exit object (to be spawned later).
+/// Marker component for the exit object (to be spawned later).
 #[derive(Component)]
 pub struct Exit;
 
-/// Marker for hazards (which reduce lives on collision).
+/// Marker component for hazards (that reduce lives on collision).
 #[derive(Component)]
 pub struct Hazard;
 
-/// Component for animated sprites.
-/// It tracks the current frame, a timer, and the list of sprite indices that form the animation.
+/// Component for sprite animation indices.
 #[derive(Component)]
-pub struct Animation {
-    pub current_frame: usize,
-    pub frame_timer: Timer,
-    pub frames: Vec<usize>,
+pub struct AnimationIndices {
+    pub first: usize,
+    pub last: usize,
 }
 
-/// Resource holding HUD-related state (score, level password, etc.)
+/// Component for sprite animation timer.
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(pub Timer);
+
+/// (Optional) Resource holding HUD-related state (currently disabled).
+#[derive(Resource)]
 pub struct HudState {
     pub score: u32,
     pub level_password: Option<String>,
