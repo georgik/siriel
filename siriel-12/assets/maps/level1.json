@@ -1,0 +1,560 @@
+{
+  "height": 27,
+  "width": 39,
+  "tileheight": 16,
+  "tilewidth": 16,
+  "infinite": false,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.9.2",
+  "type": "map",
+  "version": "1.9",
+  "properties": [
+    {
+      "name": "name",
+      "type": "string",
+      "value": "START"
+    },
+    {
+      "name": "start_position",
+      "type": "string",
+      "value": "88,88"
+    },
+    {
+      "name": "sound_start",
+      "type": "string",
+      "value": "ZPARA"
+    },
+    {
+      "name": "messages",
+      "type": "string",
+      "value": "EN:Collect all fruits.;SK:Pozbieraj všetko ovocie."
+    }
+  ],
+  "layers": [
+    {
+      "id": 1,
+      "name": "Background",
+      "type": "tilelayer",
+      "visible": true,
+      "opacity": 1,
+      "width": 39,
+      "height": 27,
+      "x": 0,
+      "y": 0,
+      "data": [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        3,3,3,3,4,0,0,0,0,0,0,0,0,0,0,5,3,6,3,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,7,3,3,3,3,3,3,3,3,8,0,0,0,0,7,3,3,3,3,3,3,3,3,3,3,3,3,4,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,4,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,3,3,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,9,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,8,0,0,
+        3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Objects",
+      "type": "objectgroup",
+      "visible": true,
+      "opacity": 1,
+      "draworder": "topdown",
+      "objects": [
+        {
+          "id": 1,
+          "name": "pear",
+          "type": "collectible",
+          "x": 128,
+          "y": 272,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 10
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "pear",
+          "type": "collectible",
+          "x": 160,
+          "y": 272,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 10
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "pear",
+          "type": "collectible",
+          "x": 192,
+          "y": 272,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 10
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "coin",
+          "type": "collectible",
+          "x": 272,
+          "y": 464,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 50
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 608,
+          "y": 464,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 640,
+          "y": 464,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 672,
+          "y": 464,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 1072,
+          "y": 464,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 0,
+          "y": 592,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 32,
+          "y": 592,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 64,
+          "y": 592,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 96,
+          "y": 592,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 128,
+          "y": 592,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 0,
+          "y": 432,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "cherry",
+          "type": "collectible",
+          "x": 96,
+          "y": 240,
+          "width": 16,
+          "height": 16,
+          "properties": [
+            {
+              "name": "value",
+              "type": "int",
+              "value": 5
+            },
+            {
+              "name": "layer",
+              "type": "string",
+              "value": "A"
+            },
+            {
+              "name": "other_data",
+              "type": "string",
+              "value": "[1,3]"
+            },
+            {
+              "name": "animated",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "nextlayerid": 3,
+  "nextobjectid": 16,
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "source": "tileset.tsx"
+    }
+  ]
+}
+
