@@ -1,3 +1,4 @@
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::sprite::{Sprite, TextureAtlas, TextureAtlasLayout};
 use crate::components::*;
@@ -8,6 +9,13 @@ use std::fs;
 pub struct SpriteSheetHandle {
     pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Spawns a 2D camera so that our sprites are visible.
+/// Note: In Bevy 0.15, simply spawning the `Camera2d` component automatically inserts
+/// the necessary Transform and Visibility components.
+pub fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d::default());
 }
 
 /// Loads the tileset image (assets/textures.png) and creates a texture atlas layout assuming a 4×4 grid (16×16 tiles).
@@ -44,7 +52,7 @@ pub fn setup_level_from_tiled(
     for layer in tiled_map.layers {
         match layer {
             TiledLayer::TileLayer { name, data, width, height: declared_height, .. } if name == "Background" => {
-                // Use the actual length of the data array to compute the effective number of rows.
+                // Compute the effective number of rows from the actual data length.
                 let effective_height = (data.len() as u32) / width;
                 if effective_height != declared_height {
                     warn!("Tile layer declared height {} but data contains {} rows (effective height = {}).",
@@ -64,7 +72,7 @@ pub fn setup_level_from_tiled(
                                     sprite_sheet.texture.clone(),
                                     TextureAtlas {
                                         layout: sprite_sheet.layout.clone(),
-                                        index: (gid - 1) as usize, // Cast u32 to usize.
+                                        index: (gid - 1) as usize, // Convert 1-indexed (Tiled) to 0-indexed.
                                     },
                                 ),
                                 Transform::from_translation(Vec3::new(pos_x, pos_y, 0.0)),
@@ -93,11 +101,9 @@ pub fn setup_level_from_tiled(
                         ),
                         Transform::from_translation(Vec3::new(obj.x, obj.y, 1.0)),
                     ));
-                    // Insert a marker component based on the object type.
                     if obj.object_type == "collectible" {
                         entity_commands.insert(Collectible);
                     }
-                    // (Handle other object types similarly if needed.)
                 }
             }
             _ => {}
@@ -168,13 +174,12 @@ pub fn collision_system(
     }
 }
 
-
 /// Quits the application when the ESC key is pressed.
 pub fn exit_on_esc(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut exit: EventWriter<AppExit>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
-      //  exit.send(AppExit);
+        exit.send(AppExit::Success);
     }
 }
