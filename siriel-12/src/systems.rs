@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy::sprite::{Sprite, TextureAtlas, TextureAtlasLayout};
 use crate::components::*;
-use crate::level::{LEVEL_WIDTH, LEVEL_HEIGHT};
+use crate::level::{TiledMap, TiledLayer, TiledObject};
+use std::fs;
 
 #[derive(Resource)]
 pub struct SpriteSheetHandle {
@@ -9,15 +10,14 @@ pub struct SpriteSheetHandle {
     pub layout: Handle<TextureAtlasLayout>,
 }
 
-/// Loads the spritesheet and creates a texture atlas layout from a 4×4 grid of 16×16 sprites.
-/// The image is expected at assets/spritesheet.png.
+/// Loads the tileset image (assets/textures.png) and creates a texture atlas assuming a 4×4 grid (16×16 tiles).
 pub fn setup_texture_atlas(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture_handle = asset_server.load("spritesheet.png");
-    // Create a layout for a 4x4 grid where each cell is 16×16 pixels.
+    let texture_handle = asset_server.load("textures.png");
+    // Create a layout for a 4x4 grid (i.e. 16 tiles) where each tile is 16×16.
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 4, 4, None, None);
     let layout_handle = texture_atlas_layouts.add(layout);
     commands.insert_resource(SpriteSheetHandle {
@@ -26,59 +26,82 @@ pub fn setup_texture_atlas(
     });
 }
 
-/// Sets up the level by spawning a grid of background tiles, the player, and a sample collectible.
-pub fn setup_level(
+/// Loads the level from a Tiled JSON file (assets/maps/level1.json) and spawns background and object entities.
+pub fn setup_level_from_tiled(
     mut commands: Commands,
     sprite_sheet: Res<SpriteSheetHandle>,
 ) {
-    // Spawn background tiles.
-    for y in 0..LEVEL_HEIGHT {
-        for x in 0..LEVEL_WIDTH {
-            commands.spawn((
-                Sprite::from_atlas_image(
-                    sprite_sheet.texture.clone(),
-                    TextureAtlas {
-                        layout: sprite_sheet.layout.clone(),
-                        index: 0, // Tile sprite index.
-                    },
-                ),
-                Transform::from_translation(Vec3::new(x as f32 * 16.0, y as f32 * 16.0, 0.0)),
-                Tile,
-            ));
+    // Load the level file.
+    let level_path = "assets/maps/level1.json";
+    let level_data = fs::read_to_string(level_path)
+        .expect(&format!("Failed to read level file at {}", level_path));
+
+    // Deserialize the JSON into a TiledMap.
+    let tiled_map: TiledMap = serde_json::from_str(&level_data)
+        .expect("Failed to parse Tiled map JSON");
+
+    // Process each layer.
+    for layer in tiled_map.layers {
+        match layer {
+            TiledLayer::TileLayer { name, data, width, height, .. } if name == "Background" => {
+                // Spawn a sprite for each nonzero tile.
+                // (Tiled GIDs are 1-indexed; subtract one for our texture atlas.)
+                for row in 0..height {
+                    for col in 0..width {
+                        let idx = (row * width + col) as usize;
+                        let gid = data[idx];
+                        if gid == 0 {
+                            continue; // Skip empty tiles.
+                        }
+                        let pos_x = (col as f32) * (tiled_map.tilewidth as f32);
+                        let pos_y = (row as f32) * (tiled_map.tileheight as f32);
+                        commands.spawn((
+                            Sprite::from_atlas_image(
+                                sprite_sheet.texture.clone(),
+                                TextureAtlas {
+                                    layout: sprite_sheet.layout.clone(),
+                                    index: (gid - 1) as usize, // convert 1-indexed to 0-indexed.
+                                },
+                            ),
+                            Transform::from_translation(Vec3::new(pos_x, pos_y, 0.0)),
+                            // Optionally add a Tile marker component here.
+                        ));
+                    }
+                }
+            }
+            TiledLayer::ObjectLayer { name, objects, .. } if name == "Objects" => {
+                // For each object, spawn an entity. Here we map object names to tile indices.
+                for obj in objects {
+                    // Adjust this mapping to match your tileset.
+                    let tile_index = match obj.name.as_str() {
+                        "pear" => 1,
+                        "coin" => 2,
+                        "cherry" => 3,
+                        _ => 0,
+                    };
+                    let mut entity_commands = commands.spawn((
+                        Sprite::from_atlas_image(
+                            sprite_sheet.texture.clone(),
+                            TextureAtlas {
+                                layout: sprite_sheet.layout.clone(),
+                                index: tile_index,
+                            },
+                        ),
+                        Transform::from_translation(Vec3::new(obj.x, obj.y, 1.0)),
+                    ));
+                    // Insert a marker component based on the object type.
+                    if obj.object_type == "collectible" {
+                        entity_commands.insert(Collectible);
+                    }
+                    // (You can handle other object types similarly.)
+                }
+            }
+            _ => {}
         }
     }
-
-    // Spawn the player with animation.
-    commands.spawn((
-        Sprite::from_atlas_image(
-            sprite_sheet.texture.clone(),
-            TextureAtlas {
-                layout: sprite_sheet.layout.clone(),
-                index: 1, // Player's initial sprite.
-            },
-        ),
-        Transform::from_translation(Vec3::new(100.0, 100.0, 1.0)),
-        Player { lives: 3 },
-        AnimationIndices { first: 1, last: 4 }, // Walking animation frames from index 1 to 4.
-        AnimationTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
-    ));
-
-    // Spawn a sample collectible.
-    commands.spawn((
-        Sprite::from_atlas_image(
-            sprite_sheet.texture.clone(),
-            TextureAtlas {
-                layout: sprite_sheet.layout.clone(),
-                index: 5, // Collectible sprite index.
-            },
-        ),
-        Transform::from_translation(Vec3::new(200.0, 100.0, 1.0)),
-        Collectible,
-    ));
 }
 
 /// Handles left/right input for the player.
-/// Moves the player horizontally.
 pub fn player_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
@@ -126,7 +149,6 @@ pub fn physics_system(
 }
 
 /// Checks for collisions between the player and collectibles.
-/// On collision (using a simple distance threshold), the collectible is despawned.
 pub fn collision_system(
     mut commands: Commands,
     player_query: Query<&Transform, With<Player>>,

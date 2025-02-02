@@ -8,7 +8,7 @@ use systems::*;
 
 fn main() {
     App::new()
-        // Use the new WindowPlugin configuration for Bevy 0.15.
+        // Configure the window using the new WindowPlugin API.
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Siriel".into(),
@@ -18,9 +18,10 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // Startup systems: load the spritesheet and set up the level.
-        .add_systems(Startup, (systems::setup_texture_atlas, systems::setup_level))
-        // Gameplay systems: handle input, animation, physics, and collision.
+        // Startup systems: first load the spritesheet, then load the level from Tiled.
+        .add_systems(Startup, systems::setup_texture_atlas)
+        .add_systems(Startup, systems::setup_level_from_tiled.after(systems::setup_texture_atlas))
+        // Regular systems.
         .add_systems(
             Update,
             (
