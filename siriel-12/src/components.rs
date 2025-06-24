@@ -1,41 +1,133 @@
 use bevy::prelude::*;
 
-/// Marker component for the player.
+/// Player character (Siriel) component
 #[derive(Component)]
 pub struct Player {
     pub lives: u8,
+    pub score: u32,
+    pub on_ground: bool,
+    pub jump_speed: f32,
+    pub move_speed: f32,
+    pub state: PlayerState,
+    pub direction: PlayerDirection,
 }
 
-/// Marker component for background tiles.
-#[derive(Component)]
-pub struct Tile;
+/// Player animation state
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PlayerState {
+    Idle,
+    Walking,
+    Jumping,
+    Falling,
+    Parachuting,
+}
 
-/// Marker component for collectible items.
-#[derive(Component)]
-pub struct Collectible;
+/// Player facing direction
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PlayerDirection {
+    Down,
+    Left,
+    Right,
+    Up,
+}
 
-/// Marker component for the exit object (to be spawned later).
+/// Player animation component that tracks which sprite to use
 #[derive(Component)]
-pub struct Exit;
+pub struct PlayerAnimation {
+    pub current_frame: usize,
+    pub frame_timer: f32,
+    pub frame_duration: f32,
+}
 
-/// Marker component for hazards (that reduce lives on collision).
+/// Physics component for entities affected by gravity
 #[derive(Component)]
-pub struct Hazard;
+pub struct Physics {
+    pub velocity: Vec2,
+    pub on_ground: bool,
+    pub gravity: f32,
+    pub max_fall_speed: f32,
+}
 
-/// Component for sprite animation indices.
+/// Solid tile component for collision detection
+#[derive(Component)]
+pub struct SolidTile;
+
+/// Background tile component (non-collidable)
+#[derive(Component)]
+pub struct BackgroundTile;
+
+/// Collectible items component
+#[derive(Component)]
+pub struct Collectible {
+    pub value: u32,
+    pub collected: bool,
+}
+
+/// Exit/Door component
+#[derive(Component)]
+pub struct Exit {
+    pub requires_all_collected: bool,
+    pub next_level: Option<String>,
+}
+
+/// Hazard component (spikes, enemies, etc.)
+#[derive(Component)]
+pub struct Hazard {
+    pub damage: u8,
+}
+
+/// Moving platform component
+#[derive(Component)]
+pub struct MovingPlatform {
+    pub start_pos: Vec2,
+    pub end_pos: Vec2,
+    pub speed: f32,
+    pub direction: i8, // 1 or -1
+}
+
+/// Component for sprite animation indices
 #[derive(Component)]
 pub struct AnimationIndices {
     pub first: usize,
     pub last: usize,
 }
 
-/// Component for sprite animation timer.
+/// Component for sprite animation timer
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(pub Timer);
 
-/// (Optional) Resource holding HUD-related state (currently disabled).
+/// Game state resource
 #[derive(Resource)]
-pub struct HudState {
+pub struct GameState {
     pub score: u32,
-    pub level_password: Option<String>,
+    pub lives: u8,
+    pub level: u32,
+    pub collectibles_remaining: u32,
+    pub game_over: bool,
+    pub level_complete: bool,
+}
+
+impl Default for GameState {
+    fn default() -> Self {
+        Self {
+            score: 0,
+            lives: 3,
+            level: 1,
+            collectibles_remaining: 0,
+            game_over: false,
+            level_complete: false,
+        }
+    }
+}
+
+/// Camera follow component
+#[derive(Component)]
+pub struct CameraTarget;
+
+/// Tile collision types from original game
+#[derive(Component)]
+pub struct TileType {
+    pub tile_id: u32,
+    pub solid: bool,
+    pub deadly: bool,
 }
