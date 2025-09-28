@@ -1,0 +1,103 @@
+// Siriel 3.5 Avatar/Player Animation Atlas Descriptor  
+// siriel-avatar.png: 224x64 pixels, 14x4 frames (16x16 each)
+(
+    name: "siriel-avatar",
+    image_path: "sprites/siriel-avatar.png", 
+    tile_size: (16, 16),
+    grid_size: (14, 4), // 14 columns, 4 rows
+    total_tiles: 56,
+
+    // Not used for animation atlas
+    ascii_to_tile_mapping: None,
+    special_tiles: None,
+
+    // Animation definitions
+    animations: Some({
+        "idle_right": (
+            frames: [0, 1],
+            duration: 0.5,  // seconds per frame
+            loop_mode: PingPong,
+        ),
+        "idle_left": (
+            frames: [14, 15], // second row, flipped versions
+            duration: 0.5,
+            loop_mode: PingPong,
+        ),
+        "walk_right": (
+            frames: [2, 3, 4, 5],
+            duration: 0.2,
+            loop_mode: Loop,
+        ),
+        "walk_left": (
+            frames: [16, 17, 18, 19], // second row equivalents
+            duration: 0.2,
+            loop_mode: Loop, 
+        ),
+        "jump_right": (
+            frames: [6, 7],
+            duration: 0.3,
+            loop_mode: Once,
+        ),
+        "jump_left": (
+            frames: [20, 21],
+            duration: 0.3, 
+            loop_mode: Once,
+        ),
+        "fall_right": (
+            frames: [8, 9],
+            duration: 0.2,
+            loop_mode: Loop,
+        ),
+        "fall_left": (
+            frames: [22, 23],
+            duration: 0.2,
+            loop_mode: Loop,
+        ),
+        "climb": (
+            frames: [28, 29, 30, 31], // third row
+            duration: 0.3,
+            loop_mode: Loop,
+        ),
+        "crouch_right": (
+            frames: [10, 11],
+            duration: 0.4,
+            loop_mode: Once,
+        ),
+        "crouch_left": (
+            frames: [24, 25],
+            duration: 0.4,
+            loop_mode: Once, 
+        ),
+        // Special animations
+        "death": (
+            frames: [42, 43, 44, 45], // fourth row
+            duration: 0.8,
+            loop_mode: Once,
+        ),
+        "victory": (
+            frames: [46, 47, 48, 49],
+            duration: 0.6,
+            loop_mode: Loop, 
+        ),
+    }),
+
+    // Animation states for player controller
+    animation_mapping: Some({
+        "PlayerIdle": "idle_right",
+        "PlayerWalk": "walk_right", 
+        "PlayerJump": "jump_right",
+        "PlayerFall": "fall_right",
+        "PlayerClimb": "climb",
+        "PlayerCrouch": "crouch_right",
+        "PlayerDeath": "death",
+        "PlayerVictory": "victory",
+    }),
+
+    // Metadata
+    metadata: Some({
+        "source": "Original Siriel 3.5 DOS player sprites",
+        "format": "16x16 pixel animation frames",
+        "usage": "Player character animation",
+        "description": "Four rows: right-facing, left-facing, special moves, death/victory",
+    })
+)

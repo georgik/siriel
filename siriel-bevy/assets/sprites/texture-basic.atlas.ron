@@ -1,0 +1,38 @@
+// Siriel 3.5 Basic Textures Atlas Descriptor
+// texture-basic.png: 304x64 pixels, 19x4 tiles (16x16 each)
+// Uses direct tile indexing: 0-based sequential indices from left to right, top to bottom
+(
+    name: "texture-basic",
+    image_path: "sprites/texture-basic.png",
+    tile_size: (16, 16),
+    grid_size: (19, 4), // 19 columns, 4 rows
+    total_tiles: 76,
+    
+    // No longer using ASCII mapping - RON files use direct tile IDs
+    ascii_to_tile_mapping: None,
+
+    // Common tiles for reference (0-based sequential indexing)
+    // Row 0: indices 0-18, Row 1: 19-37, Row 2: 38-56, Row 3: 57-75
+    special_tiles: Some({
+        "empty": 0,         // First tile (top-left)
+        "wall_corner": 25,  // Common solid tile
+        "wall_top": 26,     // Wall segment 
+        "wall_side": 27,    // Wall segment
+        "wall_bottom": 28,  // Wall segment
+        "platform": 29,     // Platform tile
+        "ground": 30,       // Ground tile
+        "special": 31,      // Special/door tile
+    }),
+
+    // Animation fields (not used for texture atlas)
+    animations: None,
+    animation_mapping: None,
+
+    // Texture metadata
+    metadata: Some({
+        "source": "Original Siriel 3.5 DOS texture data",
+        "format": "16x16 pixel tiles in grid layout",
+        "usage": "Level tilemap rendering",
+        "ascii_based": "true",
+    })
+)

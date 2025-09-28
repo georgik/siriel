@@ -1,0 +1,482 @@
+use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
+use serde::{Deserialize, Serialize};
+use ron::ser::{to_string_pretty, PrettyConfig};
+use crate::components::*;
+use crate::resources::*;
+use crate::atlas::AtlasManager;
+// MIE parser is no longer used in game engine - only in converter
+
+/// Resource to store CLI arguments for use in Bevy systems
+#[derive(Resource)]
+pub struct GameArgs {
+    pub level: Option<String>,
+    pub verbose: bool,
+}
+
+/// Level data structure - modern replacement for .MIE format
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LevelData {
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub spawn_point: (f32, f32),
+    pub background_image: Option<String>,
+    pub tilemap: Vec<Vec<u16>>,
+    pub entities: Vec<LevelEntity>,
+    pub transitions: Vec<LevelTransition>,
+    pub scripts: Vec<LevelScript>,
+    pub music: Option<String>,
+    pub time_limit: Option<f32>,
+}
+
+/// Entity definition in level data
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LevelEntity {
+    pub id: String,
+    pub entity_type: String,
+    pub position: (f32, f32),
+    pub sprite_id: u16,
+    pub behavior_type: u8,
+    pub behavior_params: [u16; 7],
+    pub room: u8,
+    pub pickupable: bool,
+    pub pickup_value: u32,
+    pub sound_effects: Option<(u8, u8)>,
+}
+
+/// Level transition (doors, teleports, etc.)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LevelTransition {
+    pub from_area: (f32, f32, f32, f32), // x, y, width, height
+    pub to_level: String,
+    pub to_position: (f32, f32),
+    pub transition_type: String, // "door", "teleport", "stairs", etc.
+    pub required_item: Option<String>,
+}
+
+/// Script for interactive elements and cutscenes
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LevelScript {
+    pub id: String,
+    pub trigger_type: String, // "interact", "collision", "timer", etc.
+    pub trigger_area: Option<(f32, f32, f32, f32)>,
+    pub commands: Vec<ScriptCommand>,
+}
+
+/// Modern script command - replaces the original Slovak system
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ScriptCommand {
+    // Text and dialog
+    ShowText { text: String, speaker: Option<String> },
+    ShowDialog { speaker: String, text: String, choices: Option<Vec<String>> },
+    
+    // Game state
+    SetVariable { name: String, value: i32 },
+    CheckVariable { name: String, value: i32, goto_script: String },
+    GiveItem { item_id: String },
+    RemoveItem { item_id: String },
+    CheckItem { item_id: String, goto_script: String },
+    
+    // Player actions
+    AddScore { points: u32 },
+    AddLife { lives: i32 },
+    SetPosition { x: f32, y: f32 },
+    TransferToLevel { level: String, position: (f32, f32) },
+    
+    // Audio/Visual
+    PlaySound { sound_id: String },
+    PlayMusic { music_id: String },
+    ShowImage { image_path: String, duration: Option<f32> },
+    FadeOut { duration: f32 },
+    FadeIn { duration: f32 },
+    
+    // Tilemap changes
+    ChangeTile { x: u32, y: u32, tile_id: u16 },
+    ChangeTileArea { x: u32, y: u32, width: u32, height: u32, tile_id: u16 },
+    
+    // Entity manipulation
+    SpawnEntity { entity: LevelEntity },
+    RemoveEntity { entity_id: String },
+    SetEntityBehavior { entity_id: String, behavior: u8, params: [u16; 7] },
+    
+    // Flow control
+    Wait { duration: f32 },
+    WaitForKey,
+    GotoScript { script_id: String },
+    EndScript,
+    
+    // Game mechanics
+    SetFreezTimer { duration: f32, sound: Option<String> },
+    SetGodMode { duration: f32, sound: Option<String> },
+    EndLevel,
+}
+
+/// Tilemap component for level rendering
+#[derive(Resource, Default)]
+pub struct TilemapManager {
+    pub current_level: Option<LevelData>,
+    pub tilemap_entity: Option<Entity>,
+    pub tile_size: TilemapTileSize,
+    pub map_size: TilemapSize,
+}
+
+/// System to load a level from RON format with CLI support
+pub fn load_level_system(
+    mut commands: Commands,
+    mut tilemap_manager: ResMut<TilemapManager>,
+    sprite_atlas: Res<SpriteAtlas>,
+    atlas_manager: Res<AtlasManager>,
+    game_args: Res<GameArgs>,
+    _asset_server: Res<AssetServer>,
+) {
+    let level = if let Some(level_path) = &game_args.level {
+        // CLI level file specified
+        load_level_by_path(level_path, game_args.verbose)
+    } else {
+        // Default fallback chain
+        load_default_level()
+    };
+    
+    if sprite_atlas.loaded && sprite_atlas.tiles_texture.is_some() {
+        spawn_tilemap_with_atlas(&mut commands, &level, &sprite_atlas, Some(&*atlas_manager));
+        tilemap_manager.current_level = Some(level);
+    }
+}
+
+/// Load level by CLI-specified path (RON files only)
+fn load_level_by_path(level_path: &str, verbose: bool) -> LevelData {
+    // Log current working directory for debugging
+    match std::env::current_dir() {
+        Ok(cwd) => info!("📂 Current working directory: {}", cwd.display()),
+        Err(e) => warn!("❌ Could not get current working directory: {}", e),
+    }
+    
+    info!("🎯 Loading CLI-specified level file: {}", level_path);
+    
+    // Check if file exists before attempting to load
+    let exists = std::path::Path::new(level_path).exists();
+    if verbose {
+        info!("🔍 Checking file: {} (exists: {})", level_path, exists);
+    }
+    
+    match load_level_from_file(level_path) {
+        Ok(level) => {
+            info!("✅ Successfully loaded RON level: {} from {}", level.name, level_path);
+            level
+        }
+        Err(e) => {
+            warn!("❌ Failed to load RON file {}: {}", level_path, e);
+            warn!("💡 Hint: Check that the file path is correct and the file exists");
+            create_test_level()
+        }
+    }
+}
+
+/// Load default level with fallback chain (RON files only)
+fn load_default_level() -> LevelData {
+    // Log current working directory for debugging path issues
+    match std::env::current_dir() {
+        Ok(cwd) => info!("📂 Current working directory: {}", cwd.display()),
+        Err(e) => warn!("❌ Could not get current working directory: {}", e),
+    }
+    
+    // Try our converted RON levels in order of preference
+    let default_levels = vec![
+        ("FMIS01", "assets/levels/FMIS01.ron"),  // First Mission Level 1 - START
+        ("FMIS02", "assets/levels/FMIS02.ron"),  // First Mission Level 2 - LIGHT
+        ("1", "assets/levels/1.ron"),            // Generic level file
+    ];
+    
+    for (level_id, path) in default_levels {
+        // Check if file exists before attempting to load
+        let exists = std::path::Path::new(path).exists();
+        info!("🔍 Checking default file: {} (exists: {})", path, exists);
+        
+        match load_level_from_file(path) {
+            Ok(level) => {
+                info!("✅ Successfully loaded default RON level: {} ({}) from {}", level_id, level.name, path);
+                return level;
+            }
+            Err(e) => {
+                warn!("❌ Failed to load {}: {}", path, e);
+            }
+        }
+    }
+    
+    warn!("❌ No RON levels found in assets/levels/, using test level");
+    warn!("💡 Hint: Run the convert_mie tool to convert MIE files to RON format");
+    create_test_level()
+}
+
+/// Direct spawn function for level manager
+pub fn spawn_tilemap_direct(
+    commands: &mut Commands,
+    level: &LevelData,
+    sprite_atlas: &SpriteAtlas,
+) {
+    spawn_tilemap(commands, level, sprite_atlas);
+}
+
+/// Direct spawn function for level manager with atlas support
+pub fn spawn_tilemap_direct_with_atlas(
+    commands: &mut Commands,
+    level: &LevelData,
+    sprite_atlas: &SpriteAtlas,
+    atlas_manager: Option<&AtlasManager>,
+) {
+    spawn_tilemap_with_atlas(commands, level, sprite_atlas, atlas_manager);
+}
+
+/// Create a simple test level for demonstration
+pub fn create_test_level() -> LevelData {
+    LevelData {
+        name: "Test Level".to_string(),
+        width: 40,
+        height: 30,
+        spawn_point: (320.0, 240.0),
+        background_image: None,
+        tilemap: create_test_tilemap(),
+        entities: vec![
+            LevelEntity {
+                id: "enemy1".to_string(),
+                entity_type: "enemy".to_string(),
+                position: (200.0, 300.0),
+                sprite_id: 1,
+                behavior_type: 2, // HorizontalOscillator
+                behavior_params: [2, 350, 150, 0, 0, 0, 0],
+                room: 1,
+                pickupable: false,
+                pickup_value: 0,
+                sound_effects: None,
+            },
+            LevelEntity {
+                id: "pickup1".to_string(),
+                entity_type: "gem".to_string(),
+                position: (400.0, 200.0),
+                sprite_id: 5,
+                behavior_type: 1, // Static
+                behavior_params: [0, 0, 0, 0, 0, 0, 0],
+                room: 1,
+                pickupable: true,
+                pickup_value: 100,
+                sound_effects: Some((1, 0)), // pickup sound
+            },
+        ],
+        transitions: vec![],
+        scripts: vec![],
+        music: None,
+        time_limit: Some(300.0), // 5 minutes
+    }
+}
+
+/// Create a simple test tilemap
+fn create_test_tilemap() -> Vec<Vec<u16>> {
+    let mut tilemap = vec![vec![0u16; 40]; 30];
+    
+    // Create some ground at the bottom
+    for x in 0..40 {
+        tilemap[28][x] = 1; // ground tile
+        tilemap[29][x] = 2; // dirt tile
+    }
+    
+    // Add some platforms
+    for x in 10..20 {
+        tilemap[20][x] = 1;
+    }
+    
+    for x in 25..35 {
+        tilemap[15][x] = 1;
+    }
+    
+    // Add walls on sides
+    for y in 0..30 {
+        tilemap[y][0] = 3; // wall tile
+        tilemap[y][39] = 3;
+    }
+    
+    tilemap
+}
+
+/// Spawn tilemap entities using bevy_ecs_tilemap
+pub fn spawn_tilemap(
+    commands: &mut Commands,
+    level: &LevelData,
+    sprite_atlas: &SpriteAtlas,
+) {
+    spawn_tilemap_with_atlas(commands, level, sprite_atlas, None);
+}
+
+/// Spawn tilemap entities using bevy_ecs_tilemap with atlas support
+pub fn spawn_tilemap_with_atlas(
+    commands: &mut Commands,
+    level: &LevelData,
+    sprite_atlas: &SpriteAtlas,
+    atlas_manager: Option<&AtlasManager>,
+) {
+    if let Some(texture_handle) = &sprite_atlas.tiles_texture {
+        let map_size = TilemapSize {
+            x: level.width,
+            y: level.height,
+        };
+        let tilemap_entity = commands.spawn_empty().id();
+        let mut tile_storage = TileStorage::empty(map_size);
+
+        // Spawn tiles with Y-axis flipped for Bevy's coordinate system
+        for y in 0..level.height {
+            for x in 0..level.width {
+                let tile_id = level.tilemap[y as usize][x as usize];
+                
+                // Convert tile ID to proper texture index using atlas
+                let tile_index = if let Some(atlas) = atlas_manager {
+                    // Use atlas mapping for texture indices
+                    atlas.tile_id_to_texture_index(tile_id as u32)
+                } else {
+                    // Fallback: direct mapping
+                    // Tile ID 0 = transparent/empty (not rendered)
+                    // Tile ID 1+ = solid tiles (use texture index)
+                    if tile_id > 0 { tile_id as u32 - 1 } else { 0 }
+                };
+                
+                // Only spawn solid tiles (tile ID > 0)
+                // Tile ID 0 = empty/walkable space (not rendered)
+                if tile_id > 0 {
+                    // Flip Y coordinate: original (0,0) at top-left becomes bottom-left in Bevy
+                    let flipped_y = level.height - 1 - y;
+                    let tile_entity = commands
+                        .spawn(TileBundle {
+                            position: TilePos { x, y: flipped_y },
+                            tilemap_id: TilemapId(tilemap_entity),
+                            texture_index: TileTextureIndex(tile_index),
+                            ..default()
+                        })
+                        .id();
+                    tile_storage.set(&TilePos { x, y: flipped_y }, tile_entity);
+                }
+            }
+        }
+
+        let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
+        let grid_size = tile_size.into();
+        let map_type = TilemapType::default();
+
+        commands.entity(tilemap_entity).insert(TilemapBundle {
+            grid_size,
+            map_type,
+            size: map_size,
+            storage: tile_storage,
+            texture: TilemapTexture::Single(texture_handle.clone()),
+            tile_size,
+            transform: Transform::from_xyz(-(map_size.x as f32) * tile_size.x / 2.0, -(map_size.y as f32) * tile_size.y / 2.0, 0.0),
+            ..default()
+        });
+    }
+}
+
+/// System to spawn entities from level data
+pub fn spawn_level_entities(
+    mut commands: Commands,
+    tilemap_manager: Res<TilemapManager>,
+    sprite_atlas: Res<SpriteAtlas>,
+) {
+    if let Some(level) = &tilemap_manager.current_level {
+        if sprite_atlas.loaded {
+            for entity_data in &level.entities {
+                spawn_entity_from_data(&mut commands, entity_data, &sprite_atlas);
+            }
+        }
+    }
+}
+
+/// Helper function to spawn an entity from level data
+fn spawn_entity_from_data(
+    commands: &mut Commands,
+    entity_data: &LevelEntity,
+    _sprite_atlas: &SpriteAtlas,
+) {
+    let behavior_type = match entity_data.behavior_type {
+        1 => BehaviorType::Static,
+        2 => BehaviorType::HorizontalOscillator,
+        3 => BehaviorType::VerticalOscillator,
+        4 => BehaviorType::PlatformWithGravity,
+        5 => BehaviorType::EdgeWalkingPlatform,
+        12 => BehaviorType::RandomMovement,
+        15 => BehaviorType::Fireball,
+        16 => BehaviorType::Hunter,
+        17 => BehaviorType::SoundTrigger,
+        18 => BehaviorType::AdvancedProjectile,
+        _ => BehaviorType::Static,
+    };
+
+    let entity_bundle = (
+        Position {
+            x: entity_data.position.0,
+            y: entity_data.position.1,
+        },
+        Velocity::default(),
+        Collider::default(),
+        Behavior {
+            behavior_type,
+            params: BehaviorParams {
+                inf1: entity_data.behavior_params[0],
+                inf2: entity_data.behavior_params[1],
+                inf3: entity_data.behavior_params[2],
+                inf4: entity_data.behavior_params[3],
+                inf5: entity_data.behavior_params[4],
+                inf6: entity_data.behavior_params[5],
+                inf7: entity_data.behavior_params[6],
+            },
+            state: BehaviorState {
+                direction: 1,
+                ..Default::default()
+            },
+        },
+        Sprite {
+            color: Color::srgb(1.0, 0.0, 0.0), // Red for enemies, we'll change this based on type
+            custom_size: Some(Vec2::new(16.0, 16.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(
+            entity_data.position.0,
+            entity_data.position.1,
+            1.0,
+        )),
+    );
+
+    // Add pickup component if needed
+    if entity_data.pickupable {
+        commands.spawn((
+            entity_bundle,
+            Pickup {
+                pickup_type: entity_data.sprite_id,
+                value: entity_data.pickup_value,
+            },
+        ));
+    } else {
+        commands.spawn(entity_bundle);
+    }
+}
+
+/// Save level to RON format with compact tilemap formatting
+pub fn save_level_to_file(level: &LevelData, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Configure RON formatting for readable tilemaps
+    let config = PrettyConfig::new()
+        .depth_limit(2)
+        .separate_tuple_members(true)
+        .enumerate_arrays(false)
+        .compact_arrays(true);  // This makes arrays format on single lines
+        
+    let ron_string = to_string_pretty(level, config)?;
+    std::fs::write(format!("assets/levels/{}", filename), ron_string)?;
+    Ok(())
+}
+
+/// Load level from RON format  
+pub fn load_level_from_file(filename: &str) -> Result<LevelData, Box<dyn std::error::Error>> {
+    let ron_string = std::fs::read_to_string(filename)?;
+    let level: LevelData = ron::from_str(&ron_string)?;
+    Ok(level)
+}
+
+// MIE conversion functions have been moved to the convert_mie binary
+// The game engine now only loads RON files
