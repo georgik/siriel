@@ -1,0 +1,288 @@
+Popis skriptovych prikazov pre program Siriel 3.5 v.1.9
+
+Prikazy sa zapisuju 
+
+[TEXT]=n,prikaz
+(#END; -- navrat zo skriptu)
+
+TEXT -- je povinny identifikator, ze sa jedna o cast skriptu
+n    -- cislo riadku (moze sluzit na odvolavanie) je povinne a musi byt
+        jednoznacne, ak nie je, prepise sa poslednym vyskytom
+        skriptu s danym identifikatorom
+prikaz -- samotne prikazy skriptu
+       -- budto <PRIKAZ,parameter1,par2....>;
+       -- alebo #PRIKAZ,paramter1,par2...;
+       -- pokial je zapisany samotny text, znamena to, ze sa vypise
+          na obrazovku
+
+Prikazy akceptovane enginom a syntax:
+
+Vysvetlivky:
+str -- string
+num -- number
+yn  -- retazec tvaru YES alebo NO
+chr -- znak
+
+dej -- je urcita premenna, resp. pole premennych, do ktorych sa daju
+       ukladat hodnoty a ich opatovnym vyvolanim sa da zistit, ci
+       hrac previedol urcite akcie
+
+ #ANIM,str;
+-- prehra animaciu v rozliseni max. 320x200x256 a po ukonceni prehravania
+   znovu zobrazi miestnost
+
+ #ANIMONLY,str;
+-- prehra animaciu tak ako #ANIM, ale po prehrati nenakresli miestnost
+
+ #AUTODEF,yn;
+-- zapne/vypne automaticke resetovanie niektorych hodnot (ale uz ani
+   sam poriadne neviem akych ;)))
+
+ #CENTER,yn;
+-- zapne/vypne centrovanie textu na stred (obrazovky/suradnic)
+
+ #CLS;
+-- zhasne a zmaze obrazovku
+
+ #DECEVENT,num;
+-- znizi hodnotu deja na pozicii num o jdenotku (napriklad, ak sa nieco
+   nepodarilo -- indikator)
+
+ #DEFFONT;
+-- nastavi povodny (implicitny) font
+
+ #DONTUSE;
+-- aktualne aktivovany predmet sa nepouzije, teda napriklad
+   Siriel pouzije kluc, ale nesplnil predtym nejaku podmienku,
+   tak je nutne povedat skriptu, aby ten predmet nemazal z vrecka
+
+ #DRAWGIF,str,num1,num2;
+-- na suradnice num1(x) a num2(y) zobrazi obrazok zo suboru str
+
+ #DRAWGIFNUM,num;
+-- nakresli obrazok, zadefinovany ako pozadie miestnosti num
+
+ #DRAWINTRO;
+-- vykresli uvodnu obrazovku (tak, ktora sa zobrazi pri starte Siriela),
+   resp. obrazok z pozadia na tejto obrazovke
+
+ #END;
+-- koniec prikazoveho modu - navrat spat do hry. Pokial prikaz nei je
+   uvedeny, vykonava sa vsetko, pokial sa neprekroci cislo skriptu
+   255, potom sa automaticky ukonci. Tento prikaz ODPORUCAM uvadzat,
+   aby nedoslo k zbytocnym chybam.
+   Riadky, ktore neboli zadeklarovane sa preskakuju
+
+ #FASTREDRAW;
+-- rychle prekreslenie obraovky
+
+ #FONT,str;
+-- nastavi font na font s menom str
+
+ #FRAME,num1,num2,num3,num4;
+-- nakresli okno od num1(x) num2(y) o velkosti num3 a num4 (velskost
+   je pocet pixelov modulo 16)
+
+ #FRAME2,str;
+-- na suradnice 100 a 100 vypise okno s nadpisom str
+
+ #FRAMEPIC,num;
+-- do okna zakresli obrazok num
+
+ #GAINLIFE,num;
+-- prida Sirielovy Num zivotov
+
+ #GIVEPOCKET,num;
+-- vlozi do Sirielovho vrecka predmet s cislom num, v pripade, ze ma vrecka
+   plne, polozi ho na miesto, kde sa nachadza Siriel
+
+ #GOMAP,num;
+-- skoci na mapu num, pricom staru ulozi
+
+ #GOTO,num;
+-- skok na cast skriptu s hodnotou num
+
+ #HIDE,num,ch;
+-- ukryje predmety s hodnotou 5. parametru v mene rovnemu chr
+   ([????X] - napr. chr=X) do miestnosti num
+
+ #HIEVENT,num1,num2,num3;
+-- podobne ako IFEVENT s tym rozdielom, ze test je prevadzany na to,
+   ci je hodnota deja vacsia ako zadana hodnota
+
+ #IFEVENT,num1,num2,num3;
+-- ak ma dej s poradovym cislom num1 hodnotu num2, tak sa prevedie odskok
+   na skript s cislom num3
+
+ #IFPOCKET,num1,num2;
+-- zisti ci sa nachadza vo nrecku Siriela predmet s cislom num1,
+   ak ano, odskoci na skript num2
+
+ #INCEVENT,num;
+-- zvysi hodnotu deja num o jedna (vhodne pre testovanie, ci boli splnene
+   urcite podmienky)
+
+ #KEY;
+-- caka na stlacenie klavesu, potom pokracuje dalej
+
+ #LOADMAP,num;
+-- aktualnu mapu nahradi mapou s cislom num
+   Vhodne napriklad pri vybochu, ktory totalne zmeni miestnost
+
+ #LOEVENT,num1,num2,num3;
+-- podobne ako IFEVENT, ale test je prevedeny na to, ci je hodnota
+   deja mensia ako hodnota zadana
+
+ #LOSTLIFE;
+-- Siriel strati zivot (ak strati aj posledny, je to jeho koniec)
+
+ #NEWSCR;
+-- caka na klaves a potom vykona akciu #CLS;
+
+ #NEWTEXT,num1,num2,num3,num4,num5;
+-- v aktualnej miestnosti nastavi textury od num1(x), num2(y) po
+   num3(x) num4(y) na hodnotu num5 (cislo textury)
+   Vhodne pouzit pri otvarani dveri -- nahradia sa 0. texturou,
+   ktora je prazdna
+
+ #NOLINE,num;
+-- specifikuje kolko pixelov sa ma vynechat medzi novymi riadkami
+
+ #P;
+-- skok na novy riadok pri vypise textu (podobne ako v html ;)
+
+ #PIC,num1,num2,num3;
+-- vykresli na suradnice num2(x) num3(y) obrazok num1, obrazok
+   je vykreslovany zo zoznamu statickych textur
+
+ #PULZX;
+-- caka urcitu kratku dobu -- vhodne napriklad, aby sa okamzite neprepinaly
+   obrazovky
+
+ #REDRAW;
+-- nakresli obrazovku miestnosti
+
+ #REINIT;
+-- caka na klaves a prekresli obrazovku miestnostou, kde sa nachadza Siriel
+   vhodne pre ukoncovanie vypisu textu a navrat do hry
+
+ #REINIT2;
+-- rozsvieti obrazovku a caka na klaves
+
+ #RESET,num;
+-- prevedie akciu #SETNEW,num; a skoci na skript s novou hodnotou num
+
+ #SAVEMAP,num;
+-- ulozi aktualnu mapu do mapy num
+   Vhodne pri neskorsom vyvolani mapy
+
+ #SCAN,num1,num2,num3,num4;
+-- nastavi novy reakcny rozsah od num1(x) num2(y) po num3(x) num4(y)
+
+ #SCORE,num;
+-- prida pozdaovany pocet bodov do skore
+
+ #SCROFF;
+-- zhasne obrazovku (postupne zhasinanie)
+
+ #SCRON;
+-- rozsvieti obrazovku (postupne rozsvecovanie)
+
+ #SETANIM,chr,yn;
+-- nastavi vsetky predmety s so znakom v 5. parametri rovnych chr
+   na animovane alebo neanimovane (yn)
+
+ #SETBACKGIF,num1,str,num2,num3;
+-- nastavi v miestnosti num1 ako pozadie obrazok s menom str na
+   suradnice num2(x) a num3(y) -- ak sa ma zobrazovat od laveho horneho
+   rohu, tak num2 a num3 = 0;
+
+ #SETDEF;
+-- nastavi povodne hodnoty, ktore boli zadeklarovane pri starte Siriela
+
+ #SETEVENT,num1,num2;
+-- nastavi hodnotu deja (teda nejakej premennej, ktora sa da potom pouzit
+   na testovanie podmienok) cislo num1 na hodnotu num2
+
+ #SETFREEZ,num1,num2;
+-- nastavi dobu zmrazenia priser na num1 a prehra zvuk num2
+
+ #SETGOD,num1,num2;
+-- nastavi dobu nezranitelnosti na num1 a prehra zvuk num2
+
+ #SETLIFT,num,yn;
+-- nastavi vytah cislo num, ci ma byt zapnuty, alebo vypnuty (yn)
+
+ #SETPIC,num1,num2;
+-- nastavi suradnice num1(x) a num2(y), na kktorych sa budu obrazky objavovat
+
+ #SETNEW,num;
+-- nastavi veci/postave, s ktorou sa prave rozprava novy skript.
+   Teda pri dalsej aktivacii (rozpravani) sa nevykona skript od
+   miesta, kde bol zadeklarovany povodne, ale od miesta num.
+
+ #SETOBR,chr,num;
+-- nastavi predmetom s hodnotou 5.param. rovnych chr, obrazok 
+   s hodnotou num 
+
+ #SETTONEW,num,chr;
+-- nastavi veciam, ktore maju v mene 5. parameter rovny num ([????X])
+   v nasom pripade rovny pismenu X, pri ich aktivacii sa spusti skript
+   s cislom num
+
+ #SETWAY,num,yn;
+-- nastavi cestu s cislom num (resp. prechod medzi miestnostami), ci
+   sa ma pouzit alebo nie (yn)
+
+ #SHADOW,yn;
+-- zapne/vypne tien textu
+
+ #SHADOWCOL,num;
+-- nastavi farbu tiena na num
+
+ #SHOWCHAT
+-- do textu vlozi obrazok s kym sa Siriel rozprava
+
+ #SHOWSIR;
+-- do textu vlozi obrazok Siriela (vhodne ako ilustracia pri rozhovore)
+
+ #SIRXY,num1,num2;
+-- nastavy suradnice Siriela na poziciu num1(x), num2(y)
+
+ #SOUND,str;
+-- prehra zvuk specifikovany v str, plati, ze subor sa nacitava z datadisku
+
+ #SPEEDLIFT,num1,num2;
+-- nastavi rychlost pohybu vytahu cislo num1 na rychlost num2 (citlivost je
+   v pixeloch)
+
+ #STAGE,num1,num2,num3;
+-- presunie Siriela do miestnosti num1 na suradnice num2(x) a num3(y)
+
+ #TAKEPOCKET,num1,num2;
+-- ak ma vo vrecku predmet s pozadovanym cislom num1, presunie ho do
+   miestnosti s cislom num2
+
+ #TEXT_X,num;
+-- nastavi xsovu suradnicu pre vypise textu (max 640)
+
+ #TEXT_Y,num;
+-- nastavi suradnice pre vypis textu (obrazovka ma maximalnu velkost 480)
+
+ #TEXTCOL,num;
+-- zmeni farbu textu. Farba je brana zo standardnej palety, v ktorej
+   bol vykresleny posledny obrazok. Najlepsie je pouzit pre vsetky obrazky jednu
+   paletu. Rozsah 0-255
+
+ #THEEND;
+-- ukonci level (uspesne)
+
+ #UNHIDE,num1,num2;
+-- odkryje veci v urovni num1 z urovne num2 - resp. presunie veci medzi
+   tymito urovnami
+
+ #USE;
+-- aktualne aktivovany predmet sa pouzije - opak k DONTUSE (citaj tam)
+
+ #WAYLIFT,num1,num2;
+-- nastavi smer pohybu vytahu cislo num1 na smer num2 (rozsah 1-4)
