@@ -10,6 +10,7 @@ mod components;
 mod dat_extractor;
 mod level;
 mod level_manager;
+mod menu;
 mod mie_parser;
 mod resources;
 mod systems;
@@ -19,6 +20,7 @@ use audio::{sound_mappings, SirielAudioPlugin, SoundEvent};
 use components::*;
 use level::{GameArgs, *};
 use level_manager::{level_switch_system, print_level_info_system, LevelManager};
+use menu::*;
 use resources::*;
 use systems::*;
 
@@ -41,6 +43,13 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    // Determine initial state based on CLI arguments
+    let initial_state = if args.level.is_some() {
+        AppState::InGame // Skip menu if level is specified via CLI
+    } else {
+        AppState::Menu // Show menu if no level specified
+    };
 
     // Print usage help if needed
     if args.verbose {
@@ -76,34 +85,61 @@ fn main() {
         }))
         .add_plugins(TilemapPlugin)
         .add_plugins(SirielAudioPlugin)
+        .init_state::<AppState>()
+        .insert_state(initial_state)
         .init_resource::<GameState>()
         .init_resource::<PhysicsConfig>()
         .init_resource::<InputState>()
         .init_resource::<SpriteAtlas>()
         .init_resource::<TilemapManager>()
         .init_resource::<AtlasManager>()
+        .init_resource::<LevelMenu>()
+        .init_resource::<menu::MenuInputTimer>()
+        .init_resource::<menu::MenuRefreshTracker>()
         .insert_resource(LevelManager::new())
         .insert_resource(GameArgs {
             level: args.level,
             verbose: args.verbose,
         })
+        // Startup systems (run once)
         .add_systems(
             Startup,
             (
                 setup_camera,
-                setup_game,
                 load_sprite_assets,
                 load_atlas_descriptors,
+                setup_level_menu,
+            ),
+        )
+        // Menu systems
+        .add_systems(OnEnter(AppState::Menu), spawn_level_menu_ui_when_ready)
+        .add_systems(
+            Update,
+            (
+                refresh_menu_ui_when_levels_loaded,
+                handle_menu_input,
+                handle_menu_mouse,
+                update_menu_ui,
+            )
+                .run_if(in_state(AppState::Menu)),
+        )
+        .add_systems(OnExit(AppState::Menu), cleanup_menu_ui)
+        // Game systems
+        .add_systems(
+            OnEnter(AppState::InGame),
+            (
+                setup_game,
+                level::cleanup_previous_level,
                 load_level_system,
                 spawn_level_entities,
                 start_background_music,
-            ),
+            )
+                .chain(), // Ensure cleanup runs before level loading
         )
         .add_systems(
             Update,
             (
                 input_system,
-                quit_system,
                 physics_system,
                 behavior_system,
                 animation_system,
@@ -112,7 +148,7 @@ fn main() {
                 level_switch_system,
                 print_level_info_system,
             )
-                .chain(),
+                .run_if(in_state(AppState::InGame)),
         )
         .run();
 }

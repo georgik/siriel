@@ -1,5 +1,6 @@
 use crate::atlas::AtlasManager;
 use crate::components::*;
+use crate::menu::SelectedLevel;
 use crate::resources::*;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
@@ -230,6 +231,37 @@ pub struct TilemapManager {
     pub map_size: TilemapSize,
 }
 
+/// Component to mark game entities for cleanup when switching levels
+#[derive(Component)]
+pub struct GameEntity;
+
+/// Component to mark tilemap entities for cleanup when switching levels
+#[derive(Component)]
+pub struct GameTilemap;
+
+/// System to clean up previous level before loading new one
+pub fn cleanup_previous_level(
+    mut commands: Commands,
+    game_entities: Query<Entity, With<GameEntity>>,
+    tilemap_entities: Query<Entity, With<GameTilemap>>,
+    all_tiles: Query<Entity, With<TilePos>>,
+) {
+    // Remove all game entities
+    for entity in game_entities.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // Remove all tilemap entities
+    for entity in tilemap_entities.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // Remove all individual tiles
+    for entity in all_tiles.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
 /// System to load a level from RON format with CLI support
 pub fn load_level_system(
     mut commands: Commands,
@@ -237,9 +269,13 @@ pub fn load_level_system(
     sprite_atlas: Res<SpriteAtlas>,
     atlas_manager: Res<AtlasManager>,
     game_args: Res<GameArgs>,
+    selected_level: Option<Res<SelectedLevel>>,
     _asset_server: Res<AssetServer>,
 ) {
-    let level = if let Some(level_path) = &game_args.level {
+    let level = if let Some(selected) = selected_level {
+        // Level selected from menu
+        load_level_by_path(&selected.path, game_args.verbose)
+    } else if let Some(level_path) = &game_args.level {
         // CLI level file specified
         load_level_by_path(level_path, game_args.verbose)
     } else {
@@ -477,20 +513,23 @@ pub fn spawn_tilemap_with_atlas(
         let grid_size = tile_size.into();
         let map_type = TilemapType::default();
 
-        commands.entity(tilemap_entity).insert(TilemapBundle {
-            grid_size,
-            map_type,
-            size: map_size,
-            storage: tile_storage,
-            texture: TilemapTexture::Single(texture_handle.clone()),
-            tile_size,
-            transform: Transform::from_xyz(
-                -(map_size.x as f32) * tile_size.x / 2.0,
-                -(map_size.y as f32) * tile_size.y / 2.0,
-                0.0,
-            ),
-            ..default()
-        });
+        commands.entity(tilemap_entity).insert((
+            TilemapBundle {
+                grid_size,
+                map_type,
+                size: map_size,
+                storage: tile_storage,
+                texture: TilemapTexture::Single(texture_handle.clone()),
+                tile_size,
+                transform: Transform::from_xyz(
+                    -(map_size.x as f32) * tile_size.x / 2.0,
+                    -(map_size.y as f32) * tile_size.y / 2.0,
+                    0.0,
+                ),
+                ..default()
+            },
+            GameTilemap, // Add cleanup component
+        ));
     }
 }
 
@@ -563,6 +602,7 @@ fn spawn_entity_from_data(
             entity_data.position.1,
             1.0,
         )),
+        GameEntity, // Add cleanup component
     );
 
     // Check if entity should be animated

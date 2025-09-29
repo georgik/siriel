@@ -1,5 +1,14 @@
 use bevy::prelude::*;
 
+/// Game state enumeration
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum AppState {
+    #[default]
+    Menu,
+    InGame,
+    Paused,
+}
+
 /// Global game state resource
 #[derive(Resource, Default)]
 pub struct GameState {
@@ -11,6 +20,34 @@ pub struct GameState {
     pub player_invulnerable: bool,
     pub freeze_time: f32,
     pub god_mode_time: f32,
+}
+
+/// Level selection menu resource
+#[derive(Resource)]
+pub struct LevelMenu {
+    pub available_levels: Vec<LevelInfo>,
+    pub selected_index: usize,
+    pub scroll_offset: usize,
+    pub max_visible: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct LevelInfo {
+    pub name: String,
+    pub display_name: String,
+    pub file_path: String,
+    pub description: Option<String>,
+}
+
+impl Default for LevelMenu {
+    fn default() -> Self {
+        Self {
+            available_levels: Vec::new(),
+            selected_index: 0,
+            scroll_offset: 0,
+            max_visible: 20, // How many levels to show at once (increased for 380px height)
+        }
+    }
 }
 
 /// Physics configuration

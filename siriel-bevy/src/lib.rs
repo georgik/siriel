@@ -5,6 +5,7 @@ pub mod components;
 pub mod dat_extractor;
 pub mod level;
 pub mod level_manager;
+pub mod menu;
 pub mod mie_parser;
 pub mod resources;
 pub mod systems;

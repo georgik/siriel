@@ -115,6 +115,7 @@ pub fn input_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut input_state: ResMut<InputState>,
     mut query: Query<&mut Velocity, With<Player>>,
+    mut next_state: ResMut<NextState<crate::resources::AppState>>,
     physics_config: Res<PhysicsConfig>,
 ) {
     // Update input state
@@ -132,6 +133,11 @@ pub fn input_system(
     input_state.pause = keyboard_input.just_pressed(KeyCode::Escape);
     input_state.menu = keyboard_input.just_pressed(KeyCode::Tab);
     input_state.quit = keyboard_input.just_pressed(KeyCode::Escape);
+
+    // Handle ESC key to return to menu
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        next_state.set(crate::resources::AppState::Menu);
+    }
 
     // Apply player movement
     if let Ok(mut velocity) = query.single_mut() {
