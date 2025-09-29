@@ -1,34 +1,36 @@
+use siriel_bevy::dat_extractor::{extract_siriel_sounds, DATExtractor};
 use std::env;
-use siriel_bevy::dat_extractor::{DATExtractor, extract_siriel_sounds};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() > 1 && args[1] == "--help" {
         print_help();
         return;
     }
-    
+
     println!("Siriel Sound Extractor");
     println!("=====================");
     println!();
-    
+
     if args.len() > 1 {
         // Extract specific DAT file
         let dat_file = &args[1];
         println!("Extracting sounds from: {}", dat_file);
-        
+
         match DATExtractor::new(dat_file) {
             Ok(mut extractor) => {
                 extractor.list_resources();
                 println!();
-                
-                let output_dir = format!("assets/audio/extracted/{}", 
+
+                let output_dir = format!(
+                    "assets/audio/extracted/{}",
                     std::path::Path::new(dat_file)
                         .file_stem()
                         .unwrap()
-                        .to_string_lossy());
-                
+                        .to_string_lossy()
+                );
+
                 match extractor.extract_all(&output_dir) {
                     Ok(_) => println!("Successfully extracted sounds to {}", output_dir),
                     Err(e) => eprintln!("Error extracting sounds: {}", e),
@@ -46,7 +48,7 @@ fn main() {
             Err(e) => eprintln!("Error during extraction: {}", e),
         }
     }
-    
+
     println!();
     println!("Note: Extracted WAV files will be in assets/audio/extracted/");
     println!("You can convert them to OGG using: ffmpeg -i input.wav output.ogg");

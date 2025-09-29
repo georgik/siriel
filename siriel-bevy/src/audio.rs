@@ -1,9 +1,9 @@
+use bevy::audio::{PlaybackMode, PlaybackSettings, Volume};
 use bevy::prelude::*;
-use bevy::audio::{PlaybackSettings, PlaybackMode, Volume};
 use std::collections::HashMap;
 
 /// Audio resources and systems for Siriel
-/// 
+///
 /// This module handles:
 /// - Loading sound effects and music from OGG files
 /// - Playing sounds based on game events
@@ -52,35 +52,34 @@ impl Default for AudioSettings {
 }
 
 /// System to load all audio assets at startup
-pub fn setup_audio(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+pub fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut sound_effects = HashMap::new();
     let mut music_tracks = HashMap::new();
 
     // Load sound effects from the extracted/converted files
     let sound_names = [
-        "zexplo",  // explosion
-        "ztuk",    // hit/thud
-        "zkuk",    // pick/click
-        "zlopta",  // ball/sphere sound
-        "zmucha",  // fly sound
-        "zfire",   // fire sound
-        "zrum",    // rumble
-        "zdrak",   // dragon sound
+        "zexplo", // explosion
+        "ztuk",   // hit/thud
+        "zkuk",   // pick/click
+        "zlopta", // ball/sphere sound
+        "zmucha", // fly sound
+        "zfire",  // fire sound
+        "zrum",   // rumble
+        "zdrak",  // dragon sound
     ];
 
     for sound_name in sound_names.iter() {
-        let handle: Handle<AudioSource> = asset_server.load(format!("audio/sounds/{}.ogg", sound_name));
+        let handle: Handle<AudioSource> =
+            asset_server.load(format!("audio/sounds/{}.ogg", sound_name));
         sound_effects.insert(sound_name.to_string(), handle);
     }
 
     // Load music tracks
     let music_names = ["m1", "m2", "m3", "m4", "m5"];
-    
+
     for music_name in music_names.iter() {
-        let handle: Handle<AudioSource> = asset_server.load(format!("audio/music/{}.ogg", music_name));
+        let handle: Handle<AudioSource> =
+            asset_server.load(format!("audio/music/{}.ogg", music_name));
         music_tracks.insert(music_name.to_string(), handle);
     }
 
@@ -90,9 +89,12 @@ pub fn setup_audio(
     });
 
     commands.insert_resource(AudioSettings::default());
-    
-    info!("Audio system initialized with {} sound effects and {} music tracks", 
-          sound_names.len(), music_names.len());
+
+    info!(
+        "Audio system initialized with {} sound effects and {} music tracks",
+        sound_names.len(),
+        music_names.len()
+    );
 }
 
 /// System to handle sound events
@@ -145,25 +147,18 @@ pub struct SirielAudioPlugin;
 
 impl Plugin for SirielAudioPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_event::<SoundEvent>()
+        app.add_event::<SoundEvent>()
             .add_systems(Startup, setup_audio)
             .add_systems(Update, handle_sound_events);
     }
 }
 
 /// Helper functions to trigger sounds from game systems
-pub fn play_sound_effect(
-    sound_events: &mut EventWriter<SoundEvent>,
-    sound_name: &str,
-) {
+pub fn play_sound_effect(sound_events: &mut EventWriter<SoundEvent>, sound_name: &str) {
     sound_events.send(SoundEvent::PlayEffect(sound_name.to_string()));
 }
 
-pub fn play_music(
-    sound_events: &mut EventWriter<SoundEvent>,
-    music_name: &str,
-) {
+pub fn play_music(sound_events: &mut EventWriter<SoundEvent>, music_name: &str) {
     sound_events.send(SoundEvent::PlayMusic(music_name.to_string()));
 }
 
@@ -178,7 +173,7 @@ pub mod sound_mappings {
     pub const FIRE: &str = "zfire";
     pub const RUMBLE: &str = "zrum";
     pub const DRAGON: &str = "zdrak";
-    
+
     /// Background music tracks
     pub const MENU_MUSIC: &str = "m1";
     pub const LEVEL_MUSIC: &str = "m2";

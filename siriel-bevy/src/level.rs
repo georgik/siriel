@@ -1,10 +1,10 @@
-use bevy::prelude::*;
-use bevy_ecs_tilemap::prelude::*;
-use serde::{Deserialize, Serialize};
-use ron::ser::{to_string_pretty, PrettyConfig};
+use crate::atlas::AtlasManager;
 use crate::components::*;
 use crate::resources::*;
-use crate::atlas::AtlasManager;
+use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
+use ron::ser::{to_string_pretty, PrettyConfig};
+use serde::{Deserialize, Serialize};
 // MIE parser is no longer used in game engine - only in converter
 
 /// Resource to store CLI arguments for use in Bevy systems
@@ -30,6 +30,44 @@ pub struct LevelData {
     pub time_limit: Option<f32>,
 }
 
+/// Decoded entity code properties from the 4-character MIE entity code
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EntityCodeProps {
+    pub interaction_kind: InteractionKind,
+    pub animated: bool,
+    pub danger: DangerLevel,
+    pub appear: AppearCondition,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum InteractionKind {
+    PickupWalk,   // Z - pickup by walking over
+    SpecialTouch, // Y - special action on immediate touch
+    SpecialEnter, // X - special action when pressing Enter
+    Use,          // W - use object (doors, switches)
+    Talk,         // V - talk/NPC dialog
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum DangerLevel {
+    None,   // N - harmless
+    Mortal, // S - kills player on contact
+    NoGod,  // D - special hazard that bypasses invincibility
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AppearCondition {
+    pub mode: AppearMode,
+    pub group_char: Option<char>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum AppearMode {
+    Immediate,          // A - visible from level start
+    Group,              // any letter - appears when group is activated
+    ExitOnAllCollected, // ~ - appears when all collectibles gathered
+}
+
 /// Entity definition in level data
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LevelEntity {
@@ -43,6 +81,7 @@ pub struct LevelEntity {
     pub pickupable: bool,
     pub pickup_value: u32,
     pub sound_effects: Option<(u8, u8)>,
+    pub entity_props: Option<EntityCodeProps>, // Decoded entity code properties
 }
 
 /// Level transition (doors, teleports, etc.)
@@ -68,47 +107,117 @@ pub struct LevelScript {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ScriptCommand {
     // Text and dialog
-    ShowText { text: String, speaker: Option<String> },
-    ShowDialog { speaker: String, text: String, choices: Option<Vec<String>> },
-    
+    ShowText {
+        text: String,
+        speaker: Option<String>,
+    },
+    ShowDialog {
+        speaker: String,
+        text: String,
+        choices: Option<Vec<String>>,
+    },
+
     // Game state
-    SetVariable { name: String, value: i32 },
-    CheckVariable { name: String, value: i32, goto_script: String },
-    GiveItem { item_id: String },
-    RemoveItem { item_id: String },
-    CheckItem { item_id: String, goto_script: String },
-    
+    SetVariable {
+        name: String,
+        value: i32,
+    },
+    CheckVariable {
+        name: String,
+        value: i32,
+        goto_script: String,
+    },
+    GiveItem {
+        item_id: String,
+    },
+    RemoveItem {
+        item_id: String,
+    },
+    CheckItem {
+        item_id: String,
+        goto_script: String,
+    },
+
     // Player actions
-    AddScore { points: u32 },
-    AddLife { lives: i32 },
-    SetPosition { x: f32, y: f32 },
-    TransferToLevel { level: String, position: (f32, f32) },
-    
+    AddScore {
+        points: u32,
+    },
+    AddLife {
+        lives: i32,
+    },
+    SetPosition {
+        x: f32,
+        y: f32,
+    },
+    TransferToLevel {
+        level: String,
+        position: (f32, f32),
+    },
+
     // Audio/Visual
-    PlaySound { sound_id: String },
-    PlayMusic { music_id: String },
-    ShowImage { image_path: String, duration: Option<f32> },
-    FadeOut { duration: f32 },
-    FadeIn { duration: f32 },
-    
+    PlaySound {
+        sound_id: String,
+    },
+    PlayMusic {
+        music_id: String,
+    },
+    ShowImage {
+        image_path: String,
+        duration: Option<f32>,
+    },
+    FadeOut {
+        duration: f32,
+    },
+    FadeIn {
+        duration: f32,
+    },
+
     // Tilemap changes
-    ChangeTile { x: u32, y: u32, tile_id: u16 },
-    ChangeTileArea { x: u32, y: u32, width: u32, height: u32, tile_id: u16 },
-    
+    ChangeTile {
+        x: u32,
+        y: u32,
+        tile_id: u16,
+    },
+    ChangeTileArea {
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        tile_id: u16,
+    },
+
     // Entity manipulation
-    SpawnEntity { entity: LevelEntity },
-    RemoveEntity { entity_id: String },
-    SetEntityBehavior { entity_id: String, behavior: u8, params: [u16; 7] },
-    
+    SpawnEntity {
+        entity: LevelEntity,
+    },
+    RemoveEntity {
+        entity_id: String,
+    },
+    SetEntityBehavior {
+        entity_id: String,
+        behavior: u8,
+        params: [u16; 7],
+    },
+
     // Flow control
-    Wait { duration: f32 },
+    Wait {
+        duration: f32,
+    },
     WaitForKey,
-    GotoScript { script_id: String },
+    GotoScript {
+        script_id: String,
+    },
     EndScript,
-    
+
     // Game mechanics
-    SetFreezTimer { duration: f32, sound: Option<String> },
-    SetGodMode { duration: f32, sound: Option<String> },
+    SetFreezTimer {
+        duration: f32,
+        sound: Option<String>,
+    },
+    SetGodMode {
+        duration: f32,
+        sound: Option<String>,
+    },
     EndLevel,
 }
 
@@ -137,7 +246,7 @@ pub fn load_level_system(
         // Default fallback chain
         load_default_level()
     };
-    
+
     if sprite_atlas.loaded && sprite_atlas.tiles_texture.is_some() {
         spawn_tilemap_with_atlas(&mut commands, &level, &sprite_atlas, Some(&*atlas_manager));
         tilemap_manager.current_level = Some(level);
@@ -151,18 +260,21 @@ fn load_level_by_path(level_path: &str, verbose: bool) -> LevelData {
         Ok(cwd) => info!("📂 Current working directory: {}", cwd.display()),
         Err(e) => warn!("❌ Could not get current working directory: {}", e),
     }
-    
+
     info!("🎯 Loading CLI-specified level file: {}", level_path);
-    
+
     // Check if file exists before attempting to load
     let exists = std::path::Path::new(level_path).exists();
     if verbose {
         info!("🔍 Checking file: {} (exists: {})", level_path, exists);
     }
-    
+
     match load_level_from_file(level_path) {
         Ok(level) => {
-            info!("✅ Successfully loaded RON level: {} from {}", level.name, level_path);
+            info!(
+                "✅ Successfully loaded RON level: {} from {}",
+                level.name, level_path
+            );
             level
         }
         Err(e) => {
@@ -180,22 +292,25 @@ fn load_default_level() -> LevelData {
         Ok(cwd) => info!("📂 Current working directory: {}", cwd.display()),
         Err(e) => warn!("❌ Could not get current working directory: {}", e),
     }
-    
+
     // Try our converted RON levels in order of preference
     let default_levels = vec![
-        ("FMIS01", "assets/levels/FMIS01.ron"),  // First Mission Level 1 - START
-        ("FMIS02", "assets/levels/FMIS02.ron"),  // First Mission Level 2 - LIGHT
-        ("1", "assets/levels/1.ron"),            // Generic level file
+        ("FMIS01", "assets/levels/FMIS01.ron"), // First Mission Level 1 - START
+        ("FMIS02", "assets/levels/FMIS02.ron"), // First Mission Level 2 - LIGHT
+        ("1", "assets/levels/1.ron"),           // Generic level file
     ];
-    
+
     for (level_id, path) in default_levels {
         // Check if file exists before attempting to load
         let exists = std::path::Path::new(path).exists();
         info!("🔍 Checking default file: {} (exists: {})", path, exists);
-        
+
         match load_level_from_file(path) {
             Ok(level) => {
-                info!("✅ Successfully loaded default RON level: {} ({}) from {}", level_id, level.name, path);
+                info!(
+                    "✅ Successfully loaded default RON level: {} ({}) from {}",
+                    level_id, level.name, path
+                );
                 return level;
             }
             Err(e) => {
@@ -203,7 +318,7 @@ fn load_default_level() -> LevelData {
             }
         }
     }
-    
+
     warn!("❌ No RON levels found in assets/levels/, using test level");
     warn!("💡 Hint: Run the convert_mie tool to convert MIE files to RON format");
     create_test_level()
@@ -249,6 +364,7 @@ pub fn create_test_level() -> LevelData {
                 pickupable: false,
                 pickup_value: 0,
                 sound_effects: None,
+                entity_props: None,
             },
             LevelEntity {
                 id: "pickup1".to_string(),
@@ -261,6 +377,7 @@ pub fn create_test_level() -> LevelData {
                 pickupable: true,
                 pickup_value: 100,
                 sound_effects: Some((1, 0)), // pickup sound
+                entity_props: None,
             },
         ],
         transitions: vec![],
@@ -273,37 +390,33 @@ pub fn create_test_level() -> LevelData {
 /// Create a simple test tilemap
 fn create_test_tilemap() -> Vec<Vec<u16>> {
     let mut tilemap = vec![vec![0u16; 40]; 30];
-    
+
     // Create some ground at the bottom
     for x in 0..40 {
         tilemap[28][x] = 1; // ground tile
         tilemap[29][x] = 2; // dirt tile
     }
-    
+
     // Add some platforms
     for x in 10..20 {
         tilemap[20][x] = 1;
     }
-    
+
     for x in 25..35 {
         tilemap[15][x] = 1;
     }
-    
+
     // Add walls on sides
     for y in 0..30 {
         tilemap[y][0] = 3; // wall tile
         tilemap[y][39] = 3;
     }
-    
+
     tilemap
 }
 
 /// Spawn tilemap entities using bevy_ecs_tilemap
-pub fn spawn_tilemap(
-    commands: &mut Commands,
-    level: &LevelData,
-    sprite_atlas: &SpriteAtlas,
-) {
+pub fn spawn_tilemap(commands: &mut Commands, level: &LevelData, sprite_atlas: &SpriteAtlas) {
     spawn_tilemap_with_atlas(commands, level, sprite_atlas, None);
 }
 
@@ -326,7 +439,7 @@ pub fn spawn_tilemap_with_atlas(
         for y in 0..level.height {
             for x in 0..level.width {
                 let tile_id = level.tilemap[y as usize][x as usize];
-                
+
                 // Convert tile ID to proper texture index using atlas
                 let tile_index = if let Some(atlas) = atlas_manager {
                     // Use atlas mapping for texture indices
@@ -335,9 +448,13 @@ pub fn spawn_tilemap_with_atlas(
                     // Fallback: direct mapping
                     // Tile ID 0 = transparent/empty (not rendered)
                     // Tile ID 1+ = solid tiles (use texture index)
-                    if tile_id > 0 { tile_id as u32 - 1 } else { 0 }
+                    if tile_id > 0 {
+                        tile_id as u32 - 1
+                    } else {
+                        0
+                    }
                 };
-                
+
                 // Only spawn solid tiles (tile ID > 0)
                 // Tile ID 0 = empty/walkable space (not rendered)
                 if tile_id > 0 {
@@ -367,7 +484,11 @@ pub fn spawn_tilemap_with_atlas(
             storage: tile_storage,
             texture: TilemapTexture::Single(texture_handle.clone()),
             tile_size,
-            transform: Transform::from_xyz(-(map_size.x as f32) * tile_size.x / 2.0, -(map_size.y as f32) * tile_size.y / 2.0, 0.0),
+            transform: Transform::from_xyz(
+                -(map_size.x as f32) * tile_size.x / 2.0,
+                -(map_size.y as f32) * tile_size.y / 2.0,
+                0.0,
+            ),
             ..default()
         });
     }
@@ -394,6 +515,7 @@ fn spawn_entity_from_data(
     entity_data: &LevelEntity,
     _sprite_atlas: &SpriteAtlas,
 ) {
+    use crate::components::AnimatedEntity;
     let behavior_type = match entity_data.behavior_type {
         1 => BehaviorType::Static,
         2 => BehaviorType::HorizontalOscillator,
@@ -443,29 +565,86 @@ fn spawn_entity_from_data(
         )),
     );
 
-    // Add pickup component if needed
-    if entity_data.pickupable {
+    // Check if entity should be animated
+    let mut entity_commands = if let Some(ref props) = entity_data.entity_props {
+        if props.animated {
+            // Determine animation name based on entity type or sprite_id
+            let animation_name =
+                get_animation_name_for_entity(&entity_data.entity_type, entity_data.sprite_id);
+
+            let cmd = commands.spawn((
+                entity_bundle,
+                SpriteInfo {
+                    texture_id: entity_data.sprite_id as usize,
+                    frame: entity_data.sprite_id as usize, // Will be updated by animation system
+                    facing_left: false,
+                },
+                AnimatedEntity {
+                    animation_name: animation_name.clone(),
+                    current_frame_index: 0,
+                    timer: 0.0,
+                    duration_per_frame: 0.1, // Default duration, can be overridden
+                    total_frames: 4,         // Most animations have 4 frames
+                    base_sprite_id: entity_data.sprite_id as u32,
+                },
+            ));
+
+            cmd
+        } else {
+            commands.spawn((
+                entity_bundle,
+                SpriteInfo {
+                    texture_id: entity_data.sprite_id as usize,
+                    frame: entity_data.sprite_id as usize,
+                    facing_left: false,
+                },
+            ))
+        }
+    } else {
         commands.spawn((
             entity_bundle,
-            Pickup {
-                pickup_type: entity_data.sprite_id,
-                value: entity_data.pickup_value,
+            SpriteInfo {
+                texture_id: entity_data.sprite_id as usize,
+                frame: entity_data.sprite_id as usize,
+                facing_left: false,
             },
-        ));
-    } else {
-        commands.spawn(entity_bundle);
+        ))
+    };
+
+    // Add pickup component if needed
+    if entity_data.pickupable {
+        entity_commands.insert(Pickup {
+            pickup_type: entity_data.sprite_id,
+            value: entity_data.pickup_value,
+        });
     }
 }
 
-/// Save level to RON format with compact tilemap formatting
-pub fn save_level_to_file(level: &LevelData, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+/// Map entity types to animation names in the animations atlas
+fn get_animation_name_for_entity(entity_type: &str, _sprite_id: u16) -> String {
+    match entity_type {
+        // Exit portal
+        "YNN~" => "teleport".to_string(),
+        // Fruits
+        "YFRU" => "pear".to_string(),
+        "YFRC" => "cherry".to_string(),
+        // Heart/life
+        "YHEA" => "heart".to_string(),
+        // Defaults
+        _ => "coin".to_string(),
+    }
+}
+pub fn save_level_to_file(
+    level: &LevelData,
+    filename: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Configure RON formatting for readable tilemaps
     let config = PrettyConfig::new()
         .depth_limit(2)
         .separate_tuple_members(true)
         .enumerate_arrays(false)
-        .compact_arrays(true);  // This makes arrays format on single lines
-        
+        .compact_arrays(true); // This makes arrays format on single lines
+
     let ron_string = to_string_pretty(level, config)?;
     std::fs::write(format!("assets/levels/{}", filename), ron_string)?;
     Ok(())

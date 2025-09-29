@@ -70,12 +70,12 @@ pub struct Behavior {
 /// The 18 behavior types from the original Siriel engine
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BehaviorType {
-    Static = 1,           // No movement
-    HorizontalOscillator = 2,  // Moves between two X coordinates
-    VerticalOscillator = 3,    // Moves between two Y coordinates
-    PlatformWithGravity = 4,   // Falls until hits solid ground
-    EdgeWalkingPlatform = 5,   // Changes direction at edges
-    RandomMovement = 12,       // Random direction changes, avoids walls
+    Static = 1,               // No movement
+    HorizontalOscillator = 2, // Moves between two X coordinates
+    VerticalOscillator = 3,   // Moves between two Y coordinates
+    PlatformWithGravity = 4,  // Falls until hits solid ground
+    EdgeWalkingPlatform = 5,  // Changes direction at edges
+    RandomMovement = 12,      // Random direction changes, avoids walls
     Fireball = 15,            // Projectile that moves in straight line
     Hunter = 16,              // AI that chases player when activated
     SoundTrigger = 17,        // Plays sounds at timed intervals
@@ -85,20 +85,25 @@ pub enum BehaviorType {
 /// Parameters for entity behaviors (maps to inf1-inf7 from Pascal)
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BehaviorParams {
-    pub inf1: u16,  // Speed or X1 coordinate
-    pub inf2: u16,  // Timer or X2/Y2 coordinate  
-    pub inf3: u16,  // Direction or active time
-    pub inf4: u16,  // Animation frame or passive time
-    pub inf5: u16,  // Counter or timer
-    pub inf6: u16,  // State flag or counter
-    pub inf7: u16,  // Direction or spare parameter
+    pub inf1: u16, // Speed or X1 coordinate
+    pub inf2: u16, // Timer or X2/Y2 coordinate
+    pub inf3: u16, // Direction or active time
+    pub inf4: u16, // Animation frame or passive time
+    pub inf5: u16, // Counter or timer
+    pub inf6: u16, // State flag or counter
+    pub inf7: u16, // Direction or spare parameter
 }
 
 impl Default for BehaviorParams {
     fn default() -> Self {
         Self {
-            inf1: 0, inf2: 0, inf3: 0, inf4: 0,
-            inf5: 0, inf6: 0, inf7: 0,
+            inf1: 0,
+            inf2: 0,
+            inf3: 0,
+            inf4: 0,
+            inf5: 0,
+            inf6: 0,
+            inf7: 0,
         }
     }
 }
@@ -157,8 +162,8 @@ pub struct Pickup {
 /// Sound component - for entities that play sounds
 #[derive(Component, Clone, Debug)]
 pub struct SoundEmitter {
-    pub sound_id1: Option<u8>,  // Maps to z1
-    pub sound_id2: Option<u8>,  // Maps to z2
+    pub sound_id1: Option<u8>, // Maps to z1
+    pub sound_id2: Option<u8>, // Maps to z2
     pub triggered: bool,
 }
 
@@ -169,4 +174,15 @@ pub struct Health {
     pub max: i32,
     pub invulnerable: bool,
     pub invulnerability_timer: f32,
+}
+
+/// Animated entity component - for objects that use the animations atlas
+#[derive(Component, Clone, Debug)]
+pub struct AnimatedEntity {
+    pub animation_name: String,
+    pub current_frame_index: usize,
+    pub timer: f32,
+    pub duration_per_frame: f32,
+    pub total_frames: usize,
+    pub base_sprite_id: u32, // Starting frame index in animations atlas
 }

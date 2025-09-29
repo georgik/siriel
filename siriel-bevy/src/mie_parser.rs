@@ -117,8 +117,12 @@ impl MIEParser {
 
         info!(
             "Parsed MIE level '{}': {}x{} map, {} entities, start at ({}, {})",
-            level.name, level.width, level.height, level.entities.len(),
-            level.start_position.0, level.start_position.1
+            level.name,
+            level.width,
+            level.height,
+            level.entities.len(),
+            level.start_position.0,
+            level.start_position.1
         );
 
         Ok(level)
@@ -203,19 +207,22 @@ impl MIEParser {
     }
 
     /// Parse binary tilemap data from MIE file
-    fn parse_binary_tilemap(data: &[u8], start_pos: usize) -> Result<Vec<Vec<u8>>, Box<dyn std::error::Error>> {
+    fn parse_binary_tilemap(
+        data: &[u8],
+        start_pos: usize,
+    ) -> Result<Vec<Vec<u8>>, Box<dyn std::error::Error>> {
         let mut tilemap = Vec::new();
         let mut pos = start_pos;
-        
+
         // Read until we hit the end of file or double newline
         while pos < data.len() {
             let mut row = Vec::new();
-            
+
             // Read one row of tiles
             while pos < data.len() {
                 let byte = data[pos];
                 pos += 1;
-                
+
                 // Check for line ending
                 if byte == 0x0D && pos < data.len() && data[pos] == 0x0A {
                     // Skip the \n
@@ -229,20 +236,20 @@ impl MIEParser {
                     row.push(byte);
                 }
             }
-            
+
             if row.is_empty() {
                 // Empty row means end of map
                 break;
             }
-            
+
             tilemap.push(row);
-            
+
             // Safety check - if we have too many rows, break
             if tilemap.len() > 100 {
                 break;
             }
         }
-        
+
         // Ensure all rows have the same width (pad with 0x0f if needed)
         if let Some(max_width) = tilemap.iter().map(|row| row.len()).max() {
             for row in &mut tilemap {
@@ -251,15 +258,18 @@ impl MIEParser {
                 }
             }
         }
-        
-        info!("Parsed binary tilemap: {} rows, {} columns", tilemap.len(), 
-              tilemap.first().map(|r| r.len()).unwrap_or(0));
-        
+
+        info!(
+            "Parsed binary tilemap: {} rows, {} columns",
+            tilemap.len(),
+            tilemap.first().map(|r| r.len()).unwrap_or(0)
+        );
+
         Ok(tilemap)
     }
 
     /// Convert MIE tile byte to tile ID
-    /// 0x0f (15) = empty/walkable space (becomes tile 0 - transparent/walkable) 
+    /// 0x0f (15) = empty/walkable space (becomes tile 0 - transparent/walkable)
     /// 0x10 (16) = tile 1, 0x11 (17) = tile 2, etc.
     /// Maps to sequential 0-based atlas indices
     pub fn tile_byte_to_tile_id(tile_byte: u8) -> u32 {

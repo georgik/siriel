@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::level::{LevelData, load_level_from_file, create_test_level};
 use crate::atlas::AtlasManager;
+use crate::level::{create_test_level, load_level_from_file, LevelData};
+use bevy::prelude::*;
 
 /// Resource for managing current level and level progression
 #[derive(Resource, Default)]
@@ -13,17 +13,17 @@ pub struct LevelManager {
 impl LevelManager {
     pub fn new() -> Self {
         let available_levels = vec![
-            "1".to_string(),          // Original test/start level
-            "FMIS02".to_string(),     // >LIGHT
-            "FMIS03".to_string(),     // >RULES  
-            "FMIS04".to_string(),     // >RAIDER
-            "FMIS05".to_string(),     // >FACE
-            "FMIS06".to_string(),     // >ROMULUS
-            "FMIS08".to_string(),     // >PACMAN
-            "FMIS09".to_string(),     // >SABREWOLF
-            "FMIS10".to_string(),     // >BABYLON
-            "FMIS11".to_string(),     // >RAILWAY
-            "FMIS12".to_string(),     // >FLOATER
+            "1".to_string(),      // Original test/start level
+            "FMIS02".to_string(), // >LIGHT
+            "FMIS03".to_string(), // >RULES
+            "FMIS04".to_string(), // >RAIDER
+            "FMIS05".to_string(), // >FACE
+            "FMIS06".to_string(), // >ROMULUS
+            "FMIS08".to_string(), // >PACMAN
+            "FMIS09".to_string(), // >SABREWOLF
+            "FMIS10".to_string(), // >BABYLON
+            "FMIS11".to_string(), // >RAILWAY
+            "FMIS12".to_string(), // >FLOATER
         ];
 
         Self {
@@ -53,10 +53,13 @@ impl LevelManager {
 
     pub fn load_current_level(&self) -> LevelData {
         let level_path = self.get_current_level_path();
-        
+
         match load_level_from_file(&level_path) {
             Ok(level) => {
-                info!("Successfully loaded level: {} ({})", self.current_level_name, level.name);
+                info!(
+                    "Successfully loaded level: {} ({})",
+                    self.current_level_name, level.name
+                );
                 level
             }
             Err(e) => {
@@ -83,13 +86,19 @@ pub fn level_switch_system(
     if keyboard_input.just_pressed(KeyCode::KeyN) {
         level_manager.next_level();
         level_changed = true;
-        info!("Switching to next level: {}", level_manager.current_level_name);
+        info!(
+            "Switching to next level: {}",
+            level_manager.current_level_name
+        );
     }
 
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         level_manager.previous_level();
         level_changed = true;
-        info!("Switching to previous level: {}", level_manager.current_level_name);
+        info!(
+            "Switching to previous level: {}",
+            level_manager.current_level_name
+        );
     }
 
     // Numbers 1-9 for direct level selection
@@ -100,7 +109,7 @@ pub fn level_switch_system(
             level_changed = true;
         }
     }
-    
+
     if keyboard_input.just_pressed(KeyCode::Digit2) {
         if level_manager.available_levels.len() > 1 {
             level_manager.current_index = 1;
@@ -136,14 +145,22 @@ pub fn level_switch_system(
     // If level changed, reload the game with new level
     if level_changed {
         let new_level = level_manager.load_current_level();
-        
+
         if sprite_atlas.loaded && sprite_atlas.tiles_texture.is_some() {
             // Clear existing tilemap entities (simplified approach)
             // In a full implementation, you'd want to properly clean up entities
-            info!("Reloading tilemap for level: {}", level_manager.current_level_name);
-            
+            info!(
+                "Reloading tilemap for level: {}",
+                level_manager.current_level_name
+            );
+
             // Spawn new tilemap with atlas support
-            crate::level::spawn_tilemap_with_atlas(&mut commands, &new_level, &sprite_atlas, Some(&*atlas_manager));
+            crate::level::spawn_tilemap_with_atlas(
+                &mut commands,
+                &new_level,
+                &sprite_atlas,
+                Some(&*atlas_manager),
+            );
             tilemap_manager.current_level = Some(new_level);
         }
     }
@@ -156,7 +173,10 @@ pub fn print_level_info_system(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyI) {
         info!("=== LEVEL INFO ===");
-        info!("Current level: {} (index {})", level_manager.current_level_name, level_manager.current_index);
+        info!(
+            "Current level: {} (index {})",
+            level_manager.current_level_name, level_manager.current_index
+        );
         info!("Available levels: {:?}", level_manager.available_levels);
         info!("Controls: N=Next, P=Previous, 1-5=Direct selection, I=Info");
         info!("==================");

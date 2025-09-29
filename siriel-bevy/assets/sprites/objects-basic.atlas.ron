@@ -1,0 +1,46 @@
+// Siriel 3.5 Objects Atlas Descriptor
+// objects-basic.png: 320x16 pixels, 20x1 objects (16x16 each)
+// Static collectible objects and interactive items
+(
+    name: "objects-basic",
+    image_path: "sprites/objects-basic.png",
+    tile_size: (16, 16),
+    grid_size: (20, 1), // 20 columns, 1 row
+    total_tiles: 20,
+    
+    // No ASCII mapping needed for objects - direct indexing
+    special_tiles: Some({
+        "teleport": 0,      // Teleport pad
+        "pear": 1,          // Pear fruit collectible
+        "cherry": 2,        // Cherry fruit collectible
+        "stop_sign": 3,     // Stop sign
+        "teleport2": 4,     // Alternative teleport
+        "water": 5,         // Water/potion
+        "coin": 6,          // Coin collectible
+        "heart": 7,         // Heart/life
+        "pacman": 8,        // Pacman reference
+        "monster": 9,       // Monster/enemy
+        "exit": 10,         // Exit door
+        "gold_piece": 11,   // Gold piece
+        "lollipop": 12,     // Lollipop
+        "ice_cream": 13,    // Ice cream
+        "apple": 14,        // Apple fruit
+        "orange": 15,       // Orange fruit
+        "bank_note": 16,    // Bank note/money
+        "gold": 17,         // Gold bar
+        "switch": 18,       // Switch/button
+        "teleport_marker": 19, // Teleport marker
+    }),
+
+    // Animation fields (not used for static objects)
+    animations: None,
+    animation_mapping: None,
+
+    // Object metadata
+    metadata: Some({
+        "source": "Original Siriel 3.5 DOS object sprites",
+        "format": "16x16 pixel static objects",
+        "usage": "Collectible items and interactive objects",
+        "type": "static_objects",
+    })
+)

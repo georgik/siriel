@@ -1,10 +1,10 @@
+pub mod atlas;
 pub mod audio;
-pub mod dat_extractor;
+pub mod behaviors;
 pub mod components;
+pub mod dat_extractor;
+pub mod level;
+pub mod level_manager;
+pub mod mie_parser;
 pub mod resources;
 pub mod systems;
-pub mod behaviors;
-pub mod level;
-pub mod mie_parser;
-pub mod atlas;
-pub mod level_manager;

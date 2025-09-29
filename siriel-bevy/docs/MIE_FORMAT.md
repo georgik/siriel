@@ -30,7 +30,38 @@ MIE files are text-based configuration files with a specific structure used by t
 
 Entities are defined with the format: `[<TYPE>]=<x>,<y>,<behavior_id>,<param1>,<param2>[,<param3>]`
 
-**Common Entity Types:**
+**Entity Code Structure**:
+
+Entities are defined with 4-character codes using the format:
+
+```
+[TYPE][ANIMATION][DANGER][VISIBILITY]
+```
+
+#### Entity Code Characters:
+
+1. **First Character (Interaction Type)**:
+   - `Z` - **Pickup by walking** - Collectible items that are picked up automatically when the player walks over them
+   - `Y` - **Special action (immediate)** - Special actions that trigger immediately when touched
+   - `X` - **Special action (Enter key)** - Special actions that trigger when the player presses Enter
+   - `W` - **Use object** - Interactive objects like doors, switches, reveals
+   - `V` - **Talk/NPC** - NPCs or objects that display dialog
+
+2. **Second Character (Animation)**:
+   - `A` - **Animated** - Object has animation frames
+   - `N` - **Not animated** - Static object
+
+3. **Third Character (Danger Level)**:
+   - `N` - **Harmless** - Safe to touch
+   - `S` - **Mortal** - Kills the player on contact
+   - `D` - **No God mode** - Special hazard that bypasses invincibility
+
+4. **Fourth Character (Visibility/Activation Group)**:
+   - `A` - **Visible immediately** - Object appears from level start
+   - Any other letter - **Group activation** - Object appears when corresponding group trigger is activated
+   - `~` - **Exit condition** - Appears when all collectible items in the level are collected
+
+#### Common Entity Types:
 
 - `[ZNNA]` - Normal enemy
   - Format: `[ZNNA]=<behavior_id>,<x>,<y>,<param1>,<param2>,<param3>`
@@ -43,6 +74,14 @@ Entities are defined with the format: `[<TYPE>]=<x>,<y>,<behavior_id>,<param1>,<
 - `[YNN~]` - Pickup item
   - Format: `[YNN~]=<item_id>,<x>,<y>,<value>,<type>`
   - Example: `[YNN~]=10,76,34,9,1`
+  
+- `[XNNA]` - Interactive object (requires Enter key)
+  - Format: `[XNNA]=<behavior_id>,<x>,<y>,<func_id>,<param1>,<param2>`
+  - Example: `[XNNA]=0,12,23,6,10,20`
+  
+- `[WNNA]` - Use object (doors, etc.)
+  - Format: `[WNNA]=<id>,<behavior_id>,<x>,<y>,<func_id>,<x1>,<y1>,<x2>,<y2>,<param>`
+  - Example: `[WNNA]=1,0,15,25,1,0,0,0,0,10`
 
 **Parameter Meanings:**
 - `x,y` - Position in pixels (original coordinate system)
@@ -135,6 +174,12 @@ The converted levels use RON (Rusty Object Notation) with this structure:
             pickupable: false,
             pickup_value: 0,
             sound_effects: None,
+            entity_props: Some((
+                interaction_kind: PickupWalk,
+                animated: false,
+                danger: None,
+                appear: (mode: Immediate, group_char: None),
+            )),
         ),
         // ...more entities...
     ],
