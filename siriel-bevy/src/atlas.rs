@@ -44,6 +44,8 @@ pub struct AtlasManager {
     pub avatar_atlas: Option<AtlasDescriptor>,
     pub objects_atlas: Option<AtlasDescriptor>,
     pub animations_atlas: Option<AtlasDescriptor>,
+    pub menu_decoration_atlas: Option<AtlasDescriptor>,
+    pub menu_decoration_texture: Option<Handle<Image>>,
 }
 
 impl AtlasManager {
@@ -127,10 +129,23 @@ impl AtlasManager {
         }
         0
     }
+
+    /// Get menu decoration tile index by name
+    pub fn get_menu_decoration_tile(&self, name: &str) -> Option<u32> {
+        if let Some(ref atlas) = self.menu_decoration_atlas {
+            if let Some(ref special) = atlas.special_tiles {
+                return special.get(name).copied();
+            }
+        }
+        None
+    }
 }
 
 /// System to load atlas descriptors at startup
-pub fn load_atlas_descriptors(mut atlas_manager: ResMut<AtlasManager>) {
+pub fn load_atlas_descriptors(
+    mut atlas_manager: ResMut<AtlasManager>,
+    asset_server: Res<AssetServer>,
+) {
     // Load texture atlas for tilemaps
     match AtlasManager::load_atlas("assets/sprites/texture-basic.atlas.ron") {
         Ok(atlas) => {
@@ -184,6 +199,22 @@ pub fn load_atlas_descriptors(mut atlas_manager: ResMut<AtlasManager>) {
         }
         Err(e) => {
             warn!("❌ Failed to load animations atlas: {}", e);
+        }
+    }
+
+    // Load menu decoration atlas for UI borders
+    match AtlasManager::load_atlas("assets/menu-decoration.atlas.ron") {
+        Ok(atlas) => {
+            info!(
+                "✅ Loaded menu decoration atlas: {} ({}x{} tiles)",
+                atlas.name, atlas.grid_size.0, atlas.grid_size.1
+            );
+            // Load the texture handle
+            atlas_manager.menu_decoration_texture = Some(asset_server.load(&atlas.image_path));
+            atlas_manager.menu_decoration_atlas = Some(atlas);
+        }
+        Err(e) => {
+            warn!("❌ Failed to load menu decoration atlas: {}", e);
         }
     }
 }

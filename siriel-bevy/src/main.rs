@@ -117,6 +117,7 @@ fn main() {
             Update,
             (
                 refresh_menu_ui_when_levels_loaded,
+                spawn_menu_borders,
                 handle_menu_input,
                 handle_menu_mouse,
                 update_menu_ui,

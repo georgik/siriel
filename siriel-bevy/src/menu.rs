@@ -55,6 +55,160 @@ pub fn setup_level_menu(mut commands: Commands, mut level_menu: ResMut<LevelMenu
     }
 }
 
+/// System to spawn decorative border tiles around menu elements
+pub fn spawn_menu_borders(
+    mut commands: Commands,
+    atlas_manager: Res<crate::atlas::AtlasManager>,
+    border_query: Query<(Entity, &Node, &GlobalTransform), (With<MenuBorder>, Added<MenuBorder>)>,
+) {
+    if let (Some(ref atlas), Some(ref texture)) = (
+        &atlas_manager.menu_decoration_atlas,
+        &atlas_manager.menu_decoration_texture,
+    ) {
+        for (entity, node, transform) in border_query.iter() {
+            let width = match node.width {
+                Val::Px(w) => w,
+                _ => 620.0, // Default fallback
+            };
+            let height = match node.height {
+                Val::Px(h) => h,
+                _ => 380.0, // Default fallback
+            };
+
+            spawn_decorative_border(
+                &mut commands,
+                entity,
+                width,
+                height,
+                transform,
+                atlas,
+                texture.clone(),
+            );
+        }
+    }
+}
+
+/// Spawn the actual border tiles around a menu element
+fn spawn_decorative_border(
+    commands: &mut Commands,
+    parent_entity: Entity,
+    width: f32,
+    height: f32,
+    transform: &GlobalTransform,
+    atlas: &crate::atlas::AtlasDescriptor,
+    texture: Handle<Image>,
+) {
+    let tile_size = 16.0;
+    let border_offset = tile_size / 2.0;
+
+    // Get the tile indices from the atlas
+    let get_tile_index = |name: &str| -> u32 {
+        atlas
+            .special_tiles
+            .as_ref()
+            .and_then(|tiles| tiles.get(name))
+            .copied()
+            .unwrap_or(0)
+    };
+
+    let corner_tl = get_tile_index("menu-corner-tl");
+    let corner_tr = get_tile_index("menu-corner-tr");
+    let corner_bl = get_tile_index("menu-corner-bl");
+    let corner_br = get_tile_index("menu-corner-br");
+    let edge_top = get_tile_index("menu-edge-top");
+    let edge_bottom = get_tile_index("menu-edge-bottom");
+    let edge_left = get_tile_index("menu-edge-left");
+    let edge_right = get_tile_index("menu-edge-right");
+
+    let base_x = transform.translation().x - width / 2.0;
+    let base_y = transform.translation().y + height / 2.0;
+
+    // Spawn corner tiles
+    spawn_border_tile(
+        commands,
+        base_x - border_offset,
+        base_y + border_offset,
+        corner_tl,
+        &texture,
+    ); // Top-left
+    spawn_border_tile(
+        commands,
+        base_x + width + border_offset,
+        base_y + border_offset,
+        corner_tr,
+        &texture,
+    ); // Top-right
+    spawn_border_tile(
+        commands,
+        base_x - border_offset,
+        base_y - height - border_offset,
+        corner_bl,
+        &texture,
+    ); // Bottom-left
+    spawn_border_tile(
+        commands,
+        base_x + width + border_offset,
+        base_y - height - border_offset,
+        corner_br,
+        &texture,
+    ); // Bottom-right
+
+    // Spawn top and bottom edges
+    let h_tiles = (width / tile_size) as u32;
+    for i in 0..h_tiles {
+        let x = base_x + (i as f32 * tile_size) + tile_size / 2.0;
+        spawn_border_tile(commands, x, base_y + border_offset, edge_top, &texture); // Top edge
+        spawn_border_tile(
+            commands,
+            x,
+            base_y - height - border_offset,
+            edge_bottom,
+            &texture,
+        ); // Bottom edge
+    }
+
+    // Spawn left and right edges
+    let v_tiles = (height / tile_size) as u32;
+    for i in 0..v_tiles {
+        let y = base_y - (i as f32 * tile_size) - tile_size / 2.0;
+        spawn_border_tile(commands, base_x - border_offset, y, edge_left, &texture); // Left edge
+        spawn_border_tile(
+            commands,
+            base_x + width + border_offset,
+            y,
+            edge_right,
+            &texture,
+        ); // Right edge
+    }
+}
+
+/// Spawn a single border tile at the specified position
+fn spawn_border_tile(
+    commands: &mut Commands,
+    x: f32,
+    y: f32,
+    tile_index: u32,
+    texture: &Handle<Image>,
+) {
+    commands.spawn((
+        Sprite {
+            image: texture.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: Handle::default(), // We'll need to create a proper layout
+                index: tile_index as usize,
+            }),
+            custom_size: Some(Vec2::new(16.0, 16.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(x, y, 2.0)), // Higher Z to render on top
+        MenuBorderTile, // Component to mark border tiles for cleanup
+    ));
+}
+
+/// Component to mark individual border tiles for cleanup
+#[derive(Component)]
+pub struct MenuBorderTile;
+
 /// Format level name for display (e.g., "FMIS01" -> "First Mission 01")
 fn format_level_name(name: &str) -> String {
     match name {
@@ -178,7 +332,7 @@ fn spawn_level_menu_ui(
                 },
             ));
 
-            // Level list container
+            // Level list container with decorative border
             parent
                 .spawn((
                     Node {
@@ -186,9 +340,11 @@ fn spawn_level_menu_ui(
                         height: Val::Px(380.0), // Increased height for more levels
                         flex_direction: FlexDirection::Column,
                         overflow: Overflow::clip(),
+                        border: UiRect::all(Val::Px(16.0)), // Space for 16px border tiles
                         ..default()
                     },
                     BackgroundColor(Color::srgb(0.15, 0.15, 0.25)),
+                    MenuBorder, // Component to mark this for border rendering
                 ))
                 .with_children(|list_parent| {
                     if level_menu.available_levels.is_empty() {
@@ -291,6 +447,10 @@ fn spawn_level_menu_ui(
 pub struct MenuLevelItem {
     pub index: usize,
 }
+
+/// Component to mark UI elements that should have decorative borders
+#[derive(Component)]
+pub struct MenuBorder;
 
 /// Menu input timer for key repeat
 #[derive(Resource)]

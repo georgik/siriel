@@ -1,0 +1,30 @@
+// Menu decoration atlas for Siriel border tiles
+// Based on the original GLIST.GIF from Siriel 3.5 DOS  
+// Contains 16x16 border tiles for creating decorative menu frames
+
+(
+    name: "menu-decoration",
+    image_path: "menu-decoration.png",
+    tile_size: (16, 16),
+    grid_size: (8, 1), // 8 columns, 1 row
+    total_tiles: 8,
+    
+    // Special tiles mapping for menu border pieces
+    special_tiles: Some({
+        // Corner tiles
+        "menu-corner-tl": 0,      // Top-left corner
+        "menu-corner-tr": 2,      // Top-right corner  
+        "menu-corner-bl": 5,      // Bottom-left corner
+        "menu-corner-br": 7,      // Bottom-right corner
+        
+        // Edge tiles (repeatable)
+        "menu-edge-top": 1,       // Top edge
+        "menu-edge-bottom": 6,    // Bottom edge
+        "menu-edge-left": 3,      // Left edge
+        "menu-edge-right": 4,     // Right edge
+    }),
+    
+    animations: None,
+    animation_mapping: None,
+    metadata: None,
+)
