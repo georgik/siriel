@@ -161,7 +161,7 @@ pub fn physics_system(
     physics_config: Res<PhysicsConfig>,
     input_state: Res<InputState>,
     mut query: Query<(&mut Position, &mut Velocity, &mut Physics), With<Player>>,
-    mut sound_events: EventWriter<SoundEvent>,
+    mut sound_events: MessageWriter<SoundEvent>,
 ) {
     let dt = time.delta_secs();
 
@@ -179,7 +179,7 @@ pub fn physics_system(
             velocity.y = physics.jump_force;
             physics.on_ground = false;
             // Play jump/pickup sound
-            sound_events.send(SoundEvent::PlayEffect(sound_mappings::PICKUP.to_string()));
+            sound_events.write(SoundEvent::PlayEffect(sound_mappings::PICKUP.to_string()));
         }
 
         // Apply friction
@@ -293,7 +293,7 @@ pub fn collision_system(
     >,
     entity_query: Query<(&Position, &Collider), (Without<Player>, With<Behavior>)>,
     mut game_state: ResMut<GameState>,
-    mut sound_events: EventWriter<SoundEvent>,
+    mut sound_events: MessageWriter<SoundEvent>,
 ) {
     if let Ok((player_pos, player_collider, mut player_health)) = player_query.single_mut() {
         for (entity_pos, entity_collider) in entity_query.iter() {
@@ -321,12 +321,12 @@ pub fn collision_system(
                     player_health.invulnerability_timer = 2.0; // 2 seconds of invulnerability
 
                     // Play hit sound
-                    sound_events.send(SoundEvent::PlayEffect(sound_mappings::HIT.to_string()));
+                    sound_events.write(SoundEvent::PlayEffect(sound_mappings::HIT.to_string()));
 
                     if player_health.current <= 0 {
                         game_state.lives -= 1;
                         // Play explosion sound on death
-                        sound_events.send(SoundEvent::PlayEffect(
+                        sound_events.write(SoundEvent::PlayEffect(
                             sound_mappings::EXPLOSION.to_string(),
                         ));
                         // TODO: Respawn player or game over
@@ -388,10 +388,10 @@ pub fn animation_system(
 /// Handle quitting the game when ESC is pressed
 pub fn quit_system(
     input_state: Res<InputState>,
-    mut app_exit_events: EventWriter<bevy::app::AppExit>,
+    mut app_exit_events: MessageWriter<bevy::app::AppExit>,
 ) {
     if input_state.quit {
         info!("ESC pressed - Quitting game");
-        app_exit_events.send(bevy::app::AppExit::Success);
+        app_exit_events.write(bevy::app::AppExit::Success);
     }
 }

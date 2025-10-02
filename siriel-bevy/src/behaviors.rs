@@ -1,5 +1,4 @@
 use crate::components::*;
-use bevy::prelude::*;
 use rand::Rng;
 
 /// Implementation of all 18 behavior types from the original Siriel engine

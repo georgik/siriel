@@ -24,7 +24,7 @@ pub struct SoundEmitter {
 }
 
 /// Events for triggering sound playback
-#[derive(Event)]
+#[derive(Event, Message)]
 pub enum SoundEvent {
     PlayEffect(String),
     PlayMusic(String),
@@ -100,7 +100,7 @@ pub fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
 /// System to handle sound events
 pub fn handle_sound_events(
     mut commands: Commands,
-    mut sound_events: EventReader<SoundEvent>,
+    mut sound_events: MessageReader<SoundEvent>,
     audio_assets: Res<AudioAssets>,
     audio_settings: Res<AudioSettings>,
 ) {
@@ -147,19 +147,19 @@ pub struct SirielAudioPlugin;
 
 impl Plugin for SirielAudioPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<SoundEvent>()
+        app.add_message::<SoundEvent>()
             .add_systems(Startup, setup_audio)
             .add_systems(Update, handle_sound_events);
     }
 }
 
 /// Helper functions to trigger sounds from game systems
-pub fn play_sound_effect(sound_events: &mut EventWriter<SoundEvent>, sound_name: &str) {
-    sound_events.send(SoundEvent::PlayEffect(sound_name.to_string()));
+pub fn play_sound_effect(sound_events: &mut MessageWriter<SoundEvent>, sound_name: &str) {
+    sound_events.write(SoundEvent::PlayEffect(sound_name.to_string()));
 }
 
-pub fn play_music(sound_events: &mut EventWriter<SoundEvent>, music_name: &str) {
-    sound_events.send(SoundEvent::PlayMusic(music_name.to_string()));
+pub fn play_music(sound_events: &mut MessageWriter<SoundEvent>, music_name: &str) {
+    sound_events.write(SoundEvent::PlayMusic(music_name.to_string()));
 }
 
 /// Map game events to sounds - this matches the original game's audio cues

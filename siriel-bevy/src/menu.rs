@@ -501,7 +501,7 @@ pub fn handle_menu_input(
     // Check for initial key press or repeated input
     let should_move = keyboard_input.just_pressed(KeyCode::ArrowUp)
         || keyboard_input.just_pressed(KeyCode::ArrowDown)
-        || (menu_timer.initial_delay.finished() && menu_timer.timer.just_finished());
+        || (menu_timer.initial_delay.is_finished() && menu_timer.timer.just_finished());
 
     if should_move {
         if up_pressed && level_menu.selected_index > 0 {

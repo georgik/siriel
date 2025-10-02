@@ -77,7 +77,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Siriel 3.5 - Bevy Edition".into(),
-                resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
+                resolution: WindowResolution::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32),
                 resizable: false,
                 ..default()
             }),
@@ -155,9 +155,9 @@ fn main() {
 }
 
 /// Start background music when the game begins
-fn start_background_music(mut sound_events: EventWriter<SoundEvent>) {
+fn start_background_music(mut sound_events: MessageWriter<SoundEvent>) {
     // Play level music on startup
-    sound_events.send(SoundEvent::PlayMusic(
+    sound_events.write(SoundEvent::PlayMusic(
         sound_mappings::LEVEL_MUSIC.to_string(),
     ));
 }

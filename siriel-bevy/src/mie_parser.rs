@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use std::collections::HashMap;
 use std::fs;
 
 /// Parsed MIE level file data
