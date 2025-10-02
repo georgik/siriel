@@ -21,6 +21,7 @@ use components::*;
 use level::{GameArgs, *};
 use level_manager::{level_switch_system, print_level_info_system, LevelManager};
 use menu::*;
+use menu::{cleanup_intro_screen, handle_intro_input, spawn_intro_screen};
 use resources::*;
 use systems::*;
 
@@ -46,9 +47,9 @@ fn main() {
 
     // Determine initial state based on CLI arguments
     let initial_state = if args.level.is_some() {
-        AppState::InGame // Skip menu if level is specified via CLI
+        AppState::InGame // Skip intro and menu if level is specified via CLI
     } else {
-        AppState::Menu // Show menu if no level specified
+        AppState::IntroScreen // Start with intro screen
     };
 
     // Print usage help if needed
@@ -111,13 +112,20 @@ fn main() {
                 setup_level_menu,
             ),
         )
+        // Intro screen systems
+        .add_systems(OnEnter(AppState::IntroScreen), spawn_intro_screen)
+        .add_systems(
+            Update,
+            handle_intro_input.run_if(in_state(AppState::IntroScreen)),
+        )
+        .add_systems(OnExit(AppState::IntroScreen), cleanup_intro_screen)
         // Menu systems
         .add_systems(OnEnter(AppState::Menu), spawn_level_menu_ui_when_ready)
         .add_systems(
             Update,
             (
                 refresh_menu_ui_when_levels_loaded,
-                spawn_menu_borders,
+                spawn_menu_borders, // Re-enabled with UI-based implementation
                 handle_menu_input,
                 handle_menu_mouse,
                 update_menu_ui,

@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 
 /// Game state enumeration
-#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
     #[default]
+    IntroScreen,
     Menu,
     InGame,
     Paused,

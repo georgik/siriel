@@ -46,6 +46,7 @@ pub struct AtlasManager {
     pub animations_atlas: Option<AtlasDescriptor>,
     pub menu_decoration_atlas: Option<AtlasDescriptor>,
     pub menu_decoration_texture: Option<Handle<Image>>,
+    pub menu_decoration_layout: Option<Handle<TextureAtlasLayout>>,
 }
 
 impl AtlasManager {
@@ -145,6 +146,7 @@ impl AtlasManager {
 pub fn load_atlas_descriptors(
     mut atlas_manager: ResMut<AtlasManager>,
     asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     // Load texture atlas for tilemaps
     match AtlasManager::load_atlas("assets/sprites/texture-basic.atlas.ron") {
@@ -211,6 +213,18 @@ pub fn load_atlas_descriptors(
             );
             // Load the texture handle
             atlas_manager.menu_decoration_texture = Some(asset_server.load(&atlas.image_path));
+
+            // Create texture atlas layout for Bevy 0.17
+            let layout = TextureAtlasLayout::from_grid(
+                UVec2::new(atlas.tile_size.0, atlas.tile_size.1),
+                atlas.grid_size.0,
+                atlas.grid_size.1,
+                None,
+                None,
+            );
+            let layout_handle = texture_atlas_layouts.add(layout);
+            atlas_manager.menu_decoration_layout = Some(layout_handle);
+
             atlas_manager.menu_decoration_atlas = Some(atlas);
         }
         Err(e) => {
