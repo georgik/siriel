@@ -17,6 +17,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 // Import our level parsing modules
+use siriel_bevy::components::{BehaviorParams, BehaviorType};
 use siriel_bevy::level::{
     AppearCondition, AppearMode, DangerLevel, EntityCodeProps, InteractionKind, LevelData,
     LevelEntity,
@@ -420,6 +421,105 @@ fn decode_entity_code(entity_type: &str) -> Option<EntityCodeProps> {
     })
 }
 
+/// Convert numeric behavior ID to BehaviorType enum
+fn map_behavior_type_from_id(behavior_id: u8) -> BehaviorType {
+    match behavior_id {
+        1 => BehaviorType::Static,
+        2 => BehaviorType::HorizontalOscillator,
+        3 => BehaviorType::VerticalOscillator,
+        4 => BehaviorType::PlatformWithGravity,
+        5 => BehaviorType::EdgeWalkingPlatform,
+        6 => BehaviorType::AnimatedCollectible,
+        7 => BehaviorType::RandomMovement, // Additional random movement variant
+        8 => BehaviorType::RandomMovement, // Additional random movement variant
+        9 => BehaviorType::RandomMovement, // Additional random movement variant
+        10 => BehaviorType::RandomMovement, // Additional random movement variant
+        11 => BehaviorType::RandomMovement, // Additional random movement variant
+        12 => BehaviorType::RandomMovement,
+        13 => BehaviorType::Static, // Static variant (likely unused/special case)
+        14 => BehaviorType::Static, // Static variant (likely unused/special case)
+        15 => BehaviorType::Fireball,
+        16 => BehaviorType::Hunter,
+        17 => BehaviorType::SoundTrigger,
+        18 => BehaviorType::AdvancedProjectile,
+        _ => {
+            println!(
+                "Warning: Unknown behavior ID {}, defaulting to Static",
+                behavior_id
+            );
+            BehaviorType::Static
+        }
+    }
+}
+
+/// Convert numeric behavior parameters array to BehaviorParams enum
+fn map_behavior_params_from_array(behavior_type: BehaviorType, params: [u16; 4]) -> BehaviorParams {
+    match behavior_type {
+        BehaviorType::Static => BehaviorParams::Static,
+        BehaviorType::HorizontalOscillator => BehaviorParams::HorizontalOscillator {
+            left_bound: params[0],
+            right_bound: params[1],
+            speed: params[2],
+        },
+        BehaviorType::VerticalOscillator => BehaviorParams::VerticalOscillator {
+            top_bound: params[0],
+            bottom_bound: params[1],
+            speed: params[2],
+        },
+        BehaviorType::PlatformWithGravity => BehaviorParams::PlatformWithGravity {
+            speed: params[0],
+            start_x: 0, // Will be set from entity position
+            start_y: 0, // Will be set from entity position
+        },
+        BehaviorType::EdgeWalkingPlatform => BehaviorParams::EdgeWalkingPlatform {
+            speed: params[0],
+            start_x: 0, // Will be set from entity position
+            start_y: 0, // Will be set from entity position
+        },
+        BehaviorType::AnimatedCollectible => BehaviorParams::AnimatedCollectible {
+            animation_speed: params[0],
+            timer_max: params[1],
+            value: params[2],
+        },
+        BehaviorType::RandomMovement => BehaviorParams::RandomMovement {
+            boundary_mode: params[0],
+            speed: params[1],
+            direction: params[2],
+            timer: params[3],
+            old_direction: 0,
+        },
+        BehaviorType::Fireball => BehaviorParams::Fireball {
+            direction: params[0],
+            target_pos: params[1],
+            speed: params[2],
+            reload_time: params[3],
+            timer: 0,
+        },
+        BehaviorType::Hunter => BehaviorParams::Hunter {
+            speed: params[0],
+            passive_time: params[1],
+            active_time: params[2],
+            alternate_sprite: params[3],
+            mode_timer: 0,
+        },
+        BehaviorType::SoundTrigger => BehaviorParams::SoundTrigger {
+            sound1_id: params[0],
+            sound1_delay: params[1],
+            sound2_id: params[2],
+            sound2_delay: params[3],
+            timer: 0,
+            mode: 0,
+        },
+        BehaviorType::AdvancedProjectile => BehaviorParams::AdvancedProjectile {
+            direction: params[0],
+            target_pos: params[1],
+            speed: params[2],
+            reload_time: params[3],
+            timer: 0,
+        },
+    }
+}
+
 /// Convert MIE entities to modern LevelEntity format
 fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<LevelEntity> {
     mie_entities
@@ -474,21 +574,25 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
             // Flip Y coordinate for Bevy's coordinate system
             let flipped_y = (level_height * 16.0) - entity.y as f32;
 
+            // Convert behavior to new system
+            let behavior_type = map_behavior_type_from_id(entity.behavior_id as u8);
+            let behavior_params = map_behavior_params_from_array(
+                behavior_type,
+                [
+                    entity.param1 as u16,
+                    entity.param2 as u16,
+                    entity.param3.unwrap_or(0) as u16,
+                    entity.param4.unwrap_or(0) as u16,
+                ],
+            );
+
             LevelEntity {
                 id: format!("{}_{}", entity.entity_type, i),
                 entity_type: entity.entity_type.clone(),
                 position: (entity.x as f32, flipped_y),
                 sprite_id,
-                behavior_type: entity.behavior_id as u8,
-                behavior_params: [
-                    entity.param1 as u16,
-                    entity.param2 as u16,
-                    entity.param3.unwrap_or(0) as u16,
-                    entity.param4.unwrap_or(0) as u16,
-                    0,
-                    0,
-                    0,
-                ],
+                behavior_type,
+                behavior_params,
                 // room/group: mirror editor behavior
                 // Immediate ('A') and Exit ('~') => room = 1
                 // Group letter => room = ord(letter)

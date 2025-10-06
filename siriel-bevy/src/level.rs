@@ -1,5 +1,6 @@
 use crate::atlas::AtlasManager;
 use crate::components::*;
+use crate::components::{BehaviorParams, BehaviorType};
 use crate::menu::SelectedLevel;
 use crate::resources::*;
 use bevy::prelude::*;
@@ -76,8 +77,8 @@ pub struct LevelEntity {
     pub entity_type: String,
     pub position: (f32, f32),
     pub sprite_id: u16,
-    pub behavior_type: u8,
-    pub behavior_params: [u16; 7],
+    pub behavior_type: BehaviorType,
+    pub behavior_params: BehaviorParams,
     pub room: u8,
     pub pickupable: bool,
     pub pickup_value: u32,
@@ -196,8 +197,8 @@ pub enum ScriptCommand {
     },
     SetEntityBehavior {
         entity_id: String,
-        behavior: u8,
-        params: [u16; 7],
+        behavior_type: BehaviorType,
+        behavior_params: BehaviorParams,
     },
 
     // Flow control
@@ -394,8 +395,12 @@ pub fn create_test_level() -> LevelData {
                 entity_type: "enemy".to_string(),
                 position: (200.0, 300.0),
                 sprite_id: 1,
-                behavior_type: 2, // HorizontalOscillator
-                behavior_params: [2, 350, 150, 0, 0, 0, 0],
+                behavior_type: BehaviorType::HorizontalOscillator,
+                behavior_params: BehaviorParams::HorizontalOscillator {
+                    left_bound: 150,
+                    right_bound: 350,
+                    speed: 2,
+                },
                 room: 1,
                 pickupable: false,
                 pickup_value: 0,
@@ -407,8 +412,8 @@ pub fn create_test_level() -> LevelData {
                 entity_type: "gem".to_string(),
                 position: (400.0, 200.0),
                 sprite_id: 5,
-                behavior_type: 1, // Static
-                behavior_params: [0, 0, 0, 0, 0, 0, 0],
+                behavior_type: BehaviorType::Static,
+                behavior_params: BehaviorParams::Static,
                 room: 1,
                 pickupable: true,
                 pickup_value: 100,
@@ -555,19 +560,6 @@ fn spawn_entity_from_data(
     _sprite_atlas: &SpriteAtlas,
 ) {
     use crate::components::AnimatedEntity;
-    let behavior_type = match entity_data.behavior_type {
-        1 => BehaviorType::Static,
-        2 => BehaviorType::HorizontalOscillator,
-        3 => BehaviorType::VerticalOscillator,
-        4 => BehaviorType::PlatformWithGravity,
-        5 => BehaviorType::EdgeWalkingPlatform,
-        12 => BehaviorType::RandomMovement,
-        15 => BehaviorType::Fireball,
-        16 => BehaviorType::Hunter,
-        17 => BehaviorType::SoundTrigger,
-        18 => BehaviorType::AdvancedProjectile,
-        _ => BehaviorType::Static,
-    };
 
     let entity_bundle = (
         Position {
@@ -577,16 +569,8 @@ fn spawn_entity_from_data(
         Velocity::default(),
         Collider::default(),
         Behavior {
-            behavior_type,
-            params: BehaviorParams {
-                inf1: entity_data.behavior_params[0],
-                inf2: entity_data.behavior_params[1],
-                inf3: entity_data.behavior_params[2],
-                inf4: entity_data.behavior_params[3],
-                inf5: entity_data.behavior_params[4],
-                inf6: entity_data.behavior_params[5],
-                inf7: entity_data.behavior_params[6],
-            },
+            behavior_type: entity_data.behavior_type,
+            params: entity_data.behavior_params.clone(),
             state: BehaviorState {
                 direction: 1,
                 ..Default::default()

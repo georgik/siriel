@@ -113,11 +113,10 @@ fn create_test_entities(commands: &mut Commands) {
         Collider::default(),
         Behavior {
             behavior_type: BehaviorType::HorizontalOscillator,
-            params: BehaviorParams {
-                inf1: 2,   // speed
-                inf2: 400, // right boundary
-                inf3: 200, // left boundary
-                ..Default::default()
+            params: BehaviorParams::HorizontalOscillator {
+                speed: 2,
+                right_bound: 400,
+                left_bound: 200,
             },
             state: BehaviorState {
                 direction: 1,
@@ -241,52 +240,74 @@ pub fn behavior_system(
     let dt = time.delta_secs();
 
     for (mut position, mut velocity, mut behavior) in query.iter_mut() {
-        match behavior.behavior_type {
-            BehaviorType::Static => {
+        match (&behavior.behavior_type, &behavior.params) {
+            (BehaviorType::Static, BehaviorParams::Static) => {
                 // No movement
                 velocity.x = 0.0;
                 velocity.y = 0.0;
             }
 
-            BehaviorType::HorizontalOscillator => {
-                let speed = behavior.params.inf1 as f32;
-                let left_bound = behavior.params.inf3 as f32;
-                let right_bound = behavior.params.inf2 as f32;
+            (
+                BehaviorType::HorizontalOscillator,
+                BehaviorParams::HorizontalOscillator {
+                    left_bound,
+                    right_bound,
+                    speed,
+                },
+            ) => {
+                let speed_f = *speed as f32;
+                let left_f = *left_bound as f32;
+                let right_f = *right_bound as f32;
 
                 // Move in current direction
-                velocity.x = speed * behavior.state.direction as f32;
+                velocity.x = speed_f * behavior.state.direction as f32;
                 position.x += velocity.x * dt;
 
                 // Check boundaries and reverse direction
-                if position.x <= left_bound {
-                    position.x = left_bound;
+                if position.x <= left_f {
+                    position.x = left_f;
                     behavior.state.direction = 1;
-                } else if position.x >= right_bound {
-                    position.x = right_bound;
+                } else if position.x >= right_f {
+                    position.x = right_f;
                     behavior.state.direction = -1;
                 }
             }
 
-            BehaviorType::VerticalOscillator => {
-                let speed = behavior.params.inf1 as f32;
-                let top_bound = behavior.params.inf3 as f32;
-                let bottom_bound = behavior.params.inf2 as f32;
+            (
+                BehaviorType::VerticalOscillator,
+                BehaviorParams::VerticalOscillator {
+                    top_bound,
+                    bottom_bound,
+                    speed,
+                },
+            ) => {
+                let speed_f = *speed as f32;
+                let top_f = *top_bound as f32;
+                let bottom_f = *bottom_bound as f32;
 
-                velocity.y = speed * behavior.state.direction as f32;
+                velocity.y = speed_f * behavior.state.direction as f32;
                 position.y += velocity.y * dt;
 
-                if position.y <= top_bound {
-                    position.y = top_bound;
+                if position.y <= top_f {
+                    position.y = top_f;
                     behavior.state.direction = 1;
-                } else if position.y >= bottom_bound {
-                    position.y = bottom_bound;
+                } else if position.y >= bottom_f {
+                    position.y = bottom_f;
                     behavior.state.direction = -1;
                 }
+            }
+
+            (BehaviorType::AnimatedCollectible, BehaviorParams::AnimatedCollectible { .. }) => {
+                // Animated collectibles are static but use animation
+                velocity.x = 0.0;
+                velocity.y = 0.0;
             }
 
             // TODO: Implement remaining behavior types
             _ => {
                 // Placeholder for other behaviors
+                velocity.x = 0.0;
+                velocity.y = 0.0;
             }
         }
     }

@@ -67,44 +67,93 @@ pub struct Behavior {
     pub state: BehaviorState,
 }
 
-/// The 18 behavior types from the original Siriel engine
+/// Behavior types from the original Siriel engine mapped to their functions
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BehaviorType {
-    Static = 1,               // No movement
-    HorizontalOscillator = 2, // Moves between two X coordinates
-    VerticalOscillator = 3,   // Moves between two Y coordinates
-    PlatformWithGravity = 4,  // Falls until hits solid ground
-    EdgeWalkingPlatform = 5,  // Changes direction at edges
-    RandomMovement = 12,      // Random direction changes, avoids walls
-    Fireball = 15,            // Projectile that moves in straight line
-    Hunter = 16,              // AI that chases player when activated
-    SoundTrigger = 17,        // Plays sounds at timed intervals
-    AdvancedProjectile = 18,  // Fireball with custom sounds
+    Static,               // funk=1: No movement
+    HorizontalOscillator, // funk=2: Moves between two X coordinates
+    VerticalOscillator,   // funk=3: Moves between two Y coordinates
+    PlatformWithGravity,  // funk=4: Falls until hits solid ground
+    EdgeWalkingPlatform,  // funk=5: Changes direction at edges
+    AnimatedCollectible,  // funk=6: Animated collectible (ZANA)
+    RandomMovement,       // funk=12: Random direction changes, avoids walls
+    Fireball,             // funk=15: Projectile that moves in straight line
+    Hunter,               // funk=16: AI that chases player when activated
+    SoundTrigger,         // funk=17: Plays sounds at timed intervals
+    AdvancedProjectile,   // funk=18: Fireball with custom sounds
 }
 
-/// Parameters for entity behaviors (maps to inf1-inf7 from Pascal)
+/// Named behavior parameters based on original Pascal code analysis
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BehaviorParams {
-    pub inf1: u16, // Speed or X1 coordinate
-    pub inf2: u16, // Timer or X2/Y2 coordinate
-    pub inf3: u16, // Direction or active time
-    pub inf4: u16, // Animation frame or passive time
-    pub inf5: u16, // Counter or timer
-    pub inf6: u16, // State flag or counter
-    pub inf7: u16, // Direction or spare parameter
+pub enum BehaviorParams {
+    Static,
+    HorizontalOscillator {
+        left_bound: u16,  // inf1: left X boundary
+        right_bound: u16, // inf2: right X boundary
+        speed: u16,       // inf3: movement speed
+    },
+    VerticalOscillator {
+        top_bound: u16,    // inf1: top Y boundary
+        bottom_bound: u16, // inf2: bottom Y boundary
+        speed: u16,        // inf3: movement speed
+    },
+    PlatformWithGravity {
+        speed: u16,   // inf1: movement speed
+        start_x: u16, // inf5: starting X position
+        start_y: u16, // inf6: starting Y position
+    },
+    EdgeWalkingPlatform {
+        speed: u16,   // inf1: movement speed
+        start_x: u16, // inf5: starting X position
+        start_y: u16, // inf6: starting Y position
+    },
+    AnimatedCollectible {
+        animation_speed: u16, // inf1: animation speed
+        timer_max: u16,       // inf2: animation timer max
+        value: u16,           // inf3: pickup value
+    },
+    RandomMovement {
+        boundary_mode: u16, // inf1: 0=screen bounds, 1=texture aware
+        speed: u16,         // inf2: movement speed
+        direction: u16,     // inf3: current direction (0-3)
+        timer: u16,         // inf4: movement timer
+        old_direction: u16, // inf5: previous direction
+    },
+    Fireball {
+        direction: u16,   // inf1: 1=right, 2=left, 3=down, 4=up
+        target_pos: u16,  // inf2: target X or Y coordinate
+        speed: u16,       // inf3: movement speed
+        reload_time: u16, // inf4: time between shots
+        timer: u16,       // inf5: current timer
+    },
+    Hunter {
+        speed: u16,            // inf1: movement speed
+        passive_time: u16,     // inf2: time in passive mode
+        active_time: u16,      // inf3: time in active mode
+        alternate_sprite: u16, // inf4: sprite for active mode
+        mode_timer: u16,       // inf6: current mode timer
+    },
+    SoundTrigger {
+        sound1_id: u16,    // inf1: first sound ID
+        sound1_delay: u16, // inf2: delay before first sound
+        sound2_id: u16,    // inf3: second sound ID
+        sound2_delay: u16, // inf4: delay before second sound
+        timer: u16,        // inf5: current timer
+        mode: u16,         // inf6: current sound mode
+    },
+    AdvancedProjectile {
+        direction: u16,   // inf1: 1=right, 2=left, 3=down, 4=up
+        target_pos: u16,  // inf2: target X or Y coordinate
+        speed: u16,       // inf3: movement speed
+        reload_time: u16, // inf4: time between shots
+        timer: u16,       // inf5: current timer
+                          // Uses z1, z2 for custom sounds instead of inf6, inf7
+    },
 }
 
 impl Default for BehaviorParams {
     fn default() -> Self {
-        Self {
-            inf1: 0,
-            inf2: 0,
-            inf3: 0,
-            inf4: 0,
-            inf5: 0,
-            inf6: 0,
-            inf7: 0,
-        }
+        Self::Static
     }
 }
 

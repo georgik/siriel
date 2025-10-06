@@ -6,51 +6,23 @@ pub struct BehaviorManager;
 
 impl BehaviorManager {
     /// Execute behavior for an entity based on its behavior type
+    /// TODO: Update this to use new BehaviorParams enum after level conversion is working
     pub fn execute_behavior(
-        behavior_type: BehaviorType,
-        position: &mut Position,
+        _behavior_type: BehaviorType,
+        _position: &mut Position,
         velocity: &mut Velocity,
-        params: &BehaviorParams,
-        state: &mut BehaviorState,
-        dt: f32,
-        player_pos: Option<&Position>,
+        _params: &BehaviorParams,
+        _state: &mut BehaviorState,
+        _dt: f32,
+        _player_pos: Option<&Position>,
     ) {
-        match behavior_type {
-            BehaviorType::Static => {
-                Self::static_behavior(velocity);
-            }
-            BehaviorType::HorizontalOscillator => {
-                Self::horizontal_oscillator(position, velocity, params, state, dt);
-            }
-            BehaviorType::VerticalOscillator => {
-                Self::vertical_oscillator(position, velocity, params, state, dt);
-            }
-            BehaviorType::PlatformWithGravity => {
-                Self::platform_with_gravity(position, velocity, params, state, dt);
-            }
-            BehaviorType::EdgeWalkingPlatform => {
-                Self::edge_walking_platform(position, velocity, params, state, dt);
-            }
-            BehaviorType::RandomMovement => {
-                Self::random_movement(position, velocity, params, state, dt);
-            }
-            BehaviorType::Fireball => {
-                Self::fireball(position, velocity, params, state, dt);
-            }
-            BehaviorType::Hunter => {
-                if let Some(player_position) = player_pos {
-                    Self::hunter(position, velocity, params, state, dt, player_position);
-                }
-            }
-            BehaviorType::SoundTrigger => {
-                Self::sound_trigger(params, state, dt);
-            }
-            BehaviorType::AdvancedProjectile => {
-                Self::advanced_projectile(position, velocity, params, state, dt);
-            }
-        }
+        // Temporarily disabled - needs refactoring for new BehaviorParams enum
+        velocity.x = 0.0;
+        velocity.y = 0.0;
     }
 
+    /*
+    // TODO: Refactor these methods to use new BehaviorParams enum
     /// Behavior 1: Static - no movement
     fn static_behavior(velocity: &mut Velocity) {
         velocity.x = 0.0;
@@ -342,4 +314,5 @@ impl BehaviorManager {
         // Additional sound triggering logic would go here
         // using params for sound IDs stored in z1, z2 fields
     }
+    */
 }
