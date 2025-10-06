@@ -186,3 +186,23 @@ pub struct AnimatedEntity {
     pub total_frames: usize,
     pub base_sprite_id: u32, // Starting frame index in animations atlas
 }
+
+/// Avatar animation component - for player character animations
+#[derive(Component, Clone, Debug)]
+pub struct AvatarAnimation {
+    pub current_animation: String,
+    pub current_frame_index: usize,
+    pub timer: f32,
+    pub facing_left: bool,
+}
+
+impl Default for AvatarAnimation {
+    fn default() -> Self {
+        Self {
+            current_animation: "idle".to_string(),
+            current_frame_index: 0,
+            timer: 0.0,
+            facing_left: false,
+        }
+    }
+}

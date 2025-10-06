@@ -15,6 +15,7 @@ pub fn setup_game(
     asset_server: Res<AssetServer>,
     mut game_state: ResMut<GameState>,
     tilemap_manager: Res<crate::level::TilemapManager>,
+    atlas_manager: Res<AtlasManager>,
 ) {
     // Initialize game state
     game_state.score = 0;
@@ -29,35 +30,57 @@ pub fn setup_game(
         (320.0, 240.0)
     };
 
-    // Create a simple colored sprite for the player (we'll replace with actual sprites later)
-    commands.spawn((
-        Player,
+    // Create animated avatar sprite for the player
+    // Apply avatar texture if available, otherwise fallback to colored sprite
+    let mut entity_commands = if let Some(ref avatar_texture) = atlas_manager.avatar_texture {
+        commands.spawn((
+            Player,
+            Sprite {
+                image: avatar_texture.clone(),
+                custom_size: Some(Vec2::new(16.0, 16.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(spawn_pos.0, spawn_pos.1, 1.0)),
+        ))
+    } else {
+        // Fallback to colored sprite if avatar texture not loaded
+        commands.spawn((
+            Player,
+            Sprite {
+                color: Color::srgb(0.0, 0.5, 1.0), // Blue colored sprite as fallback
+                custom_size: Some(Vec2::new(16.0, 16.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(spawn_pos.0, spawn_pos.1, 1.0)),
+        ))
+    };
+
+    // Add all the game-specific components
+    entity_commands.insert((
         Position {
             x: spawn_pos.0,
             y: spawn_pos.1,
         },
         Velocity::default(),
         Collider::default(),
-        SpriteInfo::default(),
         Physics {
             on_ground: false,
             gravity_affected: true,
             jump_force: 400.0,
             max_fall_speed: 600.0,
         },
-        AnimationState::default(),
+        AvatarAnimation::default(),
         Health {
             current: 3,
             max: 3,
             invulnerable: false,
             invulnerability_timer: 0.0,
         },
-        Sprite {
-            color: Color::srgb(0.0, 0.5, 1.0),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
-            ..default()
+        SpriteInfo {
+            texture_id: 0, // Avatar texture ID
+            frame: 0,      // Start with first frame (idle)
+            facing_left: false,
         },
-        Transform::from_translation(Vec3::new(spawn_pos.0, spawn_pos.1, 1.0)),
     ));
 
     // Create some test entities with different behaviors
@@ -381,6 +404,120 @@ pub fn animation_system(
                     sprite_info.frame = frame_id as usize;
                 }
             }
+        }
+    }
+}
+
+/// Avatar animation state system - determines which animation to play based on player state
+pub fn avatar_animation_state_system(
+    input_state: Res<InputState>,
+    mut player_query: Query<(&Velocity, &Physics, &mut AvatarAnimation), With<Player>>,
+) {
+    for (velocity, physics, mut avatar_anim) in player_query.iter_mut() {
+        // Determine animation based on player state
+        let new_animation = if !physics.on_ground {
+            if velocity.y > 100.0 {
+                // Jumping up
+                if velocity.x < -10.0 {
+                    "jump_left"
+                } else if velocity.x > 10.0 {
+                    "jump_right"
+                } else {
+                    "jump_up"
+                }
+            } else {
+                // Falling
+                "fall"
+            }
+        } else if velocity.x.abs() > 10.0 {
+            // Walking
+            avatar_anim.facing_left = velocity.x < 0.0;
+            if input_state.move_up {
+                "walk_up"
+            } else if velocity.x < 0.0 {
+                "walk_left"
+            } else {
+                "walk_right"
+            }
+        } else {
+            // Idle
+            if input_state.move_down {
+                "idle_down"
+            } else {
+                "idle"
+            }
+        };
+
+        // Only change animation if it's different to reset frame timing
+        if avatar_anim.current_animation != new_animation {
+            avatar_anim.current_animation = new_animation.to_string();
+            avatar_anim.current_frame_index = 0;
+            avatar_anim.timer = 0.0;
+        }
+    }
+}
+
+/// Avatar animation update system - updates the sprite frame using SpriteInfo
+pub fn avatar_animation_update_system(
+    time: Res<Time>,
+    atlas_manager: Res<AtlasManager>,
+    mut player_query: Query<(&mut AvatarAnimation, &mut SpriteInfo), With<Player>>,
+) {
+    let dt = time.delta_secs();
+
+    for (mut avatar_anim, mut sprite_info) in player_query.iter_mut() {
+        if let Some(animation) = atlas_manager.get_avatar_animation(&avatar_anim.current_animation)
+        {
+            avatar_anim.timer += dt;
+
+            // Check if we should advance to next frame
+            if avatar_anim.timer >= animation.duration {
+                avatar_anim.timer = 0.0;
+
+                // Advance frame based on loop mode
+                match animation.loop_mode {
+                    crate::atlas::AnimationLoopMode::Loop => {
+                        avatar_anim.current_frame_index =
+                            (avatar_anim.current_frame_index + 1) % animation.frames.len();
+                    }
+                    crate::atlas::AnimationLoopMode::Once => {
+                        if avatar_anim.current_frame_index < animation.frames.len() - 1 {
+                            avatar_anim.current_frame_index += 1;
+                        }
+                    }
+                    crate::atlas::AnimationLoopMode::PingPong => {
+                        // TODO: Implement ping pong animation
+                        avatar_anim.current_frame_index =
+                            (avatar_anim.current_frame_index + 1) % animation.frames.len();
+                    }
+                }
+
+                // Update sprite frame index
+                if avatar_anim.current_frame_index < animation.frames.len() {
+                    sprite_info.frame = animation.frames[avatar_anim.current_frame_index] as usize;
+                }
+            }
+        }
+    }
+}
+
+/// Avatar texture atlas rendering system - updates texture atlas index
+pub fn avatar_texture_atlas_system(
+    atlas_manager: Res<AtlasManager>,
+    mut player_query: Query<(&SpriteInfo, &mut Sprite), (With<Player>, With<AvatarAnimation>)>,
+) {
+    if let (Some(ref avatar_atlas), Some(ref layout_handle)) =
+        (&atlas_manager.avatar_atlas, &atlas_manager.avatar_layout)
+    {
+        for (sprite_info, mut sprite) in player_query.iter_mut() {
+            // Update texture atlas to show the specific frame
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: layout_handle.clone(),
+                index: sprite_info.frame,
+            });
+
+            // Ensure the sprite uses the correct custom size (16x16)
+            sprite.custom_size = Some(Vec2::new(16.0, 16.0));
         }
     }
 }

@@ -1,103 +1,120 @@
-// Siriel 3.5 Avatar/Player Animation Atlas Descriptor  
-// siriel-avatar.png: 224x64 pixels, 14x4 frames (16x16 each)
+// Siriel Avatar Animation Atlas Descriptor  
+// siriel-avatar.png: 512x48 pixels, 32x3 frames (16x16 each)
+// Based on actual sprite layout analysis
 (
     name: "siriel-avatar",
     image_path: "sprites/siriel-avatar.png", 
     tile_size: (16, 16),
-    grid_size: (14, 4), // 14 columns, 4 rows
-    total_tiles: 56,
+    grid_size: (32, 3), // 32 columns, 3 rows
+    total_tiles: 96,
 
     // Not used for animation atlas
     ascii_to_tile_mapping: None,
-    special_tiles: None,
+    special_tiles: Some({
+        "back_arrow": 59,      // Row 3, position 27 (0-based: row 2, col 27)
+        "nothing_crossed": 60, // Row 3, position 28 (0-based: row 2, col 28)
+    }),
 
-    // Animation definitions
+    // Animation definitions based on actual sprite layout
     animations: Some({
-        "idle_right": (
-            frames: [0, 1],
-            duration: 0.5,  // seconds per frame
-            loop_mode: PingPong,
-        ),
-        "idle_left": (
-            frames: [14, 15], // second row, flipped versions
-            duration: 0.5,
-            loop_mode: PingPong,
-        ),
-        "walk_right": (
-            frames: [2, 3, 4, 5],
-            duration: 0.2,
+        // Row 1: Idle/Down animations (frames 0-3)
+        "idle_down": (
+            frames: [0, 1, 2, 3],
+            duration: 0.3,
             loop_mode: Loop,
         ),
+        "idle": ( // alias for idle_down
+            frames: [0, 1, 2, 3],
+            duration: 0.3,
+            loop_mode: Loop,
+        ),
+        
+        // Row 1: Left movement (frames 4-7)
         "walk_left": (
-            frames: [16, 17, 18, 19], // second row equivalents
+            frames: [4, 5, 6, 7],
             duration: 0.2,
-            loop_mode: Loop, 
+            loop_mode: Loop,
         ),
-        "jump_right": (
-            frames: [6, 7],
-            duration: 0.3,
+        
+        // Row 1: Right movement (frames 8-11)
+        "walk_right": (
+            frames: [8, 9, 10, 11],
+            duration: 0.2,
+            loop_mode: Loop,
+        ),
+        
+        // Row 2: Jump up animation (frames 32-39)
+        "jump_up": (
+            frames: [32, 33, 34, 35, 36, 37, 38, 39],
+            duration: 0.1,
             loop_mode: Once,
         ),
+        
+        // Row 2: Parachute animation (frames 40-42)
+        "parachute": (
+            frames: [40, 41, 42],
+            duration: 0.4,
+            loop_mode: Once,
+        ),
+        
+        // Row 3: Jump left (frames 64-71)
         "jump_left": (
-            frames: [20, 21],
-            duration: 0.3, 
+            frames: [64, 65, 66, 67, 68, 69, 70, 71],
+            duration: 0.1,
             loop_mode: Once,
         ),
-        "fall_right": (
-            frames: [8, 9],
+        
+        // Row 3: Walk up (frames 72-75)
+        "walk_up": (
+            frames: [72, 73, 74, 75],
             duration: 0.2,
             loop_mode: Loop,
         ),
-        "fall_left": (
-            frames: [22, 23],
+        
+        // Row 3: Jump right (frames 76-83)
+        "jump_right": (
+            frames: [76, 77, 78, 79, 80, 81, 82, 83],
+            duration: 0.1,
+            loop_mode: Once,
+        ),
+        
+        // Row 3: Animated stars - special effect (frames 84-87, likely missing frames 85-87)
+        "stars": (
+            frames: [84, 85, 86, 87],
             duration: 0.2,
             loop_mode: Loop,
         ),
-        "climb": (
-            frames: [28, 29, 30, 31], // third row
-            duration: 0.3,
+
+        // Generic movement animations for different directions
+        "fall": (
+            frames: [36, 37], // Use last frames of jump_up
+            duration: 0.2,
             loop_mode: Loop,
-        ),
-        "crouch_right": (
-            frames: [10, 11],
-            duration: 0.4,
-            loop_mode: Once,
-        ),
-        "crouch_left": (
-            frames: [24, 25],
-            duration: 0.4,
-            loop_mode: Once, 
-        ),
-        // Special animations
-        "death": (
-            frames: [42, 43, 44, 45], // fourth row
-            duration: 0.8,
-            loop_mode: Once,
-        ),
-        "victory": (
-            frames: [46, 47, 48, 49],
-            duration: 0.6,
-            loop_mode: Loop, 
         ),
     }),
 
     // Animation states for player controller
     animation_mapping: Some({
-        "PlayerIdle": "idle_right",
+        "PlayerIdle": "idle",
         "PlayerWalk": "walk_right", 
-        "PlayerJump": "jump_right",
-        "PlayerFall": "fall_right",
-        "PlayerClimb": "climb",
-        "PlayerCrouch": "crouch_right",
-        "PlayerDeath": "death",
-        "PlayerVictory": "victory",
+        "PlayerWalkLeft": "walk_left",
+        "PlayerWalkRight": "walk_right",
+        "PlayerWalkUp": "walk_up",
+        "PlayerWalkDown": "idle_down",
+        "PlayerJump": "jump_up",
+        "PlayerJumpLeft": "jump_left",
+        "PlayerJumpRight": "jump_right",
+        "PlayerFall": "fall",
+        "PlayerParachute": "parachute",
+        "PlayerStars": "stars", // Special effect mode
     }),
 
     // Metadata
     metadata: Some({
-        "source": "Original Siriel 3.5 DOS player sprites",
+        "source": "Original Siriel avatar sprites",
         "format": "16x16 pixel animation frames",
         "usage": "Player character animation",
-        "description": "Four rows: right-facing, left-facing, special moves, death/victory",
+        "description": "Three rows: idle/movement, jump sequences, directional jumps and special effects",
+        "layout": "Row1: idle(4), left(4), right(4) | Row2: jump_up(8), parachute(3) | Row3: jump_left(8), walk_up(4), jump_right(8), back_arrow(1), crossed_circle(1), stars(4)",
     })
 )

@@ -13,7 +13,7 @@ name = "siriel_bevy"
 path = "src/lib.rs"
 
 [dependencies]
-bevy = "0.17.0"
+bevy = "0.17.2"
 bevy_ecs_tilemap = "0.17.0-rc.1"
 ron = "0.8.1"
 rand = "0.8.5"
