@@ -231,14 +231,16 @@ fn save_level_data(level: &LevelData, filename: &str) -> Result<(), Box<dyn std:
         .new_line("\n".to_string())
         .indentor("    ".to_string());
 
-    // Serialize just the entities, transitions, scripts parts
+    // Serialize just the entities, transitions, scripts, messages parts
     let entities_ron = to_string_pretty(&level.entities, config.clone())?;
     let transitions_ron = to_string_pretty(&level.transitions, config.clone())?;
     let scripts_ron = to_string_pretty(&level.scripts, config.clone())?;
+    let messages_ron = to_string_pretty(&level.messages, config.clone())?;
 
     output.push_str(&format!("    entities: {},\n", entities_ron));
     output.push_str(&format!("    transitions: {},\n", transitions_ron));
     output.push_str(&format!("    scripts: {},\n", scripts_ron));
+    output.push_str(&format!("    messages: {},\n", messages_ron));
 
     if let Some(ref music) = level.music {
         output.push_str(&format!("    music: Some(\"{}\"),\n", music));
@@ -270,6 +272,12 @@ fn print_mie_info(mie_level: &MIELevel) {
         println!("   Start Sound: {}", start_sound);
     }
     println!("   Entities: {}", mie_level.entities.len());
+    println!("   Messages: {}", mie_level.messages.len());
+
+    // Show messages if any
+    for (i, message) in mie_level.messages.iter().enumerate() {
+        println!("     MSG{}: {}", i + 1, message);
+    }
 
     // Group entities by type
     let mut entity_counts = std::collections::HashMap::new();
@@ -293,6 +301,7 @@ fn print_level_summary(level: &LevelData) {
     println!("   Entities: {}", level.entities.len());
     println!("   Transitions: {}", level.transitions.len());
     println!("   Scripts: {}", level.scripts.len());
+    println!("   Messages: {}", level.messages.len());
     if let Some(time_limit) = level.time_limit {
         println!("   Time Limit: {:.0} seconds", time_limit);
     }
@@ -322,19 +331,23 @@ fn convert_mie_to_level_data(mie_level: MIELevel) -> LevelData {
     // Convert entities with Y-coordinate flipping
     let entities = convert_mie_entities(&mie_level.entities, mie_level.height as f32);
 
-    // Convert spawn point with Y-coordinate flipping
-    let spawn_y_flipped = (mie_level.height as f32 * 16.0) - mie_level.start_position.1 as f32;
+    // Convert spawn point from 8x8 grid coordinates to pixels with Y-coordinate flipping
+    // Coordinates in MIE are in 8x8 grid units, convert to pixels
+    let spawn_x_pixels = mie_level.start_position.0 as f32 * 8.0;
+    let spawn_y_pixels = mie_level.start_position.1 as f32 * 8.0;
+    let spawn_y_flipped = (mie_level.height as f32 * 16.0) - spawn_y_pixels;
 
     LevelData {
         name: mie_level.name.clone(),
         width: mie_level.width as u32,
         height: mie_level.height as u32,
-        spawn_point: (mie_level.start_position.0 as f32, spawn_y_flipped),
+        spawn_point: (spawn_x_pixels, spawn_y_flipped),
         background_image: None,
         tilemap,
         entities,
         transitions: Vec::new(),
         scripts: Vec::new(),
+        messages: mie_level.messages,
         music: None,
         time_limit: Some(300.0), // Default 5 minutes
     }
@@ -571,8 +584,11 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
                 (false, 0)
             };
 
-            // Flip Y coordinate for Bevy's coordinate system
-            let flipped_y = (level_height * 16.0) - entity.y as f32;
+            // Convert entity coordinates from 8x8 grid coordinates to pixels with Y-coordinate flipping
+            // Coordinates in MIE are in 8x8 grid units, convert to pixels
+            let entity_x_pixels = entity.x as f32 * 8.0;
+            let entity_y_pixels = entity.y as f32 * 8.0;
+            let flipped_y = (level_height * 16.0) - entity_y_pixels;
 
             // Convert behavior to new system
             let behavior_type = map_behavior_type_from_id(entity.behavior_id as u8);
@@ -589,7 +605,7 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
             LevelEntity {
                 id: format!("{}_{}", entity.entity_type, i),
                 entity_type: entity.entity_type.clone(),
-                position: (entity.x as f32, flipped_y),
+                position: (entity_x_pixels, flipped_y),
                 sprite_id,
                 behavior_type,
                 behavior_params,

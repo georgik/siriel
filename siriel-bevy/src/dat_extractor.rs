@@ -12,8 +12,8 @@ pub struct DATResource {
 
 /// DAT file decoder - implements the same logic as the original Pascal BLOCKX.PAS
 pub struct DATExtractor {
-    file: File,
-    resources: HashMap<String, DATResource>,
+    pub file: File,
+    pub resources: HashMap<String, DATResource>,
 }
 
 impl DATExtractor {

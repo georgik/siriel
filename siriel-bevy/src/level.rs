@@ -28,6 +28,7 @@ pub struct LevelData {
     pub entities: Vec<LevelEntity>,
     pub transitions: Vec<LevelTransition>,
     pub scripts: Vec<LevelScript>,
+    pub messages: Vec<String>, // MSG1-MSG5 from original MIE files
     pub music: Option<String>,
     pub time_limit: Option<f32>,
 }
@@ -423,6 +424,7 @@ pub fn create_test_level() -> LevelData {
         ],
         transitions: vec![],
         scripts: vec![],
+        messages: vec![],
         music: None,
         time_limit: Some(300.0), // 5 minutes
     }

@@ -8,6 +8,7 @@ pub struct MIELevel {
     pub start_position: (i32, i32),
     pub start_sound: Option<String>,
     pub entities: Vec<MIEEntity>,
+    pub messages: Vec<String>, // MSG1-MSG5 from MIE files
     pub tilemap: Vec<Vec<u8>>,
     pub width: usize,
     pub height: usize,
@@ -43,31 +44,65 @@ impl MIEParser {
             start_position: (0, 0),
             start_sound: None,
             entities: Vec::new(),
+            messages: Vec::new(),
             tilemap: Vec::new(),
             width: 0,
             height: 0,
         };
 
-        // Convert to string for header parsing
-        let content = String::from_utf8_lossy(data);
-        let lines: Vec<&str> = content.lines().collect();
-        let mut i = 0;
+        // Find where binary data begins by looking for [MAPA] or [MAP
+        let mut header_end = data.len();
         let mut map_start_pos = None;
 
+        // Look for [MAPA]= pattern specifically
+        for i in 0..data.len() - 7 {
+            if data[i] == b'['
+                && data[i + 1] == b'M'
+                && data[i + 2] == b'A'
+                && data[i + 3] == b'P'
+                && data[i + 4] == b'A'
+                && data[i + 5] == b']'
+                && data[i + 6] == b'='
+            {
+                // Found [MAPA]= - the header ends at the start of this line
+                // Find the beginning of this line
+                let mut line_start = i;
+                while line_start > 0 && data[line_start - 1] != 0x0A {
+                    line_start -= 1;
+                }
+
+                header_end = line_start;
+
+                // Find the end of the [MAP] line to start binary data
+                let mut line_end = i;
+                while line_end < data.len() && data[line_end] != 0x0D && data[line_end] != 0x0A {
+                    line_end += 1;
+                }
+                // Skip past line ending
+                while line_end < data.len() && (data[line_end] == 0x0D || data[line_end] == 0x0A) {
+                    line_end += 1;
+                }
+                map_start_pos = Some(line_end);
+                break;
+            }
+        }
+
+        // Parse only the header section as text
+        let header_data = &data[0..header_end];
+        let content = String::from_utf8_lossy(header_data);
+        let lines: Vec<&str> = content.lines().collect();
+
         // Parse header section (text)
-        while i < lines.len() {
-            let line = lines[i].trim();
+        for line in lines {
+            let line = line.trim();
 
             if line.is_empty() {
-                i += 1;
                 continue;
             }
 
-            // Check for map section start
+            // Skip MAP lines as they're handled separately
             if line.starts_with("[MAP") {
-                // Find the actual start of binary map data
-                map_start_pos = Some(Self::find_map_start_position(data, i, &lines));
-                break;
+                continue;
             }
 
             if line.starts_with('[') && line.contains(']') {
@@ -81,6 +116,11 @@ impl MIEParser {
                             }
                         }
                         "SNDSTART" => level.start_sound = Some(value),
+                        "MSG1" | "MSG2" | "MSG3" | "MSG4" | "MSG5" => {
+                            // Process language-specific messages
+                            let processed_message = Self::process_language_message(&value);
+                            level.messages.push(processed_message);
+                        }
                         "ZNNA" | "ZNNB" | "ZNNC" | "ZANA" | "YNN~" | "YNNA" | "YASB" | "YASC" => {
                             if let Some(entity) = Self::parse_entity(&key, &value) {
                                 level.entities.push(entity);
@@ -99,8 +139,6 @@ impl MIEParser {
                     }
                 }
             }
-
-            i += 1;
         }
 
         // Parse binary map data if found
@@ -194,15 +232,34 @@ impl MIEParser {
     fn find_map_start_position(data: &[u8], map_line_index: usize, lines: &[&str]) -> usize {
         // Find the byte position after the [MAPX]=N line
         let mut pos = 0;
+        let line_ending_len = Self::detect_line_ending(data);
+
         for (i, line) in lines.iter().enumerate() {
             if i == map_line_index {
                 // Skip this line and the next newline to get to map data
-                pos += line.len() + 2; // +2 for \r\n
+                pos += line.len() + line_ending_len;
                 break;
             }
-            pos += line.len() + 2; // +2 for \r\n
+            pos += line.len() + line_ending_len;
         }
         pos
+    }
+
+    /// Detect line ending type in the data
+    fn detect_line_ending(data: &[u8]) -> usize {
+        // Look for first line ending to determine type
+        for i in 0..(data.len() - 1) {
+            if data[i] == 0x0D {
+                if data[i + 1] == 0x0A {
+                    return 2; // \r\n (Windows)
+                } else {
+                    return 1; // \r (Mac classic)
+                }
+            } else if data[i] == 0x0A {
+                return 1; // \n (Unix)
+            }
+        }
+        1 // Default fallback
     }
 
     /// Parse binary tilemap data from MIE file
@@ -223,9 +280,12 @@ impl MIEParser {
                 pos += 1;
 
                 // Check for line ending
-                if byte == 0x0D && pos < data.len() && data[pos] == 0x0A {
-                    // Skip the \n
-                    pos += 1;
+                if byte == 0x0D {
+                    // CR - could be \r or \r\n
+                    if pos < data.len() && data[pos] == 0x0A {
+                        // Skip the \n for \r\n
+                        pos += 1;
+                    }
                     break;
                 } else if byte == 0x0A {
                     // Just \n
@@ -265,6 +325,32 @@ impl MIEParser {
         );
 
         Ok(tilemap)
+    }
+
+    /// Process language-specific messages (mimics Pascal check_lan function)
+    /// Handles ~SLO~ markers and strips them to return just the message text
+    fn process_language_message(message: &str) -> String {
+        // Check if message starts with language marker like ~SLO~
+        if message.starts_with('~') && message.len() >= 5 {
+            // Extract language code (positions 1-3: ~SLO~)
+            let lang_marker = &message[1..4];
+
+            // For now, we'll prefer Slovak (SLO) messages, but also accept English
+            // In the original game, this would check against current language setting
+            if lang_marker == "SLO" || lang_marker == "ENG" {
+                // Find the end of the language marker (~SLO~)
+                if let Some(marker_end) = message
+                    .find("~")
+                    .and_then(|start| message[start + 1..].find("~").map(|end| start + end + 2))
+                {
+                    // Return the message after the language marker
+                    return message[marker_end..].to_string();
+                }
+            }
+        }
+
+        // If no language marker or unsupported language, return as-is
+        message.to_string()
     }
 
     /// Convert MIE tile byte to tile ID
