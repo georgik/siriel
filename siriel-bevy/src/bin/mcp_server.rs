@@ -200,12 +200,18 @@ impl MCPServer {
                             "type": "number",
                             "description": "Seconds to wait before taking screenshot",
                             "default": 3
+                        },
+                        "output_dir": {
+                            "type": "string",
+                            "description": "Directory to save screenshots (default: screenshots/)",
+                            "default": "screenshots"
                         }
                     },
                     "required": ["mode"]
                 }),
                 examples: vec![
                     "Capture single level: {\"mode\": \"single\", \"level\": \"assets/levels/FMIS01.ron\"}".to_string(),
+                    "Capture to custom directory: {\"mode\": \"single\", \"level\": \"assets/levels/FMIS01.ron\", \"output_dir\": \"screenshots\"}".to_string(),
                     "Capture all FMIS levels: {\"mode\": \"batch-fmis\"}".to_string(),
                     "Capture with custom delay: {\"mode\": \"single\", \"level\": \"assets/levels/FMIS01.ron\", \"delay\": 5}".to_string(),
                     "Capture all levels: {\"mode\": \"batch-all\"}".to_string(),
@@ -600,6 +606,10 @@ impl MCPServer {
         let level = args.get("level").and_then(|l| l.as_str());
         let delay = args.get("delay").and_then(|d| d.as_f64()).unwrap_or(3.0) as u32;
         let delay_str = delay.to_string();
+        let output_dir = args
+            .get("output_dir")
+            .and_then(|d| d.as_str())
+            .unwrap_or("screenshots");
 
         match mode {
             "single" => {
@@ -612,6 +622,8 @@ impl MCPServer {
                         level_path,
                         "--screenshot",
                         &delay_str,
+                        "--screenshot-dir",
+                        output_dir,
                     ];
                     self.run_cargo_command(&cmd_args).await
                 } else {
@@ -688,6 +700,8 @@ impl MCPServer {
                                     level_path,
                                     "--screenshot",
                                     &delay_str,
+                                    "--screenshot-dir",
+                                    output_dir,
                                 ];
 
                                 match Command::new("cargo")
@@ -734,7 +748,7 @@ impl MCPServer {
                                 results
                                     .push(format!("Failed levels: {}", failed_levels.join(", ")));
                             }
-                            results.push("Screenshots saved to: screenshots/".to_string());
+                            results.push(format!("Screenshots saved to: {}/", output_dir));
 
                             json!({
                                 "jsonrpc": "2.0",

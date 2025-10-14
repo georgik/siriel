@@ -556,15 +556,17 @@ pub fn quit_system(
 
 /// Screenshot system - takes screenshot after specified time and exits
 pub fn screenshot_system(
+    mut commands: Commands,
     game_args: Res<crate::level::GameArgs>,
     time: Res<Time>,
     mut app_exit_events: MessageWriter<bevy::app::AppExit>,
     mut screenshot_timer: Local<f32>,
+    mut screenshot_taken: Local<bool>,
 ) {
     if let Some(screenshot_delay) = game_args.screenshot {
         *screenshot_timer += time.delta_secs();
 
-        if *screenshot_timer >= screenshot_delay {
+        if *screenshot_timer >= screenshot_delay && !*screenshot_taken {
             let level_name = if let Some(ref level_path) = game_args.level {
                 // Extract level name from path (e.g., "assets/levels/FMIS01.ron" -> "FMIS01")
                 std::path::Path::new(level_path)
@@ -580,29 +582,31 @@ pub fn screenshot_system(
                 screenshot_delay, level_name
             );
 
-            // Create screenshots directory if it doesn't exist
-            let _ = std::fs::create_dir_all("screenshots");
+            // Use configurable output directory
+            let output_dir = game_args.screenshot_dir.as_deref().unwrap_or("screenshots");
 
-            let screenshot_path = format!("screenshots/{}.png", level_name);
-            info!("📸 Screenshot simulated for: {}", screenshot_path);
+            // Create output directory if it doesn't exist
+            let _ = std::fs::create_dir_all(output_dir);
 
-            // TODO: Implement actual screenshot capture with correct Bevy 0.17 API
-            // For now, create a placeholder file to simulate screenshot
-            let placeholder_content = format!(
-                "Screenshot placeholder for level: {}\nTimestamp: {}\n",
-                level_name,
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            );
-            if let Err(e) = std::fs::write(&screenshot_path, placeholder_content) {
-                warn!("Failed to write placeholder screenshot: {}", e);
-            } else {
-                info!("✅ Placeholder screenshot saved to: {}", screenshot_path);
-            }
+            let screenshot_path = format!("{}/{}.png", output_dir, level_name);
+            info!("📸 Taking actual screenshot: {}", screenshot_path);
 
-            info!("✅ Screenshot process completed, exiting...");
+            // Take screenshot using Bevy 0.17 API
+            commands
+                .spawn(bevy::render::view::screenshot::Screenshot::primary_window())
+                .observe(bevy::render::view::screenshot::save_to_disk(
+                    screenshot_path.clone(),
+                ));
+
+            info!("✅ Screenshot saved to: {}", screenshot_path);
+            *screenshot_taken = true;
+
+            // Exit after a short delay to ensure screenshot is saved
+            info!("✅ Screenshot process completed, exiting in 1 second...");
+        }
+
+        // Exit after screenshot + 1 second delay
+        if *screenshot_taken && *screenshot_timer >= screenshot_delay + 1.0 {
             app_exit_events.write(bevy::app::AppExit::Success);
         }
     }

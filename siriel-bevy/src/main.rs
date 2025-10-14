@@ -44,6 +44,10 @@ struct Args {
     /// Take screenshot after N seconds and exit (for comparison with original)
     #[arg(short, long)]
     screenshot: Option<f32>,
+
+    /// Directory to save screenshots (default: screenshots/)
+    #[arg(long, default_value = "screenshots")]
+    screenshot_dir: Option<String>,
 }
 
 fn main() {
@@ -106,6 +110,7 @@ fn main() {
             level: args.level,
             verbose: args.verbose,
             screenshot: args.screenshot,
+            screenshot_dir: args.screenshot_dir,
         })
         // Startup systems (run once)
         .add_systems(

@@ -15,6 +15,7 @@ pub struct GameArgs {
     pub level: Option<String>,
     pub verbose: bool,
     pub screenshot: Option<f32>, // Screenshot after N seconds, then quit
+    pub screenshot_dir: Option<String>, // Directory to save screenshots
 }
 
 /// Level data structure - modern replacement for .MIE format
