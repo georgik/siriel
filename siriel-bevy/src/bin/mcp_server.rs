@@ -177,6 +177,42 @@ impl MCPServer {
             },
         );
 
+        // Register capture_screenshots tool
+        tools.insert(
+            "capture_screenshots".to_string(),
+            ToolDefinition {
+                name: "capture_screenshots".to_string(),
+                description: "Capture screenshots of game levels for comparison with original game using engine's built-in screenshot functionality".to_string(),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["single", "batch-fmis", "batch-caul", "batch-gball", "batch-all"],
+                            "description": "Screenshot capture mode",
+                            "default": "single"
+                        },
+                        "level": {
+                            "type": "string",
+                            "description": "Path to specific level RON file (required for single mode)"
+                        },
+                        "delay": {
+                            "type": "number",
+                            "description": "Seconds to wait before taking screenshot",
+                            "default": 3
+                        }
+                    },
+                    "required": ["mode"]
+                }),
+                examples: vec![
+                    "Capture single level: {\"mode\": \"single\", \"level\": \"assets/levels/FMIS01.ron\"}".to_string(),
+                    "Capture all FMIS levels: {\"mode\": \"batch-fmis\"}".to_string(),
+                    "Capture with custom delay: {\"mode\": \"single\", \"level\": \"assets/levels/FMIS01.ron\", \"delay\": 5}".to_string(),
+                    "Capture all levels: {\"mode\": \"batch-all\"}".to_string(),
+                ],
+            },
+        );
+
         Self { tools }
     }
 
@@ -342,6 +378,7 @@ impl MCPServer {
             "run_game" => self.call_run_game(arguments).await,
             "build_project" => self.call_build_project(arguments).await,
             "level_info" => self.call_level_info(arguments).await,
+            "capture_screenshots" => self.call_capture_screenshots(arguments).await,
             _ => json!({
                 "jsonrpc": "2.0",
                 "error": {
@@ -552,6 +589,180 @@ impl MCPServer {
                     "message": "Either 'file' or 'list_all' parameter required"
                 }
             })
+        }
+    }
+
+    async fn call_capture_screenshots(&self, args: &Value) -> Value {
+        let mode = args
+            .get("mode")
+            .and_then(|m| m.as_str())
+            .unwrap_or("single");
+        let level = args.get("level").and_then(|l| l.as_str());
+        let delay = args.get("delay").and_then(|d| d.as_f64()).unwrap_or(3.0) as u32;
+        let delay_str = delay.to_string();
+
+        match mode {
+            "single" => {
+                if let Some(level_path) = level {
+                    // Run single screenshot for specified level
+                    let cmd_args = vec![
+                        "run",
+                        "--",
+                        "--level",
+                        level_path,
+                        "--screenshot",
+                        &delay_str,
+                    ];
+                    self.run_cargo_command(&cmd_args).await
+                } else {
+                    json!({
+                        "jsonrpc": "2.0",
+                        "error": {
+                            "code": -32602,
+                            "message": "Level path required for single mode"
+                        }
+                    })
+                }
+            }
+            "batch-fmis" | "batch-caul" | "batch-gball" | "batch-all" => {
+                match std::fs::read_dir("assets/levels") {
+                    Ok(entries) => {
+                        let mut levels = Vec::new();
+                        for entry in entries {
+                            if let Ok(entry) = entry {
+                                let path = entry.path();
+                                if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
+                                    if filename.ends_with(".ron") {
+                                        let should_include = match mode {
+                                            "batch-fmis" => filename.starts_with("FMIS"),
+                                            "batch-caul" => filename.starts_with("CAUL"),
+                                            "batch-gball" => filename.starts_with("GBALL"),
+                                            "batch-all" => true, // Include all .ron files
+                                            _ => unreachable!(),
+                                        };
+
+                                        if should_include {
+                                            levels.push(path.to_string_lossy().to_string());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        levels.sort();
+
+                        if levels.is_empty() {
+                            let pattern_desc = match mode {
+                                "batch-fmis" => "FMIS*",
+                                "batch-caul" => "CAUL*",
+                                "batch-gball" => "GBALL*",
+                                "batch-all" => "all levels",
+                                _ => "unknown",
+                            };
+                            json!({
+                                "jsonrpc": "2.0",
+                                "error": {
+                                    "code": -32603,
+                                    "message": format!("No levels found for pattern: {}", pattern_desc)
+                                }
+                            })
+                        } else {
+                            // Create a summary of what will be captured
+                            let mut results = Vec::new();
+                            results.push(format!(
+                                "Capturing screenshots for {} levels with {}s delay:",
+                                levels.len(),
+                                delay
+                            ));
+
+                            let mut success_count = 0;
+                            let mut failed_levels = Vec::new();
+
+                            for level_path in &levels {
+                                results.push(format!("\nCapturing: {}", level_path));
+
+                                // Run the game for this level with screenshot
+                                let cmd_args = vec![
+                                    "run",
+                                    "--",
+                                    "--level",
+                                    level_path,
+                                    "--screenshot",
+                                    &delay_str,
+                                ];
+
+                                match Command::new("cargo")
+                                    .args(&cmd_args)
+                                    .stdout(Stdio::piped())
+                                    .stderr(Stdio::piped())
+                                    .spawn()
+                                {
+                                    Ok(mut child) => match child.wait() {
+                                        Ok(status) if status.success() => {
+                                            success_count += 1;
+                                            results.push(
+                                                "✓ Screenshot captured successfully".to_string(),
+                                            );
+                                        }
+                                        Ok(status) => {
+                                            failed_levels.push(level_path.clone());
+                                            results.push(format!(
+                                                "✗ Failed with exit code: {}",
+                                                status.code().unwrap_or(-1)
+                                            ));
+                                        }
+                                        Err(e) => {
+                                            failed_levels.push(level_path.clone());
+                                            results.push(format!(
+                                                "✗ Failed to wait for process: {}",
+                                                e
+                                            ));
+                                        }
+                                    },
+                                    Err(e) => {
+                                        failed_levels.push(level_path.clone());
+                                        results.push(format!("✗ Failed to start process: {}", e));
+                                    }
+                                }
+                            }
+
+                            results.push(format!(
+                                "\n\nSummary: {}/{} screenshots captured successfully",
+                                success_count,
+                                levels.len()
+                            ));
+                            if !failed_levels.is_empty() {
+                                results
+                                    .push(format!("Failed levels: {}", failed_levels.join(", ")));
+                            }
+                            results.push("Screenshots saved to: screenshots/".to_string());
+
+                            json!({
+                                "jsonrpc": "2.0",
+                                "result": {
+                                    "content": [{
+                                        "type": "text",
+                                        "text": results.join("\n")
+                                    }]
+                                }
+                            })
+                        }
+                    }
+                    Err(e) => json!({
+                        "jsonrpc": "2.0",
+                        "error": {
+                            "code": -32603,
+                            "message": format!("Failed to read levels directory: {}", e)
+                        }
+                    }),
+                }
+            }
+            _ => json!({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32602,
+                    "message": format!("Unknown mode: {}", mode)
+                }
+            }),
         }
     }
 

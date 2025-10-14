@@ -8,6 +8,14 @@ default-run = "siriel-bevy"
 name = "extract_sounds"
 path = "src/bin/extract_sounds.rs"
 
+[[bin]]
+name = "extract_levels"
+path = "src/bin/extract_levels.rs"
+
+[[bin]]
+name = "mcp_server"
+path = "src/bin/mcp_server.rs"
+
 [lib]
 name = "siriel_bevy"
 path = "src/lib.rs"
@@ -19,3 +27,6 @@ ron = "0.8.1"
 rand = "0.8.5"
 clap = { version = "4.4", features = ["derive"] }
 serde = { version = "1.0.227", features = ["derive"] }
+serde_json = "1.0.145"
+tokio = { version = "1.47.1", features = ["full"] }
+encoding_rs = "0.8.35"

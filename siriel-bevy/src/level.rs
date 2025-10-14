@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 pub struct GameArgs {
     pub level: Option<String>,
     pub verbose: bool,
+    pub screenshot: Option<f32>, // Screenshot after N seconds, then quit
 }
 
 /// Level data structure - modern replacement for .MIE format

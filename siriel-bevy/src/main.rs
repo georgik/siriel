@@ -40,6 +40,10 @@ struct Args {
     /// Verbose output for debugging
     #[arg(short, long)]
     verbose: bool,
+
+    /// Take screenshot after N seconds and exit (for comparison with original)
+    #[arg(short, long)]
+    screenshot: Option<f32>,
 }
 
 fn main() {
@@ -101,6 +105,7 @@ fn main() {
         .insert_resource(GameArgs {
             level: args.level,
             verbose: args.verbose,
+            screenshot: args.screenshot,
         })
         // Startup systems (run once)
         .add_systems(
@@ -139,11 +144,16 @@ fn main() {
             (
                 setup_game,
                 level::cleanup_previous_level,
-                load_level_system,
-                spawn_level_entities,
                 start_background_music,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
+                load_level_system.run_if(assets_loaded.and(not(level_loaded))),
+                spawn_level_entities.run_if(level_loaded.and(not(entities_spawned))),
             )
-                .chain(), // Ensure cleanup runs before level loading
+                .run_if(in_state(AppState::InGame)),
         )
         .add_systems(
             Update,
@@ -159,6 +169,7 @@ fn main() {
                 render_debug_system,
                 level_switch_system,
                 print_level_info_system,
+                screenshot_system,
             )
                 .run_if(in_state(AppState::InGame)),
         )
@@ -171,4 +182,22 @@ fn start_background_music(mut sound_events: MessageWriter<SoundEvent>) {
     sound_events.write(SoundEvent::PlayMusic(
         sound_mappings::LEVEL_MUSIC.to_string(),
     ));
+}
+
+/// Condition to check if assets are loaded
+fn assets_loaded(sprite_atlas: Res<SpriteAtlas>, atlas_manager: Res<AtlasManager>) -> bool {
+    sprite_atlas.loaded
+        && sprite_atlas.tiles_texture.is_some()
+        && atlas_manager.texture_atlas.is_some()
+        && atlas_manager.avatar_texture.is_some()
+}
+
+/// Condition to check if level is loaded
+fn level_loaded(tilemap_manager: Res<TilemapManager>) -> bool {
+    tilemap_manager.current_level.is_some()
+}
+
+/// Condition to check if entities are spawned
+fn entities_spawned(query: Query<&Player>) -> bool {
+    !query.is_empty()
 }
