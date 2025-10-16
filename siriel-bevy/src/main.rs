@@ -163,13 +163,18 @@ fn main() {
         .add_systems(
             Update,
             (
+                // Phase 1: Input and logic
                 input_system,
                 physics_system,
                 behavior_system,
+                // Phase 2: Animation and rendering preparation
                 animation_system,
                 avatar_animation_state_system,
                 avatar_animation_update_system,
+                // Phase 3: Texture atlas systems (must run after sprite info updates)
                 avatar_texture_atlas_system,
+                entity_texture_atlas_system, // 🔥 ADD MISSING SYSTEM
+                // Phase 4: Final systems
                 collision_system,
                 render_debug_system,
                 level_switch_system,
@@ -195,6 +200,9 @@ fn assets_loaded(sprite_atlas: Res<SpriteAtlas>, atlas_manager: Res<AtlasManager
         && sprite_atlas.tiles_texture.is_some()
         && atlas_manager.texture_atlas.is_some()
         && atlas_manager.avatar_texture.is_some()
+        && atlas_manager.avatar_layout.is_some()
+        && atlas_manager.objects_texture.is_some()
+        && atlas_manager.objects_layout.is_some()
 }
 
 /// Condition to check if level is loaded
@@ -203,6 +211,6 @@ fn level_loaded(tilemap_manager: Res<TilemapManager>) -> bool {
 }
 
 /// Condition to check if entities are spawned
-fn entities_spawned(query: Query<&Player>) -> bool {
+fn entities_spawned(query: Query<&crate::level::GameEntity, Without<Player>>) -> bool {
     !query.is_empty()
 }

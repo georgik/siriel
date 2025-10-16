@@ -50,6 +50,8 @@ pub struct AtlasManager {
     // Avatar-specific texture atlas
     pub avatar_texture: Option<Handle<Image>>,
     pub avatar_layout: Option<Handle<TextureAtlasLayout>>,
+    pub objects_texture: Option<Handle<Image>>,
+    pub objects_layout: Option<Handle<TextureAtlasLayout>>,
 }
 
 impl AtlasManager {
@@ -200,6 +202,20 @@ pub fn load_atlas_descriptors(
                 "✅ Loaded objects atlas: {} ({}x{} objects)",
                 atlas.name, atlas.grid_size.0, atlas.grid_size.1
             );
+            // Load the texture handle
+            atlas_manager.objects_texture = Some(asset_server.load(&atlas.image_path));
+
+            // Create texture atlas layout for Bevy 0.17
+            let layout = TextureAtlasLayout::from_grid(
+                UVec2::new(atlas.tile_size.0, atlas.tile_size.1),
+                atlas.grid_size.0,
+                atlas.grid_size.1,
+                None,
+                None,
+            );
+            let layout_handle = texture_atlas_layouts.add(layout);
+            atlas_manager.objects_layout = Some(layout_handle);
+
             atlas_manager.objects_atlas = Some(atlas);
         }
         Err(e) => {

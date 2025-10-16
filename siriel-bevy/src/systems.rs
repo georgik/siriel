@@ -1,6 +1,7 @@
 use crate::atlas::AtlasManager;
 use crate::audio::{sound_mappings, SoundEvent};
 use crate::components::*;
+use crate::level::GameEntity;
 use crate::resources::*;
 use bevy::prelude::*;
 
@@ -84,52 +85,13 @@ pub fn setup_game(
     ));
 
     // Create some test entities with different behaviors
-    create_test_entities(&mut commands);
+    create_test_entities(&mut commands, &atlas_manager);
 }
 
-fn create_test_entities(commands: &mut Commands) {
-    // Static enemy
-    commands.spawn((
-        Position { x: 100.0, y: 200.0 },
-        Velocity::default(),
-        Collider::default(),
-        Behavior {
-            behavior_type: BehaviorType::Static,
-            params: BehaviorParams::default(),
-            state: BehaviorState::default(),
-        },
-        Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(100.0, 200.0, 1.0)),
-    ));
-
-    // Horizontal oscillator
-    commands.spawn((
-        Position { x: 200.0, y: 300.0 },
-        Velocity::default(),
-        Collider::default(),
-        Behavior {
-            behavior_type: BehaviorType::HorizontalOscillator,
-            params: BehaviorParams::HorizontalOscillator {
-                speed: 2,
-                right_bound: 400,
-                left_bound: 200,
-            },
-            state: BehaviorState {
-                direction: 1,
-                ..Default::default()
-            },
-        },
-        Sprite {
-            color: Color::srgb(0.0, 1.0, 0.0),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(200.0, 300.0, 1.0)),
-    ));
+fn create_test_entities(commands: &mut Commands, _atlas_manager: &AtlasManager) {
+    // Test entities are now handled by spawn_level_entities system
+    // This function is kept for future debugging if needed
+    info!("📝 Test entities disabled - using RON level entities instead");
 }
 
 /// Handle player input
@@ -539,6 +501,39 @@ pub fn avatar_texture_atlas_system(
 
             // Ensure the sprite uses the correct custom size (16x16)
             sprite.custom_size = Some(Vec2::new(16.0, 16.0));
+        }
+    }
+}
+
+/// Entity texture atlas rendering system - updates game entity sprites to use proper textures  
+pub fn entity_texture_atlas_system(
+    atlas_manager: Res<AtlasManager>,
+    mut entity_query: Query<(&SpriteInfo, &mut Sprite), (With<GameEntity>, Without<Player>)>,
+) {
+    if let (Some(ref _objects_atlas), Some(ref objects_layout)) =
+        (&atlas_manager.objects_atlas, &atlas_manager.objects_layout)
+    {
+        for (sprite_info, mut sprite) in entity_query.iter_mut() {
+            // Update entity to use texture atlas instead of solid color
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: objects_layout.clone(),
+                index: sprite_info.frame.min(19), // objects-basic has 20 sprites (0-19)
+            });
+
+            // Remove the solid color now that we're using textures
+            sprite.color = Color::WHITE;
+            sprite.custom_size = Some(Vec2::new(16.0, 16.0));
+        }
+    } else {
+        // Only warn once when atlas is not available
+        let entity_count = entity_query.iter().count();
+        if entity_count > 0 {
+            warn!(
+                "❌ Entity texture atlas not available: atlas={}, layout={} - {} entities waiting",
+                atlas_manager.objects_atlas.is_some(),
+                atlas_manager.objects_layout.is_some(),
+                entity_count
+            );
         }
     }
 }

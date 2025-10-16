@@ -547,11 +547,17 @@ pub fn spawn_level_entities(
     mut commands: Commands,
     tilemap_manager: Res<TilemapManager>,
     sprite_atlas: Res<SpriteAtlas>,
+    atlas_manager: Res<crate::atlas::AtlasManager>,
 ) {
     if let Some(level) = &tilemap_manager.current_level {
         if sprite_atlas.loaded {
+            info!(
+                "🎮 Spawning {} entities from level: {}",
+                level.entities.len(),
+                level.name
+            );
             for entity_data in &level.entities {
-                spawn_entity_from_data(&mut commands, entity_data, &sprite_atlas);
+                spawn_entity_from_data(&mut commands, entity_data, &sprite_atlas, &atlas_manager);
             }
         }
     }
@@ -562,8 +568,34 @@ fn spawn_entity_from_data(
     commands: &mut Commands,
     entity_data: &LevelEntity,
     _sprite_atlas: &SpriteAtlas,
+    atlas_manager: &crate::atlas::AtlasManager,
 ) {
     use crate::components::AnimatedEntity;
+
+    // Debug info reduced - only log if verbose mode needed
+
+    // Create sprite with objects texture if available, with debug border
+    let sprite = if let Some(ref objects_texture) = atlas_manager.objects_texture {
+        Sprite {
+            image: objects_texture.clone(),
+            color: Color::WHITE, // White for proper texture display
+            custom_size: Some(Vec2::new(16.0, 16.0)),
+            ..default()
+        }
+    } else {
+        // Fallback colors based on entity type for debugging
+        let debug_color = match entity_data.entity_type.as_str() {
+            "ZNNA" => Color::srgb(1.0, 0.0, 0.0), // Red for collectibles
+            "ZANA" => Color::srgb(0.0, 1.0, 0.0), // Green for animated collectibles
+            "YNN~" => Color::srgb(0.0, 0.0, 1.0), // Blue for exit portal
+            _ => Color::srgb(1.0, 0.5, 0.0),      // Orange for unknown
+        };
+        Sprite {
+            color: debug_color,
+            custom_size: Some(Vec2::new(16.0, 16.0)),
+            ..default()
+        }
+    };
 
     let entity_bundle = (
         Position {
@@ -580,18 +612,17 @@ fn spawn_entity_from_data(
                 ..Default::default()
             },
         },
-        Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0), // Red for enemies, we'll change this based on type
-            custom_size: Some(Vec2::new(16.0, 16.0)),
-            ..default()
-        },
+        sprite,
         Transform::from_translation(Vec3::new(
             entity_data.position.0,
             entity_data.position.1,
-            1.0,
+            2.0, // Higher Z to be above tilemap
         )),
         GameEntity, // Add cleanup component
     );
+
+    // Spawn debug rectangle outline around entity
+    spawn_debug_rectangle(commands, entity_data.position.0, entity_data.position.1);
 
     // Check if entity should be animated
     let mut entity_commands = if let Some(ref props) = entity_data.entity_props {
@@ -646,6 +677,58 @@ fn spawn_entity_from_data(
             value: entity_data.pickup_value,
         });
     }
+}
+
+/// Spawn a debug rectangle outline around an entity position
+fn spawn_debug_rectangle(commands: &mut Commands, x: f32, y: f32) {
+    // Create thin border lines around the entity (18x18 to show around 16x16 sprite)
+    let border_size = 18.0;
+    let line_width = 1.0;
+    let border_color = Color::srgba(1.0, 1.0, 0.0, 0.8); // Semi-transparent yellow
+
+    // Top line
+    commands.spawn((
+        Sprite {
+            color: border_color,
+            custom_size: Some(Vec2::new(border_size, line_width)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(x, y + border_size / 2.0, 2.1)),
+        GameEntity, // For cleanup
+    ));
+
+    // Bottom line
+    commands.spawn((
+        Sprite {
+            color: border_color,
+            custom_size: Some(Vec2::new(border_size, line_width)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(x, y - border_size / 2.0, 2.1)),
+        GameEntity, // For cleanup
+    ));
+
+    // Left line
+    commands.spawn((
+        Sprite {
+            color: border_color,
+            custom_size: Some(Vec2::new(line_width, border_size)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(x - border_size / 2.0, y, 2.1)),
+        GameEntity, // For cleanup
+    ));
+
+    // Right line
+    commands.spawn((
+        Sprite {
+            color: border_color,
+            custom_size: Some(Vec2::new(line_width, border_size)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(x + border_size / 2.0, y, 2.1)),
+        GameEntity, // For cleanup
+    ));
 }
 
 /// Map entity types to animation names in the animations atlas
