@@ -727,7 +727,6 @@ pub fn cleanup_menu_ui(
     mut commands: Commands,
     menu_query: Query<Entity, With<MenuUI>>,
     border_query: Query<Entity, With<MenuBorderTile>>,
-    borders_spawned_query: Query<Entity, With<BordersSpawned>>,
 ) {
     // Clean up main menu UI
     for entity in menu_query.iter() {
@@ -739,10 +738,9 @@ pub fn cleanup_menu_ui(
         commands.entity(entity).despawn();
     }
 
-    // Remove BordersSpawned components to allow re-spawning on next menu visit
-    for entity in borders_spawned_query.iter() {
-        commands.entity(entity).remove::<BordersSpawned>();
-    }
+    // Note: BordersSpawned components will be cleaned up automatically when
+    // entities are despawned, so no need to explicitly remove them.
+    // This avoids warnings about non-existent entities.
 }
 
 /// Update menu UI when selection changes (for keyboard navigation visual feedback)

@@ -331,17 +331,19 @@ fn convert_mie_to_level_data(mie_level: MIELevel) -> LevelData {
     // Convert entities with Y-coordinate flipping
     let entities = convert_mie_entities(&mie_level.entities, mie_level.height as f32);
 
-    // Convert spawn point from 8x8 grid coordinates to pixels with Y-coordinate flipping
-    // Coordinates in MIE are in 8x8 grid units, convert to pixels
+    // Convert spawn point with proper coordinate system transformation
+    // Original DOS coordinates: (0,0) at top-left, MIE coordinates are in 8x8 grid units
+    // Convert to pixels, then center for Bevy coordinate system (0,0 at center)
     let spawn_x_pixels = mie_level.start_position.0 as f32 * 8.0;
     let spawn_y_pixels = mie_level.start_position.1 as f32 * 8.0;
-    let spawn_y_flipped = (mie_level.height as f32 * 16.0) - spawn_y_pixels;
+    let spawn_x_centered = spawn_x_pixels - 320.0; // Center X (screen width / 2)
+    let spawn_y_centered = 240.0 - spawn_y_pixels; // Flip Y and center (screen height / 2)
 
     LevelData {
         name: mie_level.name.clone(),
         width: mie_level.width as u32,
         height: mie_level.height as u32,
-        spawn_point: (spawn_x_pixels, spawn_y_flipped),
+        spawn_point: (spawn_x_centered, spawn_y_centered),
         background_image: None,
         tilemap,
         entities,
@@ -584,11 +586,13 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
                 (false, 0)
             };
 
-            // Convert entity coordinates from 8x8 grid coordinates to pixels with Y-coordinate flipping
-            // Coordinates in MIE are in 8x8 grid units, convert to pixels
+            // Convert entity coordinates from DOS coordinate system to Bevy coordinates
+            // DOS: (0,0) at top-left, MIE coordinates are in 8x8 grid units
+            // Convert to pixels, then center for Bevy coordinate system (0,0 at center)
             let entity_x_pixels = entity.x as f32 * 8.0;
             let entity_y_pixels = entity.y as f32 * 8.0;
-            let flipped_y = (level_height * 16.0) - entity_y_pixels;
+            let entity_x_centered = entity_x_pixels - 320.0; // Center X (screen width / 2)
+            let entity_y_centered = 240.0 - entity_y_pixels; // Flip Y and center (screen height / 2)
 
             // Convert behavior to new system
             let behavior_type = map_behavior_type_from_id(entity.behavior_id as u8);
@@ -605,7 +609,7 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
             LevelEntity {
                 id: format!("{}_{}", entity.entity_type, i),
                 entity_type: entity.entity_type.clone(),
-                position: (entity_x_pixels, flipped_y),
+                position: (entity_x_centered, entity_y_centered),
                 sprite_id,
                 behavior_type,
                 behavior_params,
