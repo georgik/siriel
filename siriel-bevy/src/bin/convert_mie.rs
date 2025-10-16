@@ -544,33 +544,9 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<Le
             // Decode the 4-letter entity code into properties
             let props_opt = decode_entity_code(&entity.entity_type);
 
-            // Determine sprite_id using known mappings for specific entity types
-            let sprite_id: u16 = match entity.entity_type.as_str() {
-                // Keep known object sprite mappings (objects atlas indices)
-                "YNN~" => 6,  // Exit portal/coin
-                "YFRU" => 1,  // Pear fruit
-                "YFRC" => 2,  // Cherry fruit
-                "YFRA" => 14, // Apple fruit
-                "YFRO" => 15, // Orange fruit
-                "YHEA" => 7,  // Heart/life
-                "YGOL" => 17, // Gold
-                "YICE" => 13, // Ice cream
-                "YLOL" => 12, // Lollipop
-                // Default sprite mapping based on entity code first letter if available
-                _ => {
-                    if let Some(ref props) = props_opt {
-                        match props.interaction_kind {
-                            InteractionKind::PickupWalk => 1,   // Default collectible sprite
-                            InteractionKind::SpecialTouch => 6, // Default special touch sprite
-                            InteractionKind::SpecialEnter => 0, // Default interactive sprite
-                            InteractionKind::Use => 18,         // Default use object sprite
-                            InteractionKind::Talk => 0,         // Default NPC sprite
-                        }
-                    } else {
-                        0 // Fallback sprite
-                    }
-                }
-            };
+            // Use sprite_id directly from MIE data (first parameter)
+            // The original Pascal engine stores sprite IDs in the first parameter of entity definitions
+            let sprite_id: u16 = entity.sprite_id as u16;
 
             // Use decoded interaction properties for pickup flags (no more hardcoded categories)
             let (pickupable, pickup_value) = if let Some(ref props) = props_opt {

@@ -28,7 +28,7 @@ MIE files are text-based configuration files with a specific structure used by t
 
 #### 2. Entity Definitions
 
-Entities are defined with the format: `[<TYPE>]=<x>,<y>,<behavior_id>,<param1>,<param2>[,<param3>]`
+Entities are defined with the format: `[<TYPE>]=<sprite_id>,<x>,<y>,<behavior_id>,<param1>,<param2>[,<param3>]`
 
 **Entity Code Structure**:
 
@@ -63,17 +63,18 @@ Entities are defined with 4-character codes using the format:
 
 #### Common Entity Types:
 
-- `[ZNNA]` - Normal enemy
-  - Format: `[ZNNA]=<behavior_id>,<x>,<y>,<param1>,<param2>,<param3>`
-  - Example: `[ZNNA]=1,8,17,1,3,10`
+- `[ZNNA]` - Static collectible entity (cherry/pear)
+  - Format: `[ZNNA]=<sprite_id>,<x>,<y>,<behavior_id>,<param1>,<param2>`
+  - Example: `[ZNNA]=1,8,17,1,3,10` (sprite_id=1 for pear, position 8,17, static behavior)
+  - Example: `[ZNNA]=2,38,29,1,3,5` (sprite_id=2 for cherry, position 38,29, static behavior)
   
-- `[ZANA]` - Special enemy
-  - Format: `[ZANA]=<behavior_id>,<x>,<y>,<param1>,<param2>,<param3>`
-  - Example: `[ZANA]=6,17,29,1,3,50`
+- `[ZANA]` - Animated collectible entity (coin)
+  - Format: `[ZANA]=<sprite_id>,<x>,<y>,<behavior_id>,<param1>,<param2>`
+  - Example: `[ZANA]=6,17,29,1,3,50` (sprite_id=6 for coin, position 17,29, static behavior)
   
-- `[YNN~]` - Pickup item
-  - Format: `[YNN~]=<item_id>,<x>,<y>,<value>,<type>`
-  - Example: `[YNN~]=10,76,34,9,1`
+- `[YNN~]` - Exit portal (appears when all collectibles taken)
+  - Format: `[YNN~]=<sprite_id>,<x>,<y>,<behavior_id>,<param1>`
+  - Example: `[YNN~]=10,76,34,9,1` (sprite_id=10 for exit, position 76,34)
   
 - `[XNNA]` - Interactive object (requires Enter key)
   - Format: `[XNNA]=<behavior_id>,<x>,<y>,<func_id>,<param1>,<param2>`
@@ -84,9 +85,28 @@ Entities are defined with 4-character codes using the format:
   - Example: `[WNNA]=1,0,15,25,1,0,0,0,0,10`
 
 **Parameter Meanings:**
-- `x,y` - Position in pixels (original coordinate system)
+- `sprite_id` - Sprite atlas index for rendering (determines visual appearance)
+- `x,y` - Position in 8x8 grid units (original coordinate system)
 - `behavior_id` - Defines entity AI behavior (1-18)
 - `param1,param2,param3` - Behavior-specific parameters
+
+**Common Sprite ID Mappings:**
+| Sprite ID | Object Type | Atlas Name | Description |
+|-----------|-------------|------------|-------------|
+| 0 | Teleport | objects-basic | Teleport pad |
+| 1 | Pear | objects-basic | Pear fruit collectible |
+| 2 | Cherry | objects-basic | Cherry fruit collectible |
+| 6 | Coin | objects-basic | Coin collectible (animated) |
+| 7 | Heart | objects-basic | Heart/life bonus |
+| 10 | Exit | objects-basic | Exit door |
+| 12 | Lollipop | objects-basic | Lollipop collectible |
+| 13 | Ice Cream | objects-basic | Ice cream collectible |
+| 14 | Apple | objects-basic | Apple fruit |
+| 15 | Orange | objects-basic | Orange fruit |
+| 17 | Gold | objects-basic | Gold bar |
+| 18 | Switch | objects-basic | Switch/button |
+
+*Note: Entity types (ZNNA, ZANA, etc.) can use different sprite IDs to display various collectibles.*
 
 #### 3. Tilemap Data
 
@@ -167,9 +187,9 @@ The converted levels use RON (Rusty Object Notation) with this structure:
             id: "ZNNA_0",
             entity_type: "ZNNA",
             position: (8.0, 415.0),
-            sprite_id: 1,
-            behavior_type: 1,
-            behavior_params: [1, 3, 10, 0, 0, 0, 0],
+            sprite_id: 1,  // From first parameter in MIE (pear sprite)
+            behavior_type: 1,  // From fourth parameter in MIE 
+            behavior_params: [3, 10, 0, 0, 0, 0, 0],  // param1=3, param2=10
             room: 1,
             pickupable: false,
             pickup_value: 0,
@@ -208,6 +228,35 @@ The original game uses 18 different behavior types (1-18). Here's the mapping:
 | 16 | Hunter | Hunter | Seeks player |
 | 17 | Sound Trigger | SoundTrigger | Plays sound on trigger |
 | 18 | Advanced Projectile | AdvancedProjectile | Complex projectile AI |
+
+## Parameter Order Discovery
+
+Through analysis of the original Pascal source code (LOAD235.PAS), the correct parameter order was determined:
+
+```pascal
+// From Pascal LOAD235.PAS lines 401-405:
+mov_num(ciel,vec^[l].obr,count);      // obr = sprite ID (1st parameter)
+mov_num(ciel,vec^[l].x,count);        // x coordinate (2nd parameter) 
+mov_num(ciel,vec^[l].y,count);        // y coordinate (3rd parameter)
+mov_num(ciel,vec^[l].funk,count);     // funk = behavior ID (4th parameter)
+```
+
+**Original MIE Format**: `[ENTITY_TYPE]=sprite_id,x,y,behavior_id,param1,param2[,param3]`
+
+**Example Analysis**:
+```
+[ZNNA]=1,8,17,1,3,10
+│      │ │ │  │ │ │
+│      │ │ │  │ │ └─ param2 (behavior parameter 2)
+│      │ │ │  │ └─── param1 (behavior parameter 1)  
+│      │ │ │  └───── behavior_id (1 = static)
+│      │ │ └──────── y coordinate (17)
+│      │ └────────── x coordinate (8)
+│      └──────────── sprite_id (1 = pear sprite)
+└─────────────────── entity_type (ZNNA = static collectible)
+```
+
+This discovery fixed the sprite assignment issue where cherries were displaying as pears.
 
 ## Conversion Process
 

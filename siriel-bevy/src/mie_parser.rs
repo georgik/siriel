@@ -18,13 +18,14 @@ pub struct MIELevel {
 #[derive(Debug, Clone)]
 pub struct MIEEntity {
     pub entity_type: String,
-    pub x: i32,
-    pub y: i32,
-    pub behavior_id: i32,
-    pub param1: i32,
-    pub param2: i32,
-    pub param3: Option<i32>,
-    pub param4: Option<i32>,
+    pub sprite_id: i32,      // First parameter - sprite ID for rendering
+    pub x: i32,              // Second parameter - X coordinate
+    pub y: i32,              // Third parameter - Y coordinate
+    pub behavior_id: i32,    // Fourth parameter - Behavior type ID
+    pub param1: i32,         // Fifth parameter - First behavior parameter
+    pub param2: i32,         // Sixth parameter - Second behavior parameter
+    pub param3: Option<i32>, // Seventh parameter - Third behavior parameter (optional)
+    pub param4: Option<i32>, // Eighth parameter - Fourth behavior parameter (optional)
 }
 
 /// MIE file parser
@@ -191,30 +192,36 @@ impl MIEParser {
         None
     }
 
-    /// Parse entity definition like "1,8,17,1,3,10"
+    /// Parse entity definition like "2,8,17,1,1,3" (sprite_id,x,y,behavior_id,param1,param2)
     fn parse_entity(entity_type: &str, value: &str) -> Option<MIEEntity> {
         let parts: Vec<&str> = value.split(',').collect();
         if parts.len() >= 5 {
-            if let (Ok(behavior_id), Ok(x), Ok(y), Ok(param1), Ok(param2)) = (
-                parts[0].parse::<i32>(),
-                parts[1].parse::<i32>(),
-                parts[2].parse::<i32>(),
-                parts[3].parse::<i32>(),
-                parts[4].parse::<i32>(),
+            if let (Ok(sprite_id), Ok(x), Ok(y), Ok(behavior_id), Ok(param1)) = (
+                parts[0].parse::<i32>(), // sprite_id - first parameter
+                parts[1].parse::<i32>(), // x coordinate
+                parts[2].parse::<i32>(), // y coordinate
+                parts[3].parse::<i32>(), // behavior_id - fourth parameter
+                parts[4].parse::<i32>(), // param1
             ) {
-                let param3 = if parts.len() > 5 {
-                    parts[5].parse::<i32>().ok()
+                let param2 = if parts.len() > 5 {
+                    parts[5].parse::<i32>().ok().unwrap_or(0)
+                } else {
+                    0
+                };
+                let param3 = if parts.len() > 6 {
+                    parts[6].parse::<i32>().ok()
                 } else {
                     None
                 };
-                let param4 = if parts.len() > 6 {
-                    parts[6].parse::<i32>().ok()
+                let param4 = if parts.len() > 7 {
+                    parts[7].parse::<i32>().ok()
                 } else {
                     None
                 };
 
                 return Some(MIEEntity {
                     entity_type: entity_type.to_string(),
+                    sprite_id,
                     x,
                     y,
                     behavior_id,
