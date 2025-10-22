@@ -251,6 +251,7 @@ pub struct GameTilemap;
 /// System to clean up previous level before loading new one
 pub fn cleanup_previous_level(
     mut commands: Commands,
+    mut tilemap_manager: ResMut<TilemapManager>,
     game_entities: Query<Entity, With<GameEntity>>,
     tilemap_entities: Query<Entity, With<GameTilemap>>,
     all_tiles: Query<Entity, With<TilePos>>,
@@ -269,6 +270,9 @@ pub fn cleanup_previous_level(
     for entity in all_tiles.iter() {
         commands.entity(entity).despawn();
     }
+
+    // Clear the current level data so it doesn't get reused
+    tilemap_manager.current_level = None;
 }
 
 /// System to load a level from RON format with CLI support
