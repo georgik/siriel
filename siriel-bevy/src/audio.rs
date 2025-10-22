@@ -126,7 +126,7 @@ pub fn handle_sound_events(
                     commands.spawn((
                         AudioPlayer::new(handle.clone()),
                         PlaybackSettings {
-                            mode: PlaybackMode::Loop,
+                            mode: PlaybackMode::Despawn, // Play once, matching original engine behavior
                             volume: Volume::Linear(volume),
                             ..Default::default()
                         },
