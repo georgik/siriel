@@ -530,6 +530,11 @@ pub fn spawn_tilemap_with_atlas(
         let grid_size = tile_size.into();
         let map_type = TilemapType::default();
 
+        // Calculate tilemap position with 8px CRT border offset
+        // Original game had 8px border on all sides
+        let tilemap_x = -(map_size.x as f32) * tile_size.x / 2.0 + 8.0; // +8px right for left border
+        let tilemap_y = -(map_size.y as f32) * tile_size.y / 2.0 - 8.0; // -8px down for top border
+
         commands.entity(tilemap_entity).insert((
             TilemapBundle {
                 grid_size,
@@ -538,11 +543,7 @@ pub fn spawn_tilemap_with_atlas(
                 storage: tile_storage,
                 texture: TilemapTexture::Single(texture_handle.clone()),
                 tile_size,
-                transform: Transform::from_xyz(
-                    -(map_size.x as f32) * tile_size.x / 2.0,
-                    -(map_size.y as f32) * tile_size.y / 2.0,
-                    0.0,
-                ),
+                transform: Transform::from_xyz(tilemap_x, tilemap_y, 0.0),
                 ..default()
             },
             GameTilemap, // Add cleanup component
