@@ -65,7 +65,7 @@
             80.0,
             184.0,
         ),
-        sprite_id: 1,
+        sprite_id: 4,
         behavior_type: Static,
         behavior_params: Static,
         room: 1,
@@ -1049,7 +1049,7 @@
             128.0,
             184.0,
         ),
-        sprite_id: 6,
+        sprite_id: 24,
         behavior_type: Static,
         behavior_params: Static,
         room: 1,
@@ -1317,7 +1317,7 @@
             -192.0,
             176.0,
         ),
-        sprite_id: 3,
+        sprite_id: 12,
         behavior_type: EdgeWalkingPlatform,
         behavior_params: EdgeWalkingPlatform(
             speed: 3,
@@ -1345,7 +1345,7 @@
             160.0,
             -32.0,
         ),
-        sprite_id: 3,
+        sprite_id: 12,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 58,
@@ -1373,7 +1373,7 @@
             32.0,
             184.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: VerticalOscillator,
         behavior_params: VerticalOscillator(
             top_bound: 0,
@@ -1401,7 +1401,7 @@
             -56.0,
             184.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: VerticalOscillator,
         behavior_params: VerticalOscillator(
             top_bound: 0,
@@ -1459,7 +1459,7 @@
             -208.0,
             48.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 12,

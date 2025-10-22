@@ -713,7 +713,7 @@
             40.0,
             96.0,
         ),
-        sprite_id: 6,
+        sprite_id: 24,
         behavior_type: Static,
         behavior_params: Static,
         room: 71,
@@ -737,7 +737,7 @@
             120.0,
             96.0,
         ),
-        sprite_id: 6,
+        sprite_id: 24,
         behavior_type: Static,
         behavior_params: Static,
         room: 70,
@@ -1193,7 +1193,7 @@
             -256.0,
             -192.0,
         ),
-        sprite_id: 3,
+        sprite_id: 12,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 6,
@@ -1371,7 +1371,7 @@
             240.0,
             -104.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 6,
@@ -1399,7 +1399,7 @@
             -256.0,
             -8.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 6,
@@ -1427,7 +1427,7 @@
             240.0,
             96.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 8,

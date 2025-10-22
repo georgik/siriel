@@ -113,7 +113,7 @@
             -168.0,
             -48.0,
         ),
-        sprite_id: 6,
+        sprite_id: 24,
         behavior_type: Static,
         behavior_params: Static,
         room: 1,

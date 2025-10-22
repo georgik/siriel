@@ -185,7 +185,7 @@
             -224.0,
             80.0,
         ),
-        sprite_id: 6,
+        sprite_id: 24,
         behavior_type: Static,
         behavior_params: Static,
         room: 1,
@@ -911,7 +911,7 @@
             136.0,
             -192.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 55,
@@ -995,7 +995,7 @@
             -256.0,
             -96.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: EdgeWalkingPlatform,
         behavior_params: EdgeWalkingPlatform(
             speed: 3,
@@ -1023,7 +1023,7 @@
             -56.0,
             32.0,
         ),
-        sprite_id: 3,
+        sprite_id: 12,
         behavior_type: EdgeWalkingPlatform,
         behavior_params: EdgeWalkingPlatform(
             speed: 3,
@@ -1051,7 +1051,7 @@
             -240.0,
             80.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: VerticalOscillator,
         behavior_params: VerticalOscillator(
             top_bound: 9,
@@ -1079,7 +1079,7 @@
             256.0,
             16.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 63,
@@ -1107,7 +1107,7 @@
             0.0,
             16.0,
         ),
-        sprite_id: 8,
+        sprite_id: 32,
         behavior_type: VerticalOscillator,
         behavior_params: VerticalOscillator(
             top_bound: 21,
@@ -1135,7 +1135,7 @@
             120.0,
             -96.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: VerticalOscillator,
         behavior_params: VerticalOscillator(
             top_bound: 30,
@@ -1163,7 +1163,7 @@
             208.0,
             -112.0,
         ),
-        sprite_id: 9,
+        sprite_id: 36,
         behavior_type: HorizontalOscillator,
         behavior_params: HorizontalOscillator(
             left_bound: 56,
@@ -1249,7 +1249,7 @@
             304.0,
             -192.0,
         ),
-        sprite_id: 7,
+        sprite_id: 28,
         behavior_type: RandomMovement,
         behavior_params: RandomMovement(
             boundary_mode: 1,
