@@ -145,11 +145,13 @@ fn main() {
         // Game systems
         .add_systems(
             OnEnter(AppState::InGame),
-            (
-                setup_game,
-                level::cleanup_previous_level,
-                start_background_music,
-            ),
+            (level::cleanup_previous_level, start_background_music),
+        )
+        .add_systems(
+            Update,
+            setup_game
+                .run_if(assets_loaded.and(not(player_spawned)))
+                .run_if(in_state(AppState::InGame)),
         )
         .add_systems(
             Update,
@@ -195,14 +197,43 @@ fn start_background_music(mut sound_events: MessageWriter<SoundEvent>) {
 }
 
 /// Condition to check if assets are loaded
-fn assets_loaded(sprite_atlas: Res<SpriteAtlas>, atlas_manager: Res<AtlasManager>) -> bool {
-    sprite_atlas.loaded
+fn assets_loaded(
+    sprite_atlas: Res<SpriteAtlas>,
+    atlas_manager: Res<AtlasManager>,
+    asset_server: Res<AssetServer>,
+) -> bool {
+    // First check if handles exist
+    let handles_exist = sprite_atlas.loaded
         && sprite_atlas.tiles_texture.is_some()
         && atlas_manager.texture_atlas.is_some()
         && atlas_manager.avatar_texture.is_some()
         && atlas_manager.avatar_layout.is_some()
         && atlas_manager.objects_texture.is_some()
         && atlas_manager.objects_layout.is_some()
+        && atlas_manager.animations_texture.is_some()
+        && atlas_manager.animations_layout.is_some();
+
+    if !handles_exist {
+        return false;
+    }
+
+    // Then verify the actual assets are loaded by the asset server
+    let mut all_loaded = true;
+
+    if let Some(ref handle) = sprite_atlas.tiles_texture {
+        all_loaded &= asset_server.is_loaded_with_dependencies(handle);
+    }
+    if let Some(ref handle) = atlas_manager.avatar_texture {
+        all_loaded &= asset_server.is_loaded_with_dependencies(handle);
+    }
+    if let Some(ref handle) = atlas_manager.objects_texture {
+        all_loaded &= asset_server.is_loaded_with_dependencies(handle);
+    }
+    if let Some(ref handle) = atlas_manager.animations_texture {
+        all_loaded &= asset_server.is_loaded_with_dependencies(handle);
+    }
+
+    all_loaded
 }
 
 /// Condition to check if level is loaded
@@ -212,5 +243,10 @@ fn level_loaded(tilemap_manager: Res<TilemapManager>) -> bool {
 
 /// Condition to check if entities are spawned
 fn entities_spawned(query: Query<&crate::level::GameEntity, Without<Player>>) -> bool {
+    !query.is_empty()
+}
+
+/// Condition to check if player is spawned
+fn player_spawned(query: Query<&Player>) -> bool {
     !query.is_empty()
 }
