@@ -217,7 +217,9 @@ pub fn behavior_system(
                     speed,
                 },
             ) => {
-                let speed_f = *speed as f32;
+                // Speed parameter from MIE file represents movement per animation frame
+                // Animations run at 10 fps (0.1s per frame), so speed * 10 = pixels/sec
+                let speed_pixels_per_sec = *speed as f32 * 10.0;
 
                 // Convert bounds from grid units (as stored in MIE) to Bevy pixel coordinates
                 // Same transformation as entity positions:
@@ -230,7 +232,7 @@ pub fn behavior_system(
                 let right_centered = right_pixels - 320.0;
 
                 // Move in current direction
-                velocity.x = speed_f * behavior.state.direction as f32;
+                velocity.x = speed_pixels_per_sec * behavior.state.direction as f32;
                 position.x += velocity.x * dt;
 
                 // Check boundaries and reverse direction
@@ -251,7 +253,9 @@ pub fn behavior_system(
                     speed,
                 },
             ) => {
-                let speed_f = *speed as f32;
+                // Speed parameter from MIE file represents movement per animation frame
+                // Animations run at 10 fps (0.1s per frame), so speed * 10 = pixels/sec
+                let speed_pixels_per_sec = *speed as f32 * 10.0;
 
                 // Convert bounds from grid units (as stored in MIE) to Bevy pixel coordinates
                 // Same transformation as entity positions:
@@ -263,7 +267,7 @@ pub fn behavior_system(
                 let top_centered = 240.0 - top_pixels; // Note: top becomes lower Y after flip
                 let bottom_centered = 240.0 - bottom_pixels; // bottom becomes higher Y after flip
 
-                velocity.y = speed_f * behavior.state.direction as f32;
+                velocity.y = speed_pixels_per_sec * behavior.state.direction as f32;
                 position.y += velocity.y * dt;
 
                 // After Y-flip, top_centered < bottom_centered, so swap logic
