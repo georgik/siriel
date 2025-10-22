@@ -172,7 +172,8 @@ fn main() {
                 avatar_animation_update_system,
                 // Phase 3: Texture atlas systems (must run after sprite info updates)
                 avatar_texture_atlas_system,
-                entity_texture_atlas_system, // 🔥 ADD MISSING SYSTEM
+                entity_texture_atlas_system,
+                animated_entity_texture_atlas_system,
                 // Phase 4: Final systems
                 collision_system,
                 render_debug_system,

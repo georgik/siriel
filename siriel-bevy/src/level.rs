@@ -582,8 +582,33 @@ fn spawn_entity_from_data(
 
     // Debug info reduced - only log if verbose mode needed
 
-    // Create sprite with objects texture if available, with debug border
-    let sprite = if let Some(ref objects_texture) = atlas_manager.objects_texture {
+    // Determine if entity is animated
+    let is_animated = entity_data
+        .entity_props
+        .as_ref()
+        .map(|props| props.animated)
+        .unwrap_or(false);
+
+    // Create sprite with appropriate texture based on animation
+    let sprite = if is_animated {
+        // Use animations texture for animated entities
+        if let Some(ref animations_texture) = atlas_manager.animations_texture {
+            Sprite {
+                image: animations_texture.clone(),
+                color: Color::WHITE,
+                custom_size: Some(Vec2::new(16.0, 16.0)),
+                ..default()
+            }
+        } else {
+            // Fallback to debug color
+            Sprite {
+                color: Color::srgb(0.0, 1.0, 0.0), // Green for animated
+                custom_size: Some(Vec2::new(16.0, 16.0)),
+                ..default()
+            }
+        }
+    } else if let Some(ref objects_texture) = atlas_manager.objects_texture {
+        // Use objects texture for static entities
         Sprite {
             image: objects_texture.clone(),
             color: Color::WHITE, // White for proper texture display

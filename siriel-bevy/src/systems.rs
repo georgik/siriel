@@ -356,16 +356,17 @@ pub fn animation_system(
     let dt = time.delta_secs();
 
     for (mut animated, mut sprite_info) in animated_query.iter_mut() {
-        animated.timer += dt;
+        // Get the animation descriptor to get the duration and frame indices
+        if let Some(animation) = atlas_manager.get_animation(&animated.animation_name) {
+            animated.timer += dt;
 
-        // Check if we should advance to next frame
-        if animated.timer >= animated.duration_per_frame {
-            animated.timer = 0.0;
-            animated.current_frame_index =
-                (animated.current_frame_index + 1) % animated.total_frames;
+            // Use the duration from the atlas descriptor, not the hardcoded value
+            if animated.timer >= animation.duration {
+                animated.timer = 0.0;
+                animated.current_frame_index =
+                    (animated.current_frame_index + 1) % animation.frames.len();
 
-            // Get the animation descriptor to get the actual frame indices
-            if let Some(animation) = atlas_manager.get_animation(&animated.animation_name) {
+                // Update sprite frame
                 if animated.current_frame_index < animation.frames.len() {
                     let frame_id = animation.frames[animated.current_frame_index];
                     sprite_info.frame = frame_id as usize;
@@ -492,7 +493,10 @@ pub fn avatar_texture_atlas_system(
 /// Entity texture atlas rendering system - updates game entity sprites to use proper textures  
 pub fn entity_texture_atlas_system(
     atlas_manager: Res<AtlasManager>,
-    mut entity_query: Query<(&SpriteInfo, &mut Sprite), (With<GameEntity>, Without<Player>)>,
+    mut entity_query: Query<
+        (&SpriteInfo, &mut Sprite),
+        (With<GameEntity>, Without<Player>, Without<AnimatedEntity>),
+    >,
 ) {
     if let (Some(ref _objects_atlas), Some(ref objects_layout)) =
         (&atlas_manager.objects_atlas, &atlas_manager.objects_layout)
@@ -518,6 +522,32 @@ pub fn entity_texture_atlas_system(
                 atlas_manager.objects_layout.is_some(),
                 entity_count
             );
+        }
+    }
+}
+
+/// Animated entity texture atlas rendering system - updates animated entities with animations texture
+pub fn animated_entity_texture_atlas_system(
+    atlas_manager: Res<AtlasManager>,
+    mut entity_query: Query<
+        (&SpriteInfo, &mut Sprite),
+        (With<AnimatedEntity>, With<GameEntity>, Without<Player>),
+    >,
+) {
+    if let (Some(ref _animations_texture), Some(ref animations_layout)) = (
+        &atlas_manager.animations_texture,
+        &atlas_manager.animations_layout,
+    ) {
+        for (sprite_info, mut sprite) in entity_query.iter_mut() {
+            // Update entity to use animations texture atlas
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: animations_layout.clone(),
+                index: sprite_info.frame.min(63), // animations atlas has 64 sprites (0-63)
+            });
+
+            // Ensure proper rendering
+            sprite.color = Color::WHITE;
+            sprite.custom_size = Some(Vec2::new(16.0, 16.0));
         }
     }
 }
