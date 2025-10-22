@@ -206,7 +206,11 @@ pub struct AnimatedEntity {
     pub animation_name: String,
     pub current_frame_index: usize,
     pub timer: f32,
+    /// TODO: Use duration_per_frame for animation timing
+    #[allow(dead_code)]
     pub duration_per_frame: f32,
+    /// TODO: Use total_frames for animation looping
+    #[allow(dead_code)]
     pub total_frames: usize,
     /// TODO: Use base_sprite_id for animation frame calculation
     #[allow(dead_code)]
