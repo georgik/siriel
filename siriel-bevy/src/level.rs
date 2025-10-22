@@ -230,8 +230,13 @@ pub enum ScriptCommand {
 #[derive(Resource, Default)]
 pub struct TilemapManager {
     pub current_level: Option<LevelData>,
+    /// TODO: Track tilemap entity for cleanup/updates
+    #[allow(dead_code)]
     pub tilemap_entity: Option<Entity>,
+    /// TODO: Use for coordinate-to-tile calculations
+    #[allow(dead_code)]
     pub tile_size: TilemapTileSize,
+    #[allow(dead_code)]
     pub map_size: TilemapSize,
 }
 
@@ -365,6 +370,7 @@ fn load_default_level() -> LevelData {
 }
 
 /// Direct spawn function for level manager
+#[allow(dead_code)]
 pub fn spawn_tilemap_direct(
     commands: &mut Commands,
     level: &LevelData,
@@ -374,6 +380,7 @@ pub fn spawn_tilemap_direct(
 }
 
 /// Direct spawn function for level manager with atlas support
+#[allow(dead_code)]
 pub fn spawn_tilemap_direct_with_atlas(
     commands: &mut Commands,
     level: &LevelData,
@@ -461,6 +468,7 @@ fn create_test_tilemap() -> Vec<Vec<u16>> {
 }
 
 /// Spawn tilemap entities using bevy_ecs_tilemap
+#[allow(dead_code)]
 pub fn spawn_tilemap(commands: &mut Commands, level: &LevelData, sprite_atlas: &SpriteAtlas) {
     spawn_tilemap_with_atlas(commands, level, sprite_atlas, None);
 }
@@ -745,6 +753,8 @@ fn get_animation_name_for_entity(entity_type: &str, _sprite_id: u16) -> String {
         _ => "coin".to_string(),
     }
 }
+/// Save level to RON file
+#[allow(dead_code)]
 pub fn save_level_to_file(
     level: &LevelData,
     filename: &str,

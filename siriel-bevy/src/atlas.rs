@@ -73,6 +73,8 @@ impl AtlasManager {
     }
 
     /// Get tile index by name from special tiles
+    /// TODO: Use for special tile lookup in level editor
+    #[allow(dead_code)]
     pub fn get_special_tile(&self, name: &str) -> Option<u32> {
         if let Some(ref atlas) = self.texture_atlas {
             if let Some(ref special) = atlas.special_tiles {
@@ -103,6 +105,7 @@ impl AtlasManager {
     }
 
     /// Get animation name by semantic mapping (e.g. "exit" -> "teleport")
+    #[allow(dead_code)]
     pub fn get_mapped_animation(&self, semantic_name: &str) -> Option<&AnimationDescriptor> {
         if let Some(ref atlas) = self.animations_atlas {
             if let Some(ref mapping) = atlas.animation_mapping {
@@ -117,6 +120,7 @@ impl AtlasManager {
     }
 
     /// Convert 1D tile index to 2D grid coordinates
+    #[allow(dead_code)]
     pub fn tile_index_to_coords(&self, tile_index: u32) -> (u32, u32) {
         if let Some(ref atlas) = self.texture_atlas {
             let cols = atlas.grid_size.0;
@@ -127,7 +131,8 @@ impl AtlasManager {
         (0, 0)
     }
 
-    /// Convert 2D grid coordinates to 1D tile index  
+    /// Convert 2D grid coordinates to 1D tile index
+    #[allow(dead_code)]
     pub fn coords_to_tile_index(&self, x: u32, y: u32) -> u32 {
         if let Some(ref atlas) = self.texture_atlas {
             let cols = atlas.grid_size.0;
@@ -137,6 +142,7 @@ impl AtlasManager {
     }
 
     /// Get menu decoration tile index by name
+    #[allow(dead_code)]
     pub fn get_menu_decoration_tile(&self, name: &str) -> Option<u32> {
         if let Some(ref atlas) = self.menu_decoration_atlas {
             if let Some(ref special) = atlas.special_tiles {

@@ -1,4 +1,3 @@
-use encoding_rs::UTF_8;
 use siriel_bevy::dat_extractor::DATExtractor;
 use std::env;
 use std::fs::File;
@@ -59,7 +58,7 @@ fn extract_levels_from_dat(dat_file: &str) -> Result<usize, Box<dyn std::error::
     let mut count = 0;
 
     // Extract each resource and save as raw data first to inspect
-    for (name, resource) in extractor.resources.clone() {
+    for (name, _resource) in extractor.resources.clone() {
         // Try to extract MIE files (level files likely have specific naming patterns)
         if looks_like_level_file(&name) {
             // Generate proper level name based on DAT file and resource name

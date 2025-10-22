@@ -14,7 +14,7 @@
 use ron::ser::{to_string_pretty, PrettyConfig};
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 // Import our level parsing modules
 use siriel_bevy::components::{BehaviorParams, BehaviorType};
@@ -536,7 +536,7 @@ fn map_behavior_params_from_array(behavior_type: BehaviorType, params: [u16; 4])
 }
 
 /// Convert MIE entities to modern LevelEntity format
-fn convert_mie_entities(mie_entities: &[MIEEntity], level_height: f32) -> Vec<LevelEntity> {
+fn convert_mie_entities(mie_entities: &[MIEEntity], _level_height: f32) -> Vec<LevelEntity> {
     mie_entities
         .iter()
         .enumerate()

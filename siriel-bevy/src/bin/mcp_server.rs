@@ -22,7 +22,9 @@ struct MCPServer {
 struct ToolDefinition {
     name: String,
     description: String,
-    input_schema: Value,
+    input_schema: serde_json::Value,
+    /// Part of MCP protocol schema
+    #[allow(dead_code)]
     examples: Vec<String>,
 }
 

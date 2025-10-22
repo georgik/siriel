@@ -13,7 +13,7 @@ pub fn setup_camera(mut commands: Commands) {
 /// Initial game setup
 pub fn setup_game(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     mut game_state: ResMut<GameState>,
     tilemap_manager: Res<crate::level::TilemapManager>,
     atlas_manager: Res<AtlasManager>,
@@ -88,7 +88,7 @@ pub fn setup_game(
     create_test_entities(&mut commands, &atlas_manager);
 }
 
-fn create_test_entities(commands: &mut Commands, _atlas_manager: &AtlasManager) {
+fn create_test_entities(_commands: &mut Commands, _atlas_manager: &AtlasManager) {
     // Test entities are now handled by spawn_level_entities system
     // This function is kept for future debugging if needed
     info!("📝 Test entities disabled - using RON level entities instead");
@@ -100,7 +100,7 @@ pub fn input_system(
     mut input_state: ResMut<InputState>,
     mut query: Query<&mut Velocity, With<Player>>,
     mut next_state: ResMut<NextState<crate::resources::AppState>>,
-    physics_config: Res<PhysicsConfig>,
+    _physics_config: Res<PhysicsConfig>,
 ) {
     // Update input state
     input_state.move_left =
@@ -270,22 +270,6 @@ pub fn behavior_system(
                 // Placeholder for other behaviors
                 velocity.x = 0.0;
                 velocity.y = 0.0;
-            }
-        }
-    }
-}
-
-/// Legacy animation system for AnimationState components (kept for compatibility)
-pub fn legacy_animation_system(time: Res<Time>, mut query: Query<&mut AnimationState>) {
-    let dt = time.delta_secs();
-
-    for mut anim_state in query.iter_mut() {
-        anim_state.timer += dt;
-
-        if anim_state.timer >= anim_state.frame_duration {
-            anim_state.timer = 0.0;
-            if anim_state.loop_animation {
-                anim_state.current_frame = (anim_state.current_frame + 1) % 4; // Assume 4 frames max
             }
         }
     }
@@ -489,7 +473,7 @@ pub fn avatar_texture_atlas_system(
     atlas_manager: Res<AtlasManager>,
     mut player_query: Query<(&SpriteInfo, &mut Sprite), (With<Player>, With<AvatarAnimation>)>,
 ) {
-    if let (Some(ref avatar_atlas), Some(ref layout_handle)) =
+    if let (Some(ref _avatar_atlas), Some(ref layout_handle)) =
         (&atlas_manager.avatar_atlas, &atlas_manager.avatar_layout)
     {
         for (sprite_info, mut sprite) in player_query.iter_mut() {
@@ -539,6 +523,8 @@ pub fn entity_texture_atlas_system(
 }
 
 /// Handle quitting the game when ESC is pressed
+/// TODO: Add dedicated quit key separate from menu return
+#[allow(dead_code)]
 pub fn quit_system(
     input_state: Res<InputState>,
     mut app_exit_events: MessageWriter<bevy::app::AppExit>,

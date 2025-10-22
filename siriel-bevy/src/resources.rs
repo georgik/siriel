@@ -7,6 +7,8 @@ pub enum AppState {
     IntroScreen,
     Menu,
     InGame,
+    /// TODO: Implement pause menu
+    #[allow(dead_code)]
     Paused,
 }
 
@@ -17,9 +19,15 @@ pub struct GameState {
     pub lives: i32,
     pub level: u32,
     pub timer: f32,
+    /// TODO: Implement pause functionality
+    #[allow(dead_code)]
     pub paused: bool,
+    #[allow(dead_code)]
     pub player_invulnerable: bool,
+    /// TODO: Implement freeze time power-up from original game
+    #[allow(dead_code)]
     pub freeze_time: f32,
+    #[allow(dead_code)]
     pub god_mode_time: f32,
 }
 
@@ -55,7 +63,10 @@ impl Default for LevelMenu {
 #[derive(Resource)]
 pub struct PhysicsConfig {
     pub gravity: f32,
+    /// Stored in config for reference, actual jump force on Physics component
+    #[allow(dead_code)]
     pub jump_force: f32,
+    #[allow(dead_code)]
     pub max_fall_speed: f32,
     pub ground_friction: f32,
     pub air_friction: f32,
@@ -88,73 +99,13 @@ pub struct InputState {
     pub quit: bool,
 }
 
-/// Level data resource
-#[derive(Resource, Default)]
-pub struct LevelData {
-    pub width: u32,
-    pub height: u32,
-    pub tiles: Vec<Vec<u8>>,
-    pub spawn_point: (f32, f32),
-    pub entities: Vec<EntityData>,
-}
-
-/// Entity data for loading from files
-#[derive(Clone, Debug)]
-pub struct EntityData {
-    pub name: String,
-    pub x: f32,
-    pub y: f32,
-    pub behavior_type: u8,
-    pub params: [u16; 7],
-    pub sprite_id: u16,
-    pub room: u8,
-    pub take_type: u16,
-}
-
-/// Animation frame data
-#[derive(Clone, Debug)]
-pub struct AnimationFrame {
-    pub sprite_id: usize,
-    pub duration: f32,
-}
-
-/// Texture atlas resource for managing sprites
+/// Texture atlas resource for managing sprites used by runtime systems
 #[derive(Resource, Default)]
 pub struct SpriteAtlas {
-    pub textures: Vec<Handle<Image>>,
     pub sprite_size: f32,
     pub player_texture: Option<Handle<Image>>,
     pub objects_texture: Option<Handle<Image>>,
     pub tiles_texture: Option<Handle<Image>>,
     pub animations_texture: Option<Handle<Image>>,
     pub loaded: bool,
-}
-
-/// Audio resources
-#[derive(Resource, Default)]
-pub struct AudioResources {
-    pub sound_effects: Vec<Handle<AudioSource>>,
-    pub music: Vec<Handle<AudioSource>>,
-}
-
-/// Game configuration
-#[derive(Resource)]
-pub struct GameConfig {
-    pub screen_width: f32,
-    pub screen_height: f32,
-    pub sprite_size: f32,
-    pub target_fps: f32,
-    pub debug_mode: bool,
-}
-
-impl Default for GameConfig {
-    fn default() -> Self {
-        Self {
-            screen_width: 640.0,
-            screen_height: 480.0,
-            sprite_size: 16.0,
-            target_fps: 60.0,
-            debug_mode: true,
-        }
-    }
 }

@@ -1,9 +1,11 @@
 use crate::components::*;
-use rand::Rng;
 
 /// Implementation of all 18 behavior types from the original Siriel engine
+/// TODO: Refactor to use new typed BehaviorParams enum
+#[allow(dead_code)]
 pub struct BehaviorManager;
 
+#[allow(dead_code)]
 impl BehaviorManager {
     /// Execute behavior for an entity based on its behavior type
     /// TODO: Update this to use new BehaviorParams enum after level conversion is working

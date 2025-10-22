@@ -27,7 +27,6 @@ use systems::*;
 
 const SCREEN_WIDTH: f32 = 640.0;
 const SCREEN_HEIGHT: f32 = 480.0;
-const SPRITE_SIZE: f32 = 16.0;
 
 /// CLI arguments for Siriel game
 #[derive(Parser, Debug)]

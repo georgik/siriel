@@ -8,7 +8,7 @@ use std::fs;
 pub struct MenuUI;
 
 /// Initialize the level menu by scanning available level files
-pub fn setup_level_menu(mut commands: Commands, mut level_menu: ResMut<LevelMenu>) {
+pub fn setup_level_menu(_commands: Commands, mut level_menu: ResMut<LevelMenu>) {
     // Scan assets/levels directory for .ron files
     let levels_dir = "assets/levels";
 

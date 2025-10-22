@@ -44,8 +44,12 @@ impl Default for Collider {
 /// Sprite information component
 #[derive(Component, Clone, Debug)]
 pub struct SpriteInfo {
+    /// TODO: Use texture_id for multi-atlas sprite lookups
+    #[allow(dead_code)]
     pub texture_id: usize,
     pub frame: usize,
+    /// TODO: Use facing_left for sprite flipping
+    #[allow(dead_code)]
     pub facing_left: bool,
 }
 
@@ -166,26 +170,6 @@ pub struct BehaviorState {
     pub counter: u32,
 }
 
-/// Animation state component
-#[derive(Component, Clone, Debug)]
-pub struct AnimationState {
-    pub current_frame: usize,
-    pub timer: f32,
-    pub frame_duration: f32,
-    pub loop_animation: bool,
-}
-
-impl Default for AnimationState {
-    fn default() -> Self {
-        Self {
-            current_frame: 0,
-            timer: 0.0,
-            frame_duration: 0.1, // 10 FPS default
-            loop_animation: true,
-        }
-    }
-}
-
 /// Physics component - handles gravity and ground detection
 #[derive(Component, Clone, Debug, Default)]
 pub struct Physics {
@@ -195,31 +179,22 @@ pub struct Physics {
     pub max_fall_speed: f32,
 }
 
-/// Room/Level component - which room/level this entity belongs to
-#[derive(Component, Clone, Copy, Debug)]
-pub struct Room {
-    pub id: u8,
-}
-
 /// Pickup component - can be collected by player
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Pickup {
+    /// TODO: Use pickup_type to distinguish collectible categories
+    #[allow(dead_code)]
     pub pickup_type: u16,
+    #[allow(dead_code)]
     pub value: u32,
-}
-
-/// Sound component - for entities that play sounds
-#[derive(Component, Clone, Debug)]
-pub struct SoundEmitter {
-    pub sound_id1: Option<u8>, // Maps to z1
-    pub sound_id2: Option<u8>, // Maps to z2
-    pub triggered: bool,
 }
 
 /// Health/Damage component
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Health {
     pub current: i32,
+    /// TODO: Use max for health bar rendering
+    #[allow(dead_code)]
     pub max: i32,
     pub invulnerable: bool,
     pub invulnerability_timer: f32,
@@ -233,6 +208,8 @@ pub struct AnimatedEntity {
     pub timer: f32,
     pub duration_per_frame: f32,
     pub total_frames: usize,
+    /// TODO: Use base_sprite_id for animation frame calculation
+    #[allow(dead_code)]
     pub base_sprite_id: u32, // Starting frame index in animations atlas
 }
 

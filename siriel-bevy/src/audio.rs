@@ -18,6 +18,8 @@ pub struct AudioAssets {
 }
 
 /// Component to mark entities that should play sounds
+/// TODO: Implement positional audio for 3D sound effects
+#[allow(dead_code)]
 #[derive(Component)]
 pub struct SoundEmitter {
     pub sound_name: String,
@@ -28,6 +30,8 @@ pub struct SoundEmitter {
 pub enum SoundEvent {
     PlayEffect(String),
     PlayMusic(String),
+    /// TODO: Implement music stopping when transitioning between states
+    #[allow(dead_code)]
     StopMusic,
 }
 
@@ -37,6 +41,8 @@ pub struct AudioSettings {
     pub master_volume: f32,
     pub effects_volume: f32,
     pub music_volume: f32,
+    /// TODO: Track currently playing music for crossfade/stop functionality
+    #[allow(dead_code)]
     pub current_music: Option<String>,
 }
 
@@ -154,10 +160,13 @@ impl Plugin for SirielAudioPlugin {
 }
 
 /// Helper functions to trigger sounds from game systems
+/// TODO: Use these helper functions instead of direct event writing
+#[allow(dead_code)]
 pub fn play_sound_effect(sound_events: &mut MessageWriter<SoundEvent>, sound_name: &str) {
     sound_events.write(SoundEvent::PlayEffect(sound_name.to_string()));
 }
 
+#[allow(dead_code)]
 pub fn play_music(sound_events: &mut MessageWriter<SoundEvent>, music_name: &str) {
     sound_events.write(SoundEvent::PlayMusic(music_name.to_string()));
 }
@@ -168,16 +177,27 @@ pub mod sound_mappings {
     pub const EXPLOSION: &str = "zexplo";
     pub const HIT: &str = "ztuk";
     pub const PICKUP: &str = "zkuk";
+    /// TODO: Implement ball/sphere sound effects
+    #[allow(dead_code)]
     pub const BALL: &str = "zlopta";
+    #[allow(dead_code)]
     pub const ENEMY_MOVE: &str = "zmucha";
+    #[allow(dead_code)]
     pub const FIRE: &str = "zfire";
+    #[allow(dead_code)]
     pub const RUMBLE: &str = "zrum";
+    #[allow(dead_code)]
     pub const DRAGON: &str = "zdrak";
 
     /// Background music tracks
+    /// TODO: Implement menu, boss, victory, and game over music
+    #[allow(dead_code)]
     pub const MENU_MUSIC: &str = "m1";
     pub const LEVEL_MUSIC: &str = "m2";
+    #[allow(dead_code)]
     pub const BOSS_MUSIC: &str = "m3";
+    #[allow(dead_code)]
     pub const VICTORY_MUSIC: &str = "m4";
+    #[allow(dead_code)]
     pub const GAME_OVER_MUSIC: &str = "m5";
 }

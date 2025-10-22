@@ -1,3 +1,6 @@
+// Used by convert_mie and extract_levels binaries
+#![allow(dead_code)]
+
 use bevy::prelude::*;
 use std::fs;
 
