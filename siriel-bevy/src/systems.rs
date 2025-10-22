@@ -218,19 +218,27 @@ pub fn behavior_system(
                 },
             ) => {
                 let speed_f = *speed as f32;
-                let left_f = *left_bound as f32;
-                let right_f = *right_bound as f32;
+
+                // Convert bounds from grid units (as stored in MIE) to Bevy pixel coordinates
+                // Same transformation as entity positions:
+                // 1. Grid to pixels: multiply by 8
+                // 2. Add border offset: +16px for X alignment
+                // 3. Center coordinate system: subtract 320 (screen width / 2)
+                let left_pixels = *left_bound as f32 * 8.0 + 16.0;
+                let right_pixels = *right_bound as f32 * 8.0 + 16.0;
+                let left_centered = left_pixels - 320.0;
+                let right_centered = right_pixels - 320.0;
 
                 // Move in current direction
                 velocity.x = speed_f * behavior.state.direction as f32;
                 position.x += velocity.x * dt;
 
                 // Check boundaries and reverse direction
-                if position.x <= left_f {
-                    position.x = left_f;
+                if position.x <= left_centered {
+                    position.x = left_centered;
                     behavior.state.direction = 1;
-                } else if position.x >= right_f {
-                    position.x = right_f;
+                } else if position.x >= right_centered {
+                    position.x = right_centered;
                     behavior.state.direction = -1;
                 }
             }
@@ -244,17 +252,26 @@ pub fn behavior_system(
                 },
             ) => {
                 let speed_f = *speed as f32;
-                let top_f = *top_bound as f32;
-                let bottom_f = *bottom_bound as f32;
+
+                // Convert bounds from grid units (as stored in MIE) to Bevy pixel coordinates
+                // Same transformation as entity positions:
+                // 1. Grid to pixels: multiply by 8
+                // 2. Add border offset: +8px top + 48px alignment
+                // 3. Flip Y and center: 240 - y_pixels (screen height / 2)
+                let top_pixels = *top_bound as f32 * 8.0 + 8.0 + 48.0;
+                let bottom_pixels = *bottom_bound as f32 * 8.0 + 8.0 + 48.0;
+                let top_centered = 240.0 - top_pixels; // Note: top becomes lower Y after flip
+                let bottom_centered = 240.0 - bottom_pixels; // bottom becomes higher Y after flip
 
                 velocity.y = speed_f * behavior.state.direction as f32;
                 position.y += velocity.y * dt;
 
-                if position.y <= top_f {
-                    position.y = top_f;
+                // After Y-flip, top_centered < bottom_centered, so swap logic
+                if position.y <= top_centered {
+                    position.y = top_centered;
                     behavior.state.direction = 1;
-                } else if position.y >= bottom_f {
-                    position.y = bottom_f;
+                } else if position.y >= bottom_centered {
+                    position.y = bottom_centered;
                     behavior.state.direction = -1;
                 }
             }

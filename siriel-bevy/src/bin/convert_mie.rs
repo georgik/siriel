@@ -470,6 +470,8 @@ fn map_behavior_type_from_id(behavior_id: u8) -> BehaviorType {
 }
 
 /// Convert numeric behavior parameters array to BehaviorParams enum
+/// Note: Bounds in MIE files are in grid units (8x8), not pixels
+/// The behavior system will need to convert these to match entity coordinate system
 fn map_behavior_params_from_array(behavior_type: BehaviorType, params: [u16; 4]) -> BehaviorParams {
     match behavior_type {
         BehaviorType::Static => BehaviorParams::Static,
