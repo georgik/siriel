@@ -537,6 +537,43 @@ fn map_behavior_params_from_array(behavior_type: BehaviorType, params: [u16; 4])
     }
 }
 
+/// Map DOS sprite ID to modern atlas index
+/// The original DOS game used a different sprite indexing system
+/// This function maps those IDs to our current atlas indices
+fn map_dos_sprite_id_to_atlas_index(
+    dos_sprite_id: i32,
+    entity_type: &str,
+    is_animated: bool,
+) -> u16 {
+    if is_animated {
+        // Animated entities use the animations atlas
+        // Map DOS sprite IDs to animation starting frame indices
+        match dos_sprite_id {
+            0 => 0,  // teleport (exit portal) -> frames [0,1,2,3]
+            1 => 4,  // pear -> frames [4,5,6,7]
+            2 => 8,  // cherry -> frames [8,9,10,11]
+            3 => 12, // stop_sign -> frames [12,13,14,15]
+            4 => 16, // teleport2 -> frames [16,17,18,19]
+            5 => 20, // water -> frames [20,21,22,23]
+            6 => 24, // coin -> frames [24,25,26,27]
+            7 => 28, // heart -> frames [28,29,30,31]
+            8 => 32, // pacman -> frames [32,33,34,35]
+            9 => 36, // monster -> frames [36,37,38,39]
+            10 => 0, // exit door/teleport -> frames [0,1,2,3]
+            _ => {
+                println!(
+                    "Warning: Unknown animated sprite ID {}, using teleport animation",
+                    dos_sprite_id
+                );
+                0 // Default to teleport animation
+            }
+        }
+    } else {
+        // Static entities use the objects atlas - direct mapping appears correct
+        dos_sprite_id as u16
+    }
+}
+
 /// Convert MIE entities to modern LevelEntity format
 fn convert_mie_entities(mie_entities: &[MIEEntity], _level_height: f32) -> Vec<LevelEntity> {
     mie_entities
@@ -546,9 +583,18 @@ fn convert_mie_entities(mie_entities: &[MIEEntity], _level_height: f32) -> Vec<L
             // Decode the 4-letter entity code into properties
             let props_opt = decode_entity_code(&entity.entity_type);
 
-            // Use sprite_id directly from MIE data (first parameter)
-            // The original Pascal engine stores sprite IDs in the first parameter of entity definitions
-            let sprite_id: u16 = entity.sprite_id as u16;
+            // Determine if entity is animated
+            let is_animated = props_opt
+                .as_ref()
+                .map(|props| props.animated)
+                .unwrap_or(false);
+
+            // Map DOS sprite ID to modern atlas index
+            let sprite_id: u16 = map_dos_sprite_id_to_atlas_index(
+                entity.sprite_id,
+                &entity.entity_type,
+                is_animated,
+            );
 
             // Use decoded interaction properties for pickup flags (no more hardcoded categories)
             let (pickupable, pickup_value) = if let Some(ref props) = props_opt {

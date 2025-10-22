@@ -769,19 +769,29 @@ fn spawn_debug_rectangle(commands: &mut Commands, x: f32, y: f32) {
     ));
 }
 
-/// Map entity types to animation names in the animations atlas
-fn get_animation_name_for_entity(entity_type: &str, _sprite_id: u16) -> String {
-    match entity_type {
-        // Exit portal
-        "YNN~" => "teleport".to_string(),
-        // Fruits
-        "YFRU" => "pear".to_string(),
-        "YFRC" => "cherry".to_string(),
-        // Heart/life
-        "YHEA" => "heart".to_string(),
-        // Defaults
-        _ => "coin".to_string(),
-    }
+/// Map entity code and sprite_id to animation name in animations atlas
+fn get_animation_name_for_entity(entity_type: &str, sprite_id: u16) -> String {
+    // Prefer mapping by sprite_id (converted to animation starting frame index)
+    let name = match sprite_id {
+        0 => "teleport",
+        4 => "pear",
+        8 => "cherry",
+        12 => "stop_sign",
+        16 => "teleport2",
+        20 => "water",
+        24 => "coin",
+        28 => "heart",
+        32 => "pacman",
+        36 => "monster",
+        _ => {
+            // Fallback by entity code
+            match entity_type {
+                "YNN~" => "teleport",
+                _ => "coin",
+            }
+        }
+    };
+    name.to_string()
 }
 /// Save level to RON file
 #[allow(dead_code)]
