@@ -251,18 +251,22 @@ pub fn physics_system(
         position.y += velocity.y * dt;
 
         // Simple ground detection (we'll improve this with proper collision later)
-        if position.y <= 50.0 {
-            position.y = 50.0;
+        // Ground is at Y = -216 (tilemap bottom at -224 + 8px offset)
+        if position.y <= -216.0 {
+            position.y = -216.0;
             velocity.y = 0.0;
             physics.on_ground = true;
         }
 
-        // Screen boundaries
-        if position.x < 8.0 {
-            position.x = 8.0;
+        // Screen boundaries - match tilemap coordinate system
+        // Tilemap: 39 tiles * 16px = 624px wide, centered at 0
+        // X range: -(624/2) + 8px border = -304 to +320
+        // Leave 8px margin for sprite (half width)
+        if position.x < -296.0 {
+            position.x = -296.0;
         }
-        if position.x > 632.0 {
-            position.x = 632.0;
+        if position.x > 312.0 {
+            position.x = 312.0;
         }
     }
 }

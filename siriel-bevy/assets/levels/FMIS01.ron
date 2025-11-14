@@ -2,7 +2,7 @@
     name: "START",
     width: 39,
     height: 27,
-    spawn_point: (400, -472),
+    spawn_point: (-200.0, -180.0),  // Manually adjusted to spawn on left platform
     background_image: None,
     tilemap: [
         [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
