@@ -101,25 +101,93 @@ pub fn input_system(
     mut query: Query<&mut Velocity, With<Player>>,
     mut next_state: ResMut<NextState<crate::resources::AppState>>,
     _physics_config: Res<PhysicsConfig>,
+    // Gamepad input parameters
+    mut gamepad_events: MessageReader<crate::input::GamepadInputEvent>,
+    gamepad_button_state: Res<crate::input::GamepadButtonState>,
+    gamepad_config: Res<crate::input::GamepadConfig>,
+    gamepad_manager: Res<crate::input::GamepadManager>,
+    gamepads: Query<&bevy::input::gamepad::Gamepad>,
+    _gamepad_axis_state: Res<crate::input::GamepadAxisState>,
 ) {
-    // Update input state
-    input_state.move_left =
-        keyboard_input.pressed(KeyCode::ArrowLeft) || keyboard_input.pressed(KeyCode::KeyA);
-    input_state.move_right =
-        keyboard_input.pressed(KeyCode::ArrowRight) || keyboard_input.pressed(KeyCode::KeyD);
+    // Reset gamepad-related input flags
+    let mut gamepad_move_left = false;
+    let mut gamepad_move_right = false;
+    let mut gamepad_jump_pressed = false;
+    let mut gamepad_action = false;
+    let mut gamepad_pause = false;
+    let mut gamepad_menu = false;
+    let mut analog_movement: f32 = 0.0;
+
+    // Process gamepad events (for just_pressed detection)
+    for event in gamepad_events.read() {
+        match event {
+            crate::input::GamepadInputEvent::ButtonPressed { action, .. } => match action {
+                crate::input::GameAction::Jump => gamepad_jump_pressed = true,
+                crate::input::GameAction::Action => gamepad_action = true,
+                crate::input::GameAction::Pause => gamepad_pause = true,
+                crate::input::GameAction::Menu => gamepad_menu = true,
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    // Check gamepad state directly every frame for continuous input (D-pad and analog stick)
+    if let Some(active_gamepad_entity) = gamepad_manager.get_active_gamepad() {
+        if let Ok(gamepad) = gamepads.get(active_gamepad_entity) {
+            use bevy::input::gamepad::{GamepadAxis, GamepadButton};
+
+            // Check D-pad for digital movement (continuous while held)
+            if gamepad.pressed(GamepadButton::DPadLeft) {
+                gamepad_move_left = true;
+            }
+            if gamepad.pressed(GamepadButton::DPadRight) {
+                gamepad_move_right = true;
+            }
+
+            // Check left analog stick for movement (continuous state checking)
+            let deadzone = gamepad_config.deadzone;
+            if let Some(x_value) = gamepad.get(GamepadAxis::LeftStickX) {
+                if x_value.abs() > deadzone {
+                    analog_movement = x_value * gamepad_config.sensitivity;
+                }
+            }
+
+            // Check if jump button is held (not just pressed)
+            if gamepad.pressed(GamepadButton::South) {
+                // South button is mapped to Jump
+                // Don't set gamepad_jump_pressed here, just for held detection
+            }
+        }
+    }
+
+    // Check if gamepad jump is held (for continuous jump input)
+    let gamepad_jump_held = crate::input::is_gamepad_action_active(
+        &gamepad_button_state,
+        &gamepad_config,
+        crate::input::GameAction::Jump,
+    );
+
+    // Update input state - combine keyboard and gamepad
+    input_state.move_left = keyboard_input.pressed(KeyCode::ArrowLeft)
+        || keyboard_input.pressed(KeyCode::KeyA)
+        || gamepad_move_left;
+    input_state.move_right = keyboard_input.pressed(KeyCode::ArrowRight)
+        || keyboard_input.pressed(KeyCode::KeyD)
+        || gamepad_move_right;
     input_state.move_up =
         keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW);
     input_state.move_down =
         keyboard_input.pressed(KeyCode::ArrowDown) || keyboard_input.pressed(KeyCode::KeyS);
-    input_state.jump_pressed = keyboard_input.just_pressed(KeyCode::Space);
-    input_state.jump = keyboard_input.pressed(KeyCode::Space);
-    input_state.action = keyboard_input.pressed(KeyCode::Enter);
-    input_state.pause = keyboard_input.just_pressed(KeyCode::Escape);
-    input_state.menu = keyboard_input.just_pressed(KeyCode::Tab);
+    input_state.jump_pressed = keyboard_input.just_pressed(KeyCode::Space) || gamepad_jump_pressed;
+    input_state.jump = keyboard_input.pressed(KeyCode::Space) || gamepad_jump_held;
+    input_state.action = keyboard_input.pressed(KeyCode::Enter) || gamepad_action;
+    input_state.pause = keyboard_input.just_pressed(KeyCode::Escape) || gamepad_pause;
+    input_state.menu = keyboard_input.just_pressed(KeyCode::Tab) || gamepad_menu;
     input_state.quit = keyboard_input.just_pressed(KeyCode::Escape);
 
-    // Handle ESC key to return to menu
-    if keyboard_input.just_pressed(KeyCode::Escape) {
+    // Handle ESC key or pause button to return to menu
+    if keyboard_input.just_pressed(KeyCode::Escape) || gamepad_pause {
         next_state.set(crate::resources::AppState::Menu);
     }
 
@@ -127,12 +195,17 @@ pub fn input_system(
     if let Ok(mut velocity) = query.single_mut() {
         let move_speed = 200.0; // pixels per second
 
-        velocity.x = 0.0;
-        if input_state.move_left {
-            velocity.x = -move_speed;
-        }
-        if input_state.move_right {
-            velocity.x = move_speed;
+        // Analog stick takes priority over digital input
+        if analog_movement.abs() > 0.01 {
+            velocity.x = analog_movement * move_speed;
+        } else {
+            velocity.x = 0.0;
+            if input_state.move_left {
+                velocity.x = -move_speed;
+            }
+            if input_state.move_right {
+                velocity.x = move_speed;
+            }
         }
 
         // Jump handling will be done in physics system

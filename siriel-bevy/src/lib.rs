@@ -3,6 +3,7 @@ pub mod audio;
 pub mod behaviors;
 pub mod components;
 pub mod dat_extractor;
+pub mod input;
 pub mod level;
 pub mod level_manager;
 pub mod menu;

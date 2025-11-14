@@ -8,6 +8,7 @@ mod audio;
 mod behaviors;
 mod components;
 mod dat_extractor;
+mod input;
 mod level;
 mod level_manager;
 mod menu;
@@ -18,6 +19,7 @@ mod systems;
 use atlas::{load_atlas_descriptors, AtlasManager};
 use audio::{sound_mappings, SirielAudioPlugin, SoundEvent};
 use components::*;
+use input::GamepadInputPlugin;
 use level::{GameArgs, *};
 use level_manager::{level_switch_system, print_level_info_system, LevelManager};
 use menu::*;
@@ -93,6 +95,7 @@ fn main() {
         }))
         .add_plugins(TilemapPlugin)
         .add_plugins(SirielAudioPlugin)
+        .add_plugins(GamepadInputPlugin)
         .init_state::<AppState>()
         .insert_state(initial_state)
         .init_resource::<GameState>()
