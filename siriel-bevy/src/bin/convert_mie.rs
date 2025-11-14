@@ -331,15 +331,11 @@ fn convert_mie_to_level_data(mie_level: MIELevel) -> LevelData {
     // Convert entities with Y-coordinate flipping
     let entities = convert_mie_entities(&mie_level.entities, mie_level.height as f32);
 
-    // Convert spawn point with proper coordinate system transformation
-    // Original DOS coordinates: (0,0) at top-left, MIE coordinates are in 8x8 grid units
-    // Original game had 8px border on all sides due to CRT monitor overscan
-    // Tilemap is offset by 8px, so spawn point needs double the border offset in X
-    // Convert to pixels, add border offset, then center for Bevy coordinate system (0,0 at center)
-    //
-    // IMPORTANT: Same transformation as entities (see convert_mie_entities)
-    let spawn_x_pixels = mie_level.start_position.0 as f32 * 8.0 + 16.0; // +8px CRT border + 8px tilemap alignment
-    let spawn_y_pixels = mie_level.start_position.1 as f32 * 8.0 + 8.0 + 48.0; // +8px top border + 48px alignment
+    // Convert spawn point using pixel coordinates (not grid coordinates like entities)
+    // START position appears to be in pixel coordinates, not 8x8 grid units
+    // Entities: grid coordinates (multiply by 8) | START: direct pixel coordinates
+    let spawn_x_pixels = mie_level.start_position.0 as f32 + 16.0; // +8px CRT border + 8px tilemap alignment
+    let spawn_y_pixels = mie_level.start_position.1 as f32 + 8.0 + 48.0; // +8px top border + 48px alignment
     let spawn_x_centered = spawn_x_pixels - 320.0; // Center X (screen width / 2)
     let spawn_y_centered = 240.0 - spawn_y_pixels; // Flip Y and center (screen height / 2)
 
