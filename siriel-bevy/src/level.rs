@@ -5,6 +5,7 @@ use crate::menu::SelectedLevel;
 use crate::resources::*;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_ecs_tilemap::TilemapBundle;
 use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 // MIE parser is no longer used in game engine - only in converter
@@ -550,7 +551,8 @@ pub fn spawn_tilemap_with_atlas(
                 transform: Transform::from_xyz(tilemap_x, tilemap_y, 0.0),
                 ..default()
             },
-            GameTilemap, // Add cleanup component
+            GameTilemap,     // Add cleanup component
+            TilemapCollider, // Enable collision detection for this tilemap
         ));
     }
 }

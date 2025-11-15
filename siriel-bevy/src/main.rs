@@ -170,6 +170,7 @@ fn main() {
                 // Phase 1: Input and logic
                 input_system,
                 physics_system,
+                tilemap_collision_system, // Add tilemap collision system
                 behavior_system,
                 // Phase 2: Animation and rendering preparation
                 animation_system,

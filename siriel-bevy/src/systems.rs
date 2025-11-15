@@ -1,9 +1,10 @@
 use crate::atlas::AtlasManager;
 use crate::audio::{sound_mappings, SoundEvent};
 use crate::components::*;
-use crate::level::GameEntity;
+use crate::level::{GameEntity, TilemapManager};
 use crate::resources::*;
 use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 
 /// Setup the camera
 pub fn setup_camera(mut commands: Commands) {
@@ -36,6 +37,7 @@ pub fn setup_game(
     let mut entity_commands = if let Some(ref avatar_texture) = atlas_manager.avatar_texture {
         commands.spawn((
             Player,
+            TilemapCollisionCheck, // Enable tilemap collision for player
             Sprite {
                 image: avatar_texture.clone(),
                 custom_size: Some(Vec2::new(16.0, 16.0)),
@@ -47,6 +49,7 @@ pub fn setup_game(
         // Fallback to colored sprite if avatar texture not loaded
         commands.spawn((
             Player,
+            TilemapCollisionCheck, // Enable tilemap collision for player
             Sprite {
                 color: Color::srgb(0.0, 0.5, 1.0), // Blue colored sprite as fallback
                 custom_size: Some(Vec2::new(16.0, 16.0)),
@@ -250,13 +253,8 @@ pub fn physics_system(
         position.x += velocity.x * dt;
         position.y += velocity.y * dt;
 
-        // Simple ground detection (we'll improve this with proper collision later)
-        // Ground is at Y = -216 (tilemap bottom at -224 + 8px offset)
-        if position.y <= -216.0 {
-            position.y = -216.0;
-            velocity.y = 0.0;
-            physics.on_ground = true;
-        }
+        // Use tilemap collision system for ground detection instead of hardcoded values
+        // The tilemap_collision_system will handle on_ground detection and collision responses
 
         // Screen boundaries - match tilemap coordinate system
         // Tilemap: 39 tiles * 16px = 624px wide, centered at 0
@@ -371,6 +369,142 @@ pub fn behavior_system(
             }
         }
     }
+}
+
+/// 4-point tilemap collision system - mimics original Siriel engine collision detection
+/// Checks 4 points around entity bounds (2 bottom, 2 top) for solid tile collision
+pub fn tilemap_collision_system(
+    mut query: Query<
+        (&mut Position, &mut Velocity, &mut Physics, &Collider),
+        With<TilemapCollisionCheck>,
+    >,
+    tilemap_query: Query<(&TileStorage, &Transform), With<TilemapCollider>>,
+    tilemap_manager: Res<TilemapManager>,
+    atlas_manager: Res<AtlasManager>,
+) {
+    if let Ok((tilemap_storage, tilemap_transform)) = tilemap_query.single() {
+        if let Some(level) = &tilemap_manager.current_level {
+            let tile_size = Vec2::new(16.0, 16.0);
+
+            for (mut position, mut velocity, mut physics, collider) in query.iter_mut() {
+                // Get entity bounds in world coordinates
+                let entity_left = position.x - collider.width / 2.0;
+                let entity_right = position.x + collider.width / 2.0;
+                let entity_top = position.y + collider.height / 2.0;
+                let entity_bottom = position.y - collider.height / 2.0;
+
+                // 4-point collision check (as used in original Siriel engine)
+                // 2 points at bottom for ground detection, 2 points at top for ceiling detection
+                let collision_points = [
+                    // Bottom left and bottom right - for ground detection
+                    (entity_left + 2.0, entity_bottom), // Bottom-left (2px inset)
+                    (entity_right - 2.0, entity_bottom), // Bottom-right (2px inset)
+                    // Top left and top right - for ceiling detection (when jumping up)
+                    (entity_left + 2.0, entity_top), // Top-left (2px inset)
+                    (entity_right - 2.0, entity_top), // Top-right (2px inset)
+                ];
+
+                let mut has_ground_contact = false;
+                let mut has_ceiling_contact = false;
+
+                for (i, (world_x, world_y)) in collision_points.iter().enumerate() {
+                    // Convert world coordinates to tile coordinates
+                    let tile_x = ((world_x - tilemap_transform.translation.x) / tile_size.x) as i32;
+                    let tile_y = ((world_y - tilemap_transform.translation.y) / tile_size.y) as i32;
+
+                    // Check if within tilemap bounds
+                    if tile_x >= 0
+                        && tile_x < level.width as i32
+                        && tile_y >= 0
+                        && tile_y < level.height as i32
+                    {
+                        let tile_id = level.tilemap[tile_y as usize][tile_x as usize];
+
+                        // Check if tile is solid (not walkable)
+                        // Tile ID 0 = fully transparent/walkable
+                        if tile_id > 0 {
+                            // Check if tile texture has alpha transparency (for semi-solid tiles)
+                            let is_solid = check_tile_solidity(tile_id, &atlas_manager);
+
+                            if is_solid {
+                                if i < 2 {
+                                    // Bottom collision points - ground contact
+                                    has_ground_contact = true;
+                                } else {
+                                    // Top collision points - ceiling contact
+                                    has_ceiling_contact = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Apply collision responses
+
+                // Ground collision - stop falling and allow jumping
+                if has_ground_contact {
+                    // Align entity with ground (prevent sinking)
+                    let ground_y = find_ground_y(position.x, &level, tilemap_transform, tile_size);
+                    if position.y <= ground_y + collider.height / 2.0 {
+                        position.y = ground_y + collider.height / 2.0;
+                        if velocity.y < 0.0 {
+                            velocity.y = 0.0;
+                        }
+                        physics.on_ground = true;
+                    }
+                } else {
+                    physics.on_ground = false;
+                }
+
+                // Ceiling collision - stop upward velocity (can't jump through ceiling)
+                if has_ceiling_contact && velocity.y > 0.0 {
+                    velocity.y = 0.0;
+                }
+
+                // Horizontal collision - check if entity would collide with tiles when moving
+                // Note: We'll handle this with delta time from the time resource in the next iteration
+                // For now, just prevent immediate movement into solid tiles
+            }
+        }
+    }
+}
+
+/// Check if a tile is solid based on its alpha channel
+/// Returns true if tile should block movement
+fn check_tile_solidity(tile_id: u16, _atlas_manager: &AtlasManager) -> bool {
+    // For now, treat all non-zero tiles as solid
+    // TODO: Implement alpha channel checking by sampling the tile texture
+
+    // The first tile (ID 0) in the texture atlas should be fully transparent
+    // All other tiles are considered solid for collision purposes
+    tile_id > 0
+}
+
+/// Find the ground Y position for a given X coordinate
+/// Returns the Y coordinate of the top of the highest solid tile at that X position
+fn find_ground_y(
+    entity_x: f32,
+    level: &crate::level::LevelData,
+    tilemap_transform: &Transform,
+    tile_size: Vec2,
+) -> f32 {
+    let tile_x = ((entity_x - tilemap_transform.translation.x) / tile_size.x) as i32;
+
+    if tile_x < 0 || tile_x >= level.width as i32 {
+        return -1000.0; // Out of bounds
+    }
+
+    // Search from bottom to top for the first solid tile
+    for tile_y in (0..level.height as i32).rev() {
+        let tile_id = level.tilemap[tile_y as usize][tile_x as usize];
+        if tile_id > 0 {
+            // Convert tile coordinates back to world coordinates
+            let world_y = tilemap_transform.translation.y + (tile_y as f32 * tile_size.y);
+            return world_y + tile_size.y / 2.0; // Return top of tile
+        }
+    }
+
+    return -1000.0; // No ground found
 }
 
 /// Collision system - detects collisions between entities

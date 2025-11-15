@@ -25,6 +25,14 @@ pub struct Velocity {
     pub y: f32,
 }
 
+/// Component to mark tilemap entities for collision detection
+#[derive(Component)]
+pub struct TilemapCollider;
+
+/// Component for entities that should check tilemap collisions
+#[derive(Component)]
+pub struct TilemapCollisionCheck;
+
 /// Collider component - defines collision bounds
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Collider {
