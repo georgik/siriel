@@ -99,6 +99,28 @@ pub struct InputState {
     pub quit: bool,
 }
 
+/// Collision debugging state
+#[derive(Resource)]
+pub struct CollisionDebug {
+    pub enabled: bool,
+    pub show_tile_grid: bool,
+    pub show_collision_points: bool,
+    pub show_tile_boundaries: bool,
+    pub show_coordinate_info: bool,
+}
+
+impl Default for CollisionDebug {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            show_tile_grid: true,
+            show_collision_points: true,
+            show_tile_boundaries: true,
+            show_coordinate_info: true,
+        }
+    }
+}
+
 /// Texture atlas resource for managing sprites used by runtime systems
 #[derive(Resource, Default)]
 pub struct SpriteAtlas {

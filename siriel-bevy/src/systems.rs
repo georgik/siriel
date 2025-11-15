@@ -386,6 +386,21 @@ pub fn tilemap_collision_system(
         if let Some(level) = &tilemap_manager.current_level {
             let tile_size = Vec2::new(16.0, 16.0);
 
+            // Calculate tilemap origin using same calculation as tilemap spawning with offsets
+            let map_size = TilemapSize {
+                x: level.width,
+                y: level.height,
+            };
+            let tile_size_tilemap = TilemapTileSize { x: 16.0, y: 16.0 };
+            let tilemap_x = -(map_size.x as f32) * tile_size_tilemap.x / 2.0
+                + crate::level::TILEMAP_OFFSET_X
+                + crate::level::TILEMAP_INTERNAL_OFFSET_X
+                - tile_size.x; // Shift one tile left
+            let tilemap_y = -(map_size.y as f32) * tile_size_tilemap.y / 2.0
+                + crate::level::TILEMAP_OFFSET_Y
+                + crate::level::TILEMAP_INTERNAL_OFFSET_Y
+                + tile_size.y; // Shift one tile down
+
             for (mut position, mut velocity, mut physics, collider) in query.iter_mut() {
                 // Get entity bounds in world coordinates
                 let entity_left = position.x - collider.width / 2.0;
@@ -408,17 +423,21 @@ pub fn tilemap_collision_system(
                 let mut has_ceiling_contact = false;
 
                 for (i, (world_x, world_y)) in collision_points.iter().enumerate() {
-                    // Convert world coordinates to tile coordinates
-                    let tile_x = ((world_x - tilemap_transform.translation.x) / tile_size.x) as i32;
-                    let tile_y = ((world_y - tilemap_transform.translation.y) / tile_size.y) as i32;
+                    // Convert world coordinates to tile coordinates with corrected offset
+                    let tile_x = ((world_x - tilemap_x) / tile_size.x) as i32;
+                    let tile_y = ((world_y - tilemap_y) / tile_size.y) as i32;
+
+                    // Apply Y-axis flipping to match tilemap rendering coordinate system
+                    // Original (0,0) at top-left becomes bottom-left in Bevy
+                    let flipped_tile_y = level.height as i32 - 1 - tile_y;
 
                     // Check if within tilemap bounds
                     if tile_x >= 0
                         && tile_x < level.width as i32
-                        && tile_y >= 0
-                        && tile_y < level.height as i32
+                        && flipped_tile_y >= 0
+                        && flipped_tile_y < level.height as i32
                     {
-                        let tile_id = level.tilemap[tile_y as usize][tile_x as usize];
+                        let tile_id = level.tilemap[flipped_tile_y as usize][tile_x as usize];
 
                         // Check if tile is solid (not walkable)
                         // Tile ID 0 = fully transparent/walkable
@@ -444,7 +463,8 @@ pub fn tilemap_collision_system(
                 // Ground collision - stop falling and allow jumping
                 if has_ground_contact {
                     // Align entity with ground (prevent sinking)
-                    let ground_y = find_ground_y(position.x, &level, tilemap_transform, tile_size);
+                    let ground_y =
+                        find_ground_y(position.x, &level, tilemap_x, tilemap_y, tile_size);
                     if position.y <= ground_y + collider.height / 2.0 {
                         position.y = ground_y + collider.height / 2.0;
                         if velocity.y < 0.0 {
@@ -485,10 +505,11 @@ fn check_tile_solidity(tile_id: u16, _atlas_manager: &AtlasManager) -> bool {
 fn find_ground_y(
     entity_x: f32,
     level: &crate::level::LevelData,
-    tilemap_transform: &Transform,
+    tilemap_x: f32,
+    tilemap_y: f32,
     tile_size: Vec2,
 ) -> f32 {
-    let tile_x = ((entity_x - tilemap_transform.translation.x) / tile_size.x) as i32;
+    let tile_x = ((entity_x - tilemap_x) / tile_size.x) as i32;
 
     if tile_x < 0 || tile_x >= level.width as i32 {
         return -1000.0; // Out of bounds
@@ -498,8 +519,9 @@ fn find_ground_y(
     for tile_y in (0..level.height as i32).rev() {
         let tile_id = level.tilemap[tile_y as usize][tile_x as usize];
         if tile_id > 0 {
-            // Convert tile coordinates back to world coordinates
-            let world_y = tilemap_transform.translation.y + (tile_y as f32 * tile_size.y);
+            // Apply Y-axis flipping to match tilemap rendering coordinate system
+            let flipped_y = level.height as i32 - 1 - tile_y;
+            let world_y = tilemap_y + (flipped_y as f32 * tile_size.y);
             return world_y + tile_size.y / 2.0; // Return top of tile
         }
     }
@@ -851,6 +873,179 @@ pub fn screenshot_system(
         // Exit after screenshot + 1 second delay
         if *screenshot_taken && *screenshot_timer >= screenshot_delay + 1.0 {
             app_exit_events.write(bevy::app::AppExit::Success);
+        }
+    }
+}
+
+/// Initialize collision debugging system
+pub fn init_collision_debug(
+    game_args: Res<crate::level::GameArgs>,
+    mut collision_debug: ResMut<crate::resources::CollisionDebug>,
+) {
+    // Set initial state from CLI arguments
+    collision_debug.enabled = game_args.collision_debug;
+    collision_debug.show_tile_grid = true;
+    collision_debug.show_collision_points = true;
+    collision_debug.show_tile_boundaries = true;
+    collision_debug.show_coordinate_info = false;
+
+    if game_args.collision_debug {
+        info!("🔧 Collision debug mode enabled via CLI");
+    }
+}
+
+/// Handle input for collision debugging
+pub fn collision_debug_input_system(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut collision_debug: ResMut<crate::resources::CollisionDebug>,
+) {
+    // Toggle collision debug with F7
+    if keyboard_input.just_pressed(KeyCode::F7) {
+        collision_debug.enabled = !collision_debug.enabled;
+        if collision_debug.enabled {
+            info!("🔧 Collision debug mode: ENABLED");
+        } else {
+            info!("🔧 Collision debug mode: DISABLED");
+        }
+    }
+
+    // Toggle individual visualization modes with F8
+    if keyboard_input.just_pressed(KeyCode::F8) && collision_debug.enabled {
+        // Cycle through different visualization combinations
+        if collision_debug.show_tile_grid
+            && collision_debug.show_collision_points
+            && collision_debug.show_tile_boundaries
+        {
+            // Turn off tile boundaries, keep others
+            collision_debug.show_tile_boundaries = false;
+            info!("🔧 Debug mode: Tile boundaries OFF");
+        } else if collision_debug.show_tile_grid && collision_debug.show_collision_points {
+            // Turn off collision points, keep others
+            collision_debug.show_collision_points = false;
+            info!("🔧 Debug mode: Collision points OFF");
+        } else if collision_debug.show_tile_grid {
+            // Turn off tile grid, keep boundaries
+            collision_debug.show_tile_grid = false;
+            collision_debug.show_tile_boundaries = true;
+            info!("🔧 Debug mode: Only tile boundaries");
+        } else {
+            // Reset to all enabled
+            collision_debug.show_tile_grid = true;
+            collision_debug.show_collision_points = true;
+            collision_debug.show_tile_boundaries = true;
+            info!("🔧 Debug mode: All visualizations ON");
+        }
+    }
+}
+
+/// Render collision debugging visualization
+pub fn collision_debug_render_system(
+    collision_debug: Res<crate::resources::CollisionDebug>,
+    tilemap_query: Query<(&TileStorage, &Transform), With<TilemapCollider>>,
+    tilemap_manager: Res<TilemapManager>,
+    player_query: Query<(&Position, &Collider), With<Player>>,
+    mut gizmos: Gizmos,
+) {
+    if !collision_debug.enabled {
+        return;
+    }
+
+    if let Ok((_tilemap_storage, tilemap_transform)) = tilemap_query.single() {
+        if let Some(level) = &tilemap_manager.current_level {
+            let tile_size = Vec2::new(16.0, 16.0);
+
+            // Use the same centering calculation as tilemap spawning with proper offset constants
+            let map_size = TilemapSize {
+                x: level.width,
+                y: level.height,
+            };
+            let tile_size_tilemap = TilemapTileSize { x: 16.0, y: 16.0 };
+            let tilemap_x = -(map_size.x as f32) * tile_size_tilemap.x / 2.0
+                + crate::level::TILEMAP_OFFSET_X
+                + crate::level::TILEMAP_INTERNAL_OFFSET_X
+                - tile_size.x; // Shift one tile left
+            let tilemap_y = -(map_size.y as f32) * tile_size_tilemap.y / 2.0
+                + crate::level::TILEMAP_OFFSET_Y
+                + crate::level::TILEMAP_INTERNAL_OFFSET_Y
+                + tile_size.y; // Shift one tile down
+
+            // Draw tile grid
+            if collision_debug.show_tile_grid {
+                // Draw grid lines - match tilemap centering exactly
+                for x in 0..=level.width {
+                    let world_x = tilemap_x + (x as f32 * tile_size.x);
+                    gizmos.line_2d(
+                        Vec2::new(world_x, tilemap_y),
+                        Vec2::new(world_x, tilemap_y + (level.height as f32 * tile_size.y)),
+                        Color::srgba(0.0, 0.5, 1.0, 0.3), // Blue with low alpha
+                    );
+                }
+
+                for y in 0..=level.height {
+                    let world_y = tilemap_y + (y as f32 * tile_size.y);
+                    gizmos.line_2d(
+                        Vec2::new(tilemap_x, world_y),
+                        Vec2::new(tilemap_x + (level.width as f32 * tile_size.x), world_y),
+                        Color::srgba(0.0, 0.5, 1.0, 0.3), // Blue with low alpha
+                    );
+                }
+            }
+
+            // Draw solid tile boundaries
+            if collision_debug.show_tile_boundaries {
+                for y in 0..level.height {
+                    for x in 0..level.width {
+                        let tile_id = level.tilemap[y as usize][x as usize];
+                        if tile_id > 0 {
+                            // Use the same Y-axis flipping as tilemap rendering
+                            // Original (0,0) at top-left becomes bottom-left in Bevy
+                            let flipped_y = level.height - 1 - y;
+
+                            // Calculate world position of this tile using same centering as tilemap spawning
+                            let world_x = tilemap_x + (x as f32 * tile_size.x);
+                            let world_y = tilemap_y + (flipped_y as f32 * tile_size.y);
+
+                            // Draw tile boundary rectangle
+                            gizmos.rect_2d(
+                                Vec2::new(world_x + tile_size.x / 2.0, world_y + tile_size.y / 2.0),
+                                Vec2::new(tile_size.x, tile_size.y),
+                                Color::srgba(0.0, 1.0, 0.0, 0.5), // Green with medium alpha
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Draw player collision points
+            if collision_debug.show_collision_points {
+                if let Ok((player_pos, player_collider)) = player_query.single() {
+                    // Get entity bounds in world coordinates
+                    let entity_left = player_pos.x - player_collider.width / 2.0;
+                    let entity_right = player_pos.x + player_collider.width / 2.0;
+                    let entity_top = player_pos.y + player_collider.height / 2.0;
+                    let entity_bottom = player_pos.y - player_collider.height / 2.0;
+
+                    // 4-point collision check visualization
+                    let collision_points = [
+                        // Bottom left and bottom right - for ground detection
+                        (entity_left + 2.0, entity_bottom), // Bottom-left (2px inset)
+                        (entity_right - 2.0, entity_bottom), // Bottom-right (2px inset)
+                        // Top left and top right - for ceiling detection (when jumping up)
+                        (entity_left + 2.0, entity_top), // Top-left (2px inset)
+                        (entity_right - 2.0, entity_top), // Top-right (2px inset)
+                    ];
+
+                    // Draw collision points
+                    for (i, (world_x, world_y)) in collision_points.iter().enumerate() {
+                        let color = if i < 2 {
+                            Color::srgba(1.0, 0.0, 0.0, 0.8) // Red for ground points
+                        } else {
+                            Color::srgba(1.0, 1.0, 0.0, 0.8) // Yellow for ceiling points
+                        };
+                        gizmos.circle_2d(Vec2::new(*world_x, *world_y), 2.0, color);
+                    }
+                }
+            }
         }
     }
 }

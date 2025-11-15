@@ -10,6 +10,16 @@ use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 // MIE parser is no longer used in game engine - only in converter
 
+/// Tilemap rendering offsets for CRT border effect
+/// Original game had 8px border on all sides to simulate CRT monitor
+pub const TILEMAP_OFFSET_X: f32 = 8.0; // 8px to the right for left border
+pub const TILEMAP_OFFSET_Y: f32 = -8.0; // 8px down for top border
+
+/// Additional offset to match bevy_ecs_tilemap internal coordinate system
+/// This accounts for how bevy_ecs_tilemap positions tiles internally
+pub const TILEMAP_INTERNAL_OFFSET_X: f32 = 8.0; // 8px right to match tile rendering
+pub const TILEMAP_INTERNAL_OFFSET_Y: f32 = 8.0; // 8px down to match tile rendering
+
 /// Resource to store CLI arguments for use in Bevy systems
 #[derive(Resource)]
 pub struct GameArgs {
@@ -17,6 +27,7 @@ pub struct GameArgs {
     pub verbose: bool,
     pub screenshot: Option<f32>, // Screenshot after N seconds, then quit
     pub screenshot_dir: Option<String>, // Directory to save screenshots
+    pub collision_debug: bool,   // Enable collision debugging visualization
 }
 
 /// Level data structure - modern replacement for .MIE format
@@ -535,10 +546,10 @@ pub fn spawn_tilemap_with_atlas(
         let grid_size = tile_size.into();
         let map_type = TilemapType::default();
 
-        // Calculate tilemap position with 8px CRT border offset
-        // Original game had 8px border on all sides
-        let tilemap_x = -(map_size.x as f32) * tile_size.x / 2.0 + 8.0; // +8px right for left border
-        let tilemap_y = -(map_size.y as f32) * tile_size.y / 2.0 - 8.0; // -8px down for top border
+        // Calculate tilemap position with CRT border offset using centralized constants
+        // Original game had 8px border on all sides to simulate CRT monitor
+        let tilemap_x = -(map_size.x as f32) * tile_size.x / 2.0 + crate::level::TILEMAP_OFFSET_X;
+        let tilemap_y = -(map_size.y as f32) * tile_size.y / 2.0 + crate::level::TILEMAP_OFFSET_Y;
 
         commands.entity(tilemap_entity).insert((
             TilemapBundle {

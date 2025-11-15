@@ -49,6 +49,10 @@ struct Args {
     /// Directory to save screenshots (default: screenshots/)
     #[arg(long, default_value = "screenshots")]
     screenshot_dir: Option<String>,
+
+    /// Enable collision debugging visualization
+    #[arg(long)]
+    collision_debug: bool,
 }
 
 fn main() {
@@ -107,12 +111,14 @@ fn main() {
         .init_resource::<LevelMenu>()
         .init_resource::<menu::MenuInputTimer>()
         .init_resource::<menu::MenuRefreshTracker>()
+        .init_resource::<crate::resources::CollisionDebug>()
         .insert_resource(LevelManager::new())
         .insert_resource(GameArgs {
             level: args.level,
             verbose: args.verbose,
             screenshot: args.screenshot,
             screenshot_dir: args.screenshot_dir,
+            collision_debug: args.collision_debug,
         })
         // Startup systems (run once)
         .add_systems(
@@ -122,6 +128,7 @@ fn main() {
                 load_sprite_assets,
                 load_atlas_descriptors,
                 setup_level_menu,
+                init_collision_debug,
             ),
         )
         // Intro screen systems
@@ -169,6 +176,7 @@ fn main() {
             (
                 // Phase 1: Input and logic
                 input_system,
+                collision_debug_input_system,
                 physics_system,
                 tilemap_collision_system, // Add tilemap collision system
                 behavior_system,
@@ -180,9 +188,10 @@ fn main() {
                 avatar_texture_atlas_system,
                 entity_texture_atlas_system,
                 animated_entity_texture_atlas_system,
-                // Phase 4: Final systems
+                // Phase 4: Final systems and debugging
                 collision_system,
                 render_debug_system,
+                collision_debug_render_system,
                 level_switch_system,
                 print_level_info_system,
                 screenshot_system,
