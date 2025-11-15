@@ -399,7 +399,7 @@ pub fn tilemap_collision_system(
             let tilemap_y = -(map_size.y as f32) * tile_size_tilemap.y / 2.0
                 + crate::level::TILEMAP_OFFSET_Y
                 + crate::level::TILEMAP_INTERNAL_OFFSET_Y
-                + tile_size.y; // Shift one tile down
+                + tile_size.y - (tile_size.y * 2.0); // Shift one tile down + additional 2 tiles for Y alignment
 
             for (mut position, mut velocity, mut physics, collider) in query.iter_mut() {
                 // Get entity bounds in world coordinates
@@ -967,7 +967,7 @@ pub fn collision_debug_render_system(
             let tilemap_y = -(map_size.y as f32) * tile_size_tilemap.y / 2.0
                 + crate::level::TILEMAP_OFFSET_Y
                 + crate::level::TILEMAP_INTERNAL_OFFSET_Y
-                + tile_size.y; // Shift one tile down
+                + tile_size.y - (tile_size.y * 2.0); // Shift one tile down + additional 2 tiles for Y alignment
 
             // Draw tile grid
             if collision_debug.show_tile_grid {
