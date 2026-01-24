@@ -87,6 +87,7 @@ var
 
 { Screen to texture rendering }
 { This converts our virtual screen to a Raylib texture and displays it }
+procedure init_screen(w, h: word);
 procedure RenderScreenToWindow();
 
 { Palette management }
