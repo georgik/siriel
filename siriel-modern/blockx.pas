@@ -461,10 +461,11 @@ begin
     begin
       inc(c);
       if c > 3 then c := 1;
+      { Palette data is stored in 8-bit format (0-255) - use directly }
       case c of
-        1: palx[f div 3].r := buf^[f + 1] shr 2;
-        2: palx[f div 3].v := buf^[f + 1] shr 2;
-        3: palx[f div 3].b := buf^[f + 1] shr 2;
+        1: palx[f div 3].r := buf^[f + 1];
+        2: palx[f div 3].v := buf^[f + 1];
+        3: palx[f div 3].b := buf^[f + 1];
       end;
     end;
   end
