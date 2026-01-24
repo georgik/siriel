@@ -51,7 +51,7 @@ var
   color: longint;
 begin
   { For now, use very simple rendering - 8x8 pixels per character }
-  { Colors should be in RGBA format: (A shl 24) or (R shl 16) or (G shl 8) or B }
+  { Convert palette color index to RGBA }
   for i := 1 to Length(text) do
   begin
     for j := 0 to 7 do
@@ -61,7 +61,7 @@ begin
         { Draw simple 8x8 blocks for each character }
         { This is just a placeholder - proper font rendering will come later }
         if (text[i] <> ' ') then
-          putpixel(bitmap, x + (i-1)*8 + j, y + k, (255 shl 24) or (fg shl 16) or (fg shl 8) or fg);
+          putpixel(bitmap, x + (i-1)*8 + j, y + k, palette_to_rgba(fg));
       end;
     end;
   end;
@@ -103,9 +103,10 @@ var
 begin
   if not Assigned(bitmap) then Exit;
 
+  { Fill with opaque black (alpha = 255) }
   for y := 0 to bitmap^.height - 1 do
     for x := 0 to bitmap^.width - 1 do
-      putpixel(bitmap, x, y, 0);
+      putpixel(bitmap, x, y, (255 shl 24) or (0 shl 16) or (0 shl 8) or 0);
 end;
 
 { Draw image placeholder }

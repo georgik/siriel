@@ -72,19 +72,30 @@ procedure circle(bitmap: PImage; xc, yc, r: word; coul: longint);
 { Blitting }
 procedure blit(bit1, bit2: PImage; x1, y1, x2, y2, numberx, numbery: word);
 
+{ Palette type }
+type
+  tpalette = array[0..255] of record
+    r, v, b: byte;
+  end;
+
 { Global variables }
 var
   screen: PScreenImage;
+  screen_image: PImage;
   screen_width, screen_height: word;
+  current_palette: tpalette;
 
 { Screen to texture rendering }
 { This converts our virtual screen to a Raylib texture and displays it }
 procedure RenderScreenToWindow();
 
+{ Palette management }
+function palette_to_rgba(color_index: byte): longint;
+procedure fill_palette_default;
+
 implementation
 
 var
-  screen_image: PImage;           { Our virtual screen bitmap }
   screen_texture: TRaylibTexture2D; { Raylib texture for display }
   screen_lines: array[0..767] of pointer;
   screen_dirty: boolean = True;   { Flag to track if screen needs update }
@@ -408,7 +419,56 @@ begin
   screen_dirty := False;
 end;
 
+{ Convert palette color index to RGBA }
+function palette_to_rgba(color_index: byte): longint;
+var
+  r, g, b: byte;
+begin
+  r := current_palette[color_index].r shl 2; { Convert 6-bit to 8-bit }
+  g := current_palette[color_index].v shl 2;
+  b := current_palette[color_index].b shl 2;
+
+  palette_to_rgba := (longint(255) shl 24) or (longint(r) shl 16) or (longint(g) shl 8) or b;
+end;
+
+{ Fill default VGA palette }
+procedure fill_palette_default;
+var
+  i: integer;
+begin
+  for i := 0 to 15 do
+  begin
+    case i of
+      0:  begin current_palette[i].r := 0;  current_palette[i].v := 0;  current_palette[i].b := 0;  end; { Black }
+      1:  begin current_palette[i].r := 0;  current_palette[i].v := 0;  current_palette[i].b := 42; end; { Blue }
+      2:  begin current_palette[i].r := 0;  current_palette[i].v := 42; current_palette[i].b := 0;  end; { Green }
+      3:  begin current_palette[i].r := 0;  current_palette[i].v := 42; current_palette[i].b := 42; end; { Cyan }
+      4:  begin current_palette[i].r := 42; current_palette[i].v := 0;  current_palette[i].b := 0;  end; { Red }
+      5:  begin current_palette[i].r := 42; current_palette[i].v := 0;  current_palette[i].b := 42; end; { Magenta }
+      6:  begin current_palette[i].r := 42; current_palette[i].v := 21; current_palette[i].b := 0;  end; { Brown }
+      7:  begin current_palette[i].r := 42; current_palette[i].v := 42; current_palette[i].b := 42; end; { Light gray }
+      8:  begin current_palette[i].r := 21; current_palette[i].v := 21; current_palette[i].b := 21; end; { Dark gray }
+      9:  begin current_palette[i].r := 21; current_palette[i].v := 21; current_palette[i].b := 63; end; { Light blue }
+      10: begin current_palette[i].r := 21; current_palette[i].v := 63; current_palette[i].b := 21; end; { Light green }
+      11: begin current_palette[i].r := 21; current_palette[i].v := 63; current_palette[i].b := 63; end; { Light cyan }
+      12: begin current_palette[i].r := 63; current_palette[i].v := 21; current_palette[i].b := 21; end; { Light red }
+      13: begin current_palette[i].r := 63; current_palette[i].v := 21; current_palette[i].b := 63; end; { Light magenta }
+      14: begin current_palette[i].r := 63; current_palette[i].v := 63; current_palette[i].b := 21; end; { Yellow }
+      15: begin current_palette[i].r := 63; current_palette[i].v := 63; current_palette[i].b := 63; end; { White }
+    end;
+  end;
+
+  { Fill rest with grayscale }
+  for i := 16 to 255 do
+  begin
+    current_palette[i].r := (i - 16) div 4;
+    current_palette[i].v := (i - 16) div 4;
+    current_palette[i].b := (i - 16) div 4;
+  end;
+end;
+
 initialization
+  fill_palette_default;
   init_screen(640, 480);
 
 finalization

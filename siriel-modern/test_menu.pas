@@ -46,13 +46,13 @@ begin
   else
     color := 11; { Light blue for normal }
 
-  print_normal(PImage(screen), 270, y, text, color, 0);
+  print_normal(screen_image, 270, y, text, color, 0);
 
   { Draw selection indicator }
   if selected then
   begin
-    print_normal(PImage(screen), 250, y, '>', 14, 0);
-    print_normal(PImage(screen), 250 + Length(text) * 8 + 10, y, '<', 14, 0);
+    print_normal(screen_image, 250, y, '>', 14, 0);
+    print_normal(screen_image, 250 + Length(text) * 8 + 10, y, '<', 14, 0);
   end;
 end;
 
@@ -60,20 +60,29 @@ end;
 procedure show_intro_menu;
 var
   logo_loaded: boolean;
+  test_pixel: longint;
 begin
   { Clear screen }
-  clear_bitmap(PImage(screen));
+  clear_bitmap(screen_image);
+  writeln('Screen cleared');
+
+  { Draw a test white pixel to verify screen is writable }
+  test_pixel := (255 shl 24) or (255 shl 16) or (255 shl 8) or 255;
+  putpixel(screen_image, 320, 240, test_pixel);
+  writeln('Test white pixel written at (320, 240)');
 
   { Draw title text as fallback }
-  print_normal(PImage(screen), 200, 50, 'SIRIEL 3.5', 15, 0);
-  print_normal(PImage(screen), 180, 80, 'MODERN PORT', 11, 0);
-  print_normal(PImage(screen), 10, 10, 'v0.5 - Phase 5C', 7, 0);
+  writeln('Drawing menu text...');
+  print_normal(screen_image, 200, 50, 'SIRIEL 3.5', 15, 0);
+  print_normal(screen_image, 180, 80, 'MODERN PORT', 11, 0);
+  print_normal(screen_image, 10, 10, 'v0.5 - Phase 5C', 7, 0);
+  writeln('Menu text drawn');
 
   { Try to load game logo from MAIN.DAT }
   { In original code: draw_gif_block(screen,input_file,'GLOGO',460,100,palx); }
   { Note: This is optional - if GLOGO doesn't exist, we use text fallback }
   try
-    logo_loaded := draw_gif_block(PImage(screen), 'data/MAIN.DAT', 'GLOGO', 460, 100, palette);
+    logo_loaded := draw_gif_block(screen_image, 'data/MAIN.DAT', 'GLOGO', 460, 100, palette);
     if logo_loaded then
       writeln('Logo loaded successfully')
     else
@@ -87,15 +96,18 @@ begin
   end;
 
   { Draw menu options }
+  writeln('Drawing menu options...');
   draw_menu_option(150, 'START GAME', menu_selection = 0);
   draw_menu_option(185, 'INFO', menu_selection = 1);
   draw_menu_option(220, 'HIGH SCORE', menu_selection = 2);
   draw_menu_option(255, 'DATADISK', menu_selection = 3);
   draw_menu_option(300, 'EXIT', menu_selection = 4);
+  writeln('Menu options drawn');
 
   { Draw instructions }
-  print_normal(PImage(screen), 150, 400, 'Use UP/DOWN arrows to move, ENTER to select', 8, 0);
-  print_normal(PImage(screen), 200, 420, 'Press ESC to quit', 8, 0);
+  print_normal(screen_image, 150, 400, 'Use UP/DOWN arrows to move, ENTER to select', 8, 0);
+  print_normal(screen_image, 200, 420, 'Press ESC to quit', 8, 0);
+  writeln('Instructions drawn');
 end;
 
 begin
