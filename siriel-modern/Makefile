@@ -75,6 +75,9 @@ test_bitmap_render: test_bitmap_render.pas
 test_colors: test_colors.pas
 	$(FPC) $(FPCFLAGS) test_colors.pas
 
+test_font: test_font.pas
+	$(FPC) $(FPCFLAGS) test_font.pas
+
 # Run the test
 run: $(TARGET)
 	./$(TARGET)
