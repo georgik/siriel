@@ -13,8 +13,7 @@ uses
   dos_compat,
   jxgraf,
   jxfont_simple,
-  raylib_helpers,
-  koder;
+  raylib_helpers;
 
 type
   TKey = array[1..8] of char;
@@ -64,7 +63,7 @@ var
 { Check if a key exists in a block file }
 function checkblock_info(sub, key: string): boolean;
 var
-  NumSounds: integer;
+  NumSounds: Word;  { Changed from integer to Word for 16-bit Turbo Pascal compatibility }
   ResKey: TKey;
   ResHeader: TResource;
   Index: integer;
@@ -199,7 +198,7 @@ end;
 { Get block from file and position file pointer }
 procedure GetBlockFile(Key: string);
 var
-  NumSounds: integer;
+  NumSounds: Word;  { Changed from integer to Word for 16-bit Turbo Pascal compatibility }
   ResKey: TKey;
   ResHeader: TResource;
   Index: integer;
@@ -251,7 +250,7 @@ type
     Size: LongInt;
   end;
 var
-  NumSounds: integer;
+  NumSounds: Word;  { Changed from integer to Word for 16-bit Turbo Pascal compatibility }
   ResKey: TKey;
   ResHeader: TResource;
   Index: integer;
@@ -474,7 +473,7 @@ end;
 { Load GIF from block file using Raylib }
 function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: word; var pal: tpalette): boolean;
 var
-  NumSounds: integer;
+  NumSounds: Word;  { Changed from integer to Word for 16-bit Turbo Pascal compatibility }
   ResKey: TKey;
   ResHeader: TResource;
   Index: integer;
@@ -487,6 +486,7 @@ var
   raylib_img: TRaylibImage;
   x, y: integer;
   pixel_ptr: PByte;
+  raw_data: PByte;
   r, g, b, a: byte;
 begin
   draw_gif_block := false;
@@ -548,12 +548,26 @@ begin
     Exit;
   end;
 
-  { Decrypt the data using Caesar cipher (method 1: add 2) }
-  { This decodes the encrypted Siriel bitmap format }
-  for x := 0 to DataSize - 1 do
+  { The data may have obfuscated signature "Jx19989" instead of "GIF89a" }
+  { Check and fix if needed }
+  if (DataSize >= 6) then
   begin
-    if PByte(NativeUInt(data) + x)^ <> 0 then
-      dekoduj(1, PByte(NativeUInt(data) + x)^);
+    { Check if it's the obfuscated "Jx1" format }
+    raw_data := PByte(data);
+    if (raw_data[0] = Ord('J')) and (raw_data[1] = Ord('x')) and (raw_data[2] = Ord('1')) then
+    begin
+      writeln('  Detected Jx1 format, converting to GIF89a');
+      { Replace Jx19989 with GIF89a }
+      raw_data[0] := Ord('G');
+      raw_data[1] := Ord('I');
+      raw_data[2] := Ord('F');
+      raw_data[3] := Ord('8');
+      raw_data[4] := Ord('9');
+      raw_data[5] := Ord('a');
+      writeln('  Signature fixed: GIF89a');
+    end
+    else
+      writeln('  Standard GIF format detected');
   end;
 
   { Load image using Raylib's stb_image (supports GIF) }
@@ -571,8 +585,8 @@ begin
   gif_x := raylib_img.width;
   gif_y := raylib_img.height;
 
-  { Copy Raylib image to our bitmap format }
-  { Raylib stores as RGBA, we need to handle palette }
+  { Copy Raylib image to our bitmap format with transparency support }
+  { Pink/magenta background (RGB 252,84,252 or similar) is transparent }
   pixel_ptr := PByte(raylib_img.data);
 
   for y := 0 to raylib_img.height - 1 do
@@ -589,8 +603,21 @@ begin
       a := pixel_ptr^;
       Inc(pixel_ptr);
 
-      { Write to our bitmap }
-      putpixel(bitmap, fromx + x, fromy + y, (a shl 24) or (r shl 16) or (g shl 8) or b);
+      { Check for transparent pink/magenta background }
+      { Pink range: R:250-255, G:0-100, B:250-255 }
+      if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+      begin
+        { Skip transparent pixels - don't draw }
+      end
+      else if a = 0 then
+      begin
+        { Also skip if alpha is 0 }
+      end
+      else
+      begin
+        { Write opaque pixel to bitmap }
+        putpixel(bitmap, fromx + x, fromy + y, (a shl 24) or (r shl 16) or (g shl 8) or b);
+      end;
     end;
   end;
 
