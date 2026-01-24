@@ -18,6 +18,11 @@ uses
 type
   TKey = array[1..8] of char;
   gbuf = array[0..767] of byte;
+  TResource = record
+    Key: TKey;
+    Start: LongInt;
+    Size: LongInt;
+  end;
 
 var
   ResourceFile: boolean;
@@ -51,13 +56,6 @@ var
   gif_x, gif_y: integer;
 
 implementation
-
-type
-  TResource = record
-    Key: TKey;
-    Start: LongInt;
-    Size: LongInt;
-  end;
 
 var
   SoundFile: file;
@@ -247,12 +245,6 @@ end;
 
 { Get block file using external file handle }
 function GetBlockFile_ext(var fil: file; Key: string): boolean;
-type
-  TResource = record
-    Key: TKey;
-    Start: LongInt;
-    Size: LongInt;
-  end;
 var
   NumSounds: Word;  { Changed from integer to Word for 16-bit Turbo Pascal compatibility }
   ResKey: TKey;

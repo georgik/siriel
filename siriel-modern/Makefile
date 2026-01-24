@@ -26,7 +26,7 @@ FPCFLAGS = -MObjfpc -Scghi -O2 -g -gl \
 TARGET = test_menu
 
 # All test programs
-TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette
+TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header
 
 # All targets
 .PHONY: all clean run menu resources tests help
@@ -104,6 +104,24 @@ test_palette: test_palette.pas
 
 test_raw_palette: test_raw_palette.pas
 	$(FPC) $(FPCFLAGS) test_raw_palette.pas
+
+test_sound: test_sound.pas
+	$(FPC) $(FPCFLAGS) test_sound.pas
+
+test_sound_simple: test_sound_simple.pas
+	$(FPC) $(FPCFLAGS) test_sound_simple.pas
+
+test_sound_wav: test_sound_wav.pas
+	$(FPC) $(FPCFLAGS) test_sound_wav.pas
+
+test_sound_dat: test_sound_dat.pas
+	$(FPC) $(FPCFLAGS) test_sound_dat.pas
+
+test_wav_header: test_wav_header.pas
+	$(FPC) $(FPCFLAGS) test_wav_header.pas
+
+test_play_wav: test_play_wav.pas
+	$(FPC) $(FPCFLAGS) test_play_wav.pas
 
 # Run the test
 run: $(TARGET)

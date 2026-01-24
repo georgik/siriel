@@ -42,6 +42,30 @@ type
     y: cfloat;
   end;
 
+  PRaylibAudioStream = ^TRaylibAudioStream;
+  TRaylibAudioStream = record
+    buffer: pointer;
+    processor: pointer;
+    sampleRate: cuint;
+    sampleSize: cuint;
+    channels: cuint;
+  end;
+
+  PRaylibSound = ^TRaylibSound;
+  TRaylibSound = record
+    stream: TRaylibAudioStream;
+    frameCount: cuint;
+  end;
+
+  PRaylibWave = ^TRaylibWave;
+  TRaylibWave = record
+    data: pointer;
+    sampleCount: cuint;
+    sampleRate: cuint;
+    sampleSize: cuint;
+    channels: cuint;
+  end;
+
 { Core Raylib functions }
 procedure InitWindow(width: cint; height: cint; title: PChar); cdecl; external 'raylib';
 procedure CloseWindow(); cdecl; external 'raylib';
@@ -77,6 +101,27 @@ procedure DrawTextureRec(texture: TRaylibTexture2D; srcRec: TRectangle; pos: TVe
 
 { Screenshot function }
 procedure TakeScreenshot(fileName: PChar); cdecl; external 'raylib';
+
+{ Text drawing functions }
+procedure DrawText(text: PChar; x: cint; y: cint; fontSize: cint; r: cuchar; g: cuchar; b: cuchar; a: cuchar); cdecl; external 'raylib';
+function IsKeyPressed(key: cint): cint; cdecl; external 'raylib';
+
+{ Audio functions }
+procedure InitAudioDevice(); cdecl; external 'raylib';
+procedure CloseAudioDevice(); cdecl; external 'raylib';
+function IsAudioDeviceReady(): cint; cdecl; external 'raylib';
+function LoadSound(fileName: PChar): TRaylibSound; cdecl; external 'raylib';
+function LoadWaveFromMemory(fileType: PChar; data: pointer; dataSize: cint): TRaylibWave; cdecl; external 'raylib';
+function LoadSoundFromWave(wave: TRaylibWave): TRaylibSound; cdecl; external 'raylib';
+procedure UnloadWave(wave: TRaylibWave); cdecl; external 'raylib';
+procedure UnloadSound(sound: TRaylibSound); cdecl; external 'raylib';
+procedure PlaySound(sound: TRaylibSound); cdecl; external 'raylib';
+procedure StopSound(sound: TRaylibSound); cdecl; external 'raylib';
+procedure PauseSound(sound: TRaylibSound); cdecl; external 'raylib';
+procedure ResumeSound(sound: TRaylibSound); cdecl; external 'raylib';
+function IsSoundPlaying(sound: TRaylibSound): cint; cdecl; external 'raylib';
+procedure SetSoundVolume(sound: TRaylibSound; volume: cfloat); cdecl; external 'raylib';
+procedure SetSoundPitch(sound: TRaylibSound; pitch: cfloat); cdecl; external 'raylib';
 
 implementation
 
