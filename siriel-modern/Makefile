@@ -26,7 +26,7 @@ FPCFLAGS = -MObjfpc -Scghi -O2 -g -gl \
 TARGET = test_menu
 
 # All test programs
-TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font
+TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file
 
 # All targets
 .PHONY: all clean run menu resources tests help
@@ -77,6 +77,18 @@ test_colors: test_colors.pas
 
 test_font: test_font.pas
 	$(FPC) $(FPCFLAGS) test_font.pas
+
+test_gif_load: test_gif_load.pas
+	$(FPC) $(FPCFLAGS) test_gif_load.pas
+
+test_block_read: test_block_read.pas
+	$(FPC) $(FPCFLAGS) test_block_read.pas
+
+test_manual_logo: test_manual_logo.pas
+	$(FPC) $(FPCFLAGS) test_manual_logo.pas
+
+test_gif_file: test_gif_file.pas
+	$(FPC) $(FPCFLAGS) test_gif_file.pas
 
 # Run the test
 run: $(TARGET)

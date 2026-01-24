@@ -13,7 +13,8 @@ uses
   dos_compat,
   jxgraf,
   jxfont_simple,
-  raylib_helpers;
+  raylib_helpers,
+  koder;
 
 type
   TKey = array[1..8] of char;
@@ -545,6 +546,14 @@ begin
     FreeMem(data);
     write_error('Failed to read complete block');
     Exit;
+  end;
+
+  { Decrypt the data using Caesar cipher (method 1: add 2) }
+  { This decodes the encrypted Siriel bitmap format }
+  for x := 0 to DataSize - 1 do
+  begin
+    if PByte(NativeUInt(data) + x)^ <> 0 then
+      dekoduj(1, PByte(NativeUInt(data) + x)^);
   end;
 
   { Load image using Raylib's stb_image (supports GIF) }
