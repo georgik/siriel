@@ -47,17 +47,23 @@ uses
 { TODO: Implement proper bitmap font rendering }
 procedure print_normal(bitmap: PImage; x, y: word; text: string; fg, bg: byte);
 var
-  i, j: integer;
+  i, j, k: integer;
   color: longint;
 begin
   { For now, use very simple rendering - 8x8 pixels per character }
+  { Colors should be in RGBA format: (A shl 24) or (R shl 16) or (G shl 8) or B }
   for i := 1 to Length(text) do
-  for j := 0 to 7 do
   begin
-    { Draw simple 8x8 blocks for each character }
-    { This is just a placeholder - proper font rendering will come later }
-    if (text[i] <> ' ') then
-      putpixel(bitmap, x + (i-1)*8 + j, y, fg);
+    for j := 0 to 7 do
+    begin
+      for k := 0 to 7 do
+      begin
+        { Draw simple 8x8 blocks for each character }
+        { This is just a placeholder - proper font rendering will come later }
+        if (text[i] <> ' ') then
+          putpixel(bitmap, x + (i-1)*8 + j, y + k, (255 shl 24) or (fg shl 16) or (fg shl 8) or fg);
+      end;
+    end;
   end;
 end;
 

@@ -75,6 +75,9 @@ procedure UnloadTexture(texture: TRaylibTexture2D); cdecl; external 'raylib';
 procedure DrawTexture(texture: TRaylibTexture2D; x: cint; y: cint; tint: cuint); cdecl; external 'raylib';
 procedure DrawTextureRec(texture: TRaylibTexture2D; srcRec: TRectangle; pos: TVector2; tint: cuint); cdecl; external 'raylib';
 
+{ Screenshot function }
+procedure TakeScreenshot(fileName: PChar); cdecl; external 'raylib';
+
 implementation
 
 end.

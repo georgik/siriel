@@ -31,6 +31,9 @@ var
   frame_count: longint;
   running: boolean;
   duration_seconds: integer;
+  screenshot_enabled: boolean;
+  screenshot_filename: string;
+  screenshot_taken: boolean;
   start_frame, current_frame: longint;
 
 { Draw a simple text menu option }
@@ -55,16 +58,33 @@ end;
 
 { Display the main intro menu }
 procedure show_intro_menu;
+var
+  logo_loaded: boolean;
 begin
   { Clear screen }
   clear_bitmap(PImage(screen));
 
-  { Draw title }
+  { Draw title text as fallback }
   print_normal(PImage(screen), 200, 50, 'SIRIEL 3.5', 15, 0);
   print_normal(PImage(screen), 180, 80, 'MODERN PORT', 11, 0);
+  print_normal(PImage(screen), 10, 10, 'v0.5 - Phase 5C', 7, 0);
 
-  { Draw version info }
-  print_normal(PImage(screen), 10, 10, 'v0.5 - Phase 5B', 7, 0);
+  { Try to load game logo from MAIN.DAT }
+  { In original code: draw_gif_block(screen,input_file,'GLOGO',460,100,palx); }
+  { Note: This is optional - if GLOGO doesn't exist, we use text fallback }
+  try
+    logo_loaded := draw_gif_block(PImage(screen), 'data/MAIN.DAT', 'GLOGO', 460, 100, palette);
+    if logo_loaded then
+      writeln('Logo loaded successfully')
+    else
+      writeln('Logo not available (using text fallback)');
+  except
+    on E: Exception do
+    begin
+      writeln('Logo loading error: ', E.Message, ' (using text fallback)');
+      logo_loaded := false;
+    end;
+  end;
 
   { Draw menu options }
   draw_menu_option(150, 'START GAME', menu_selection = 0);
@@ -82,14 +102,34 @@ begin
   writeln('=== Siriel Modern - Initial Menu Test ===');
   writeln('');
 
-  { Parse duration parameter (default 10 seconds) }
+  { Parse CLI parameters }
   duration_seconds := 10;
+  screenshot_enabled := false;
+  screenshot_filename := 'screenshot.png';
+  screenshot_taken := false;
+
   if ParamCount > 0 then
   begin
+    { First parameter: duration in seconds }
     duration_seconds := StrToIntDef(ParamStr(1), 10);
+    if duration_seconds <= 0 then
+      duration_seconds := 10;
   end;
+
+  if ParamCount > 1 then
+  begin
+    { Second parameter: screenshot filename (any non-empty value enables screenshot) }
+    screenshot_filename := ParamStr(2);
+    screenshot_enabled := true;
+  end;
+
   writeln('Auto-exit after ', duration_seconds, ' seconds');
-  writeln('Usage: ./test_menu [duration_seconds]');
+  if screenshot_enabled then
+    writeln('Screenshot will be saved to: ', screenshot_filename);
+  writeln('');
+  writeln('Usage: ./test_menu [duration_seconds] [screenshot_filename]');
+  writeln('  duration_seconds - How long to run (default: 10)');
+  writeln('  screenshot_filename - Save screenshot at end (default: disabled)');
   writeln('');
 
   menu_selection := 0;
@@ -116,6 +156,9 @@ begin
   begin
     BeginDrawing();
     ClearBackground(20, 20, 30, 255);
+
+    { Draw test rectangle to verify Raylib is working }
+    DrawRectangle(10, 10, 100, 100, 255);  { White test square }
 
     { Render our virtual screen }
     RenderScreenToWindow();
@@ -164,6 +207,16 @@ begin
     if (current_frame - start_frame) >= (duration_seconds * 60) then
     begin
       writeln('Auto-exit after ', duration_seconds, ' seconds');
+
+      { Take screenshot before exiting if enabled }
+      if screenshot_enabled and not screenshot_taken then
+      begin
+        writeln('Taking screenshot: ', screenshot_filename);
+        TakeScreenshot(PChar(screenshot_filename));
+        screenshot_taken := true;
+        writeln('Screenshot saved successfully');
+      end;
+
       running := false;
     end;
 
