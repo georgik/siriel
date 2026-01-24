@@ -123,6 +123,9 @@ test_wav_header: test_wav_header.pas
 test_play_wav: test_play_wav.pas
 	$(FPC) $(FPCFLAGS) test_play_wav.pas
 
+test_play_dat: test_play_dat.pas
+	$(FPC) $(FPCFLAGS) test_play_dat.pas
+
 # Run the test
 run: $(TARGET)
 	./$(TARGET)

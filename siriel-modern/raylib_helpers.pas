@@ -111,6 +111,7 @@ procedure InitAudioDevice(); cdecl; external 'raylib';
 procedure CloseAudioDevice(); cdecl; external 'raylib';
 function IsAudioDeviceReady(): cint; cdecl; external 'raylib';
 function LoadSound(fileName: PChar): TRaylibSound; cdecl; external 'raylib';
+function LoadWave(fileName: PChar): TRaylibWave; cdecl; external 'raylib';
 function LoadWaveFromMemory(fileType: PChar; data: pointer; dataSize: cint): TRaylibWave; cdecl; external 'raylib';
 function LoadSoundFromWave(wave: TRaylibWave): TRaylibSound; cdecl; external 'raylib';
 procedure UnloadWave(wave: TRaylibWave); cdecl; external 'raylib';

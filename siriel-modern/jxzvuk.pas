@@ -14,7 +14,8 @@ uses
   ctypes,
   raylib_helpers,
   blockx,
-  dos_compat;
+  dos_compat,
+  koder;
 
 const
   Max_NumSounds = 20;
@@ -75,6 +76,7 @@ procedure pust2(num: word); { Play sound with delay }
 function LoadSoundFromDAT(dataname, key: string): PSound;
 procedure FreeSoundCustom(snd: PSound);
 function PlaySoundCustom(snd: PSound): boolean;
+function GetSound(num: word): PSound;
 
 implementation
 
@@ -135,10 +137,11 @@ var
   i: integer;
   Found: boolean;
   snd: PSound;
-  data: pointer;
-  BytesRead: LongInt;
+  bytesRead: LongInt;
 begin
   LoadSoundFromDAT := nil;
+
+  writeln('[AUDIO] Loading block: ', key, ' from ', dataname);
 
   if not dos_compat.subor_exist(dataname) then
   begin
@@ -180,19 +183,18 @@ begin
   { Allocate sound structure }
   New(snd);
   snd^.Size := ResHeader.Size;
-  snd^.Data := nil;
-  snd^.SampleRate := 11025; { Siriel sounds are 11.025 kHz, not 22.05 kHz }
-  snd^.Channels := 1;      { Mono }
-  snd^.BitsPerSample := 8;  { 8-bit PCM }
-  snd^.SampleCount := ResHeader.Size; { For raw PCM, 1 byte per sample }
+  snd^.SampleRate := 11025;
+  snd^.Channels := 1;
+  snd^.BitsPerSample := 8;
+  snd^.SampleCount := ResHeader.Size;
 
   { Allocate memory and read data }
   GetMem(snd^.Data, snd^.Size);
   Seek(fil, ResHeader.Start);
-  BlockRead(fil, snd^.Data^, snd^.Size, BytesRead);
+  BlockRead(fil, snd^.Data^, snd^.Size, bytesRead);
   CloseFile(fil);
 
-  if BytesRead <> snd^.Size then
+  if bytesRead <> snd^.Size then
   begin
     writeln('[AUDIO] ERROR: Failed to read complete sound data');
     FreeMem(snd^.Data);
@@ -200,33 +202,8 @@ begin
     Exit;
   end;
 
-  { Check if it's a WAV file or raw PCM }
-  if snd^.Size >= 4 then
-  begin
-    if PChar(snd^.Data) = 'RIFF' then
-    begin
-      { It's a WAV file - parse header }
-      if snd^.Size >= 44 then
-      begin
-        snd^.Channels := PByte(snd^.Data + 20)^;
-        snd^.SampleRate := PLongInt(snd^.Data + 24)^;
-        snd^.BitsPerSample := PByte(snd^.Data + 34)^;
-
-        { Calculate sample count }
-        snd^.SampleCount := (snd^.Size - 44) div ((snd^.BitsPerSample div 8) * snd^.Channels);
-
-        writeln('[AUDIO] Loaded WAV: ', key, ' (', snd^.SampleRate, 'Hz, ',
-                snd^.Channels, ' ch, ', snd^.BitsPerSample, ' bit, ',
-                snd^.SampleCount, ' samples)');
-      end;
-    end
-    else
-    begin
-      { Raw PCM data (8-bit unsigned) }
-      writeln('[AUDIO] Loaded raw PCM: ', key, ' (', snd^.Size, ' bytes, ',
-              snd^.SampleRate, 'Hz, ', snd^.Channels, ' ch)');
-    end;
-  end;
+  writeln('[AUDIO] Loaded raw PCM: ', key, ' (', snd^.Size, ' bytes, ',
+          snd^.SampleRate, 'Hz, ', snd^.Channels, ' ch, ', snd^.SampleCount, ' samples)');
 
   LoadSoundFromDAT := snd;
 end;
@@ -245,14 +222,20 @@ end;
 { Play a sound using Raylib }
 function PlaySoundCustom(snd: PSound): boolean;
 var
-  wave: TRaylibWave;
-  raylib_sound: TRaylibSound;
+  fil: file;
   rawData: PByte;
   samples16: PSmallInt;
-  wavBuffer: pointer;
-  wavHeader: TWAVHeader absolute wavBuffer;
+  samples16_resampled: PSmallInt;
   dataSize: LongInt;
-  i: LongInt;
+  resampledSize: LongInt;
+  i, j: LongInt;
+  srcPos: double;
+  weight: double;
+  sample1, sample2: SmallInt;
+  tempFileName: string;
+  tempWAV: array[0..43] of char;
+  wave: TRaylibWave;
+  raylib_sound: TRaylibSound;
 begin
   PlaySoundCustom := false;
 
@@ -262,65 +245,67 @@ begin
   if not AudioInitialized then
     InitAudio;
 
-  { Convert 8-bit unsigned PCM (0-255) to 16-bit signed PCM (-32768 to 32767) }
-  { 8-bit value 128 (silence) maps to 16-bit value 0 }
-  dataSize := snd^.Size * 2;  { 16-bit = 2 bytes per sample }
+  { First convert 8-bit to 16-bit }
+  dataSize := snd^.Size * 2;
   GetMem(samples16, dataSize);
 
   rawData := PByte(snd^.Data);
   for i := 0 to snd^.Size - 1 do
   begin
-    { Convert: (0-255) -> (-32768 to 32767) }
-    { 128 -> 0, 0 -> -32768, 255 -> 32767 }
     samples16[i] := SmallInt((rawData[i] - 128) * 256);
   end;
 
-  { Debug: Check header size }
-  writeln('[AUDIO] WAV header size: ', SizeOf(TWAVHeader), ' bytes (expected 44)');
+  { Now resample from 11025 Hz to 44100 Hz (4x) }
+  resampledSize := dataSize * 4;
+  GetMem(samples16_resampled, resampledSize);
 
-  { Allocate buffer for header + data }
-  GetMem(wavBuffer, SizeOf(TWAVHeader) + dataSize);
+  for i := 0 to (snd^.Size * 4) - 1 do
+  begin
+    srcPos := i / 4.0;
+    j := Trunc(srcPos);
+    weight := srcPos - j;
 
-  { Fill WAV header using structured record }
-  wavHeader.RIFFId[0] := 'R';
-  wavHeader.RIFFId[1] := 'I';
-  wavHeader.RIFFId[2] := 'F';
-  wavHeader.RIFFId[3] := 'F';
-  wavHeader.FileSize := SizeOf(TWAVHeader) + dataSize - 8;
-  wavHeader.WAVEId[0] := 'W';
-  wavHeader.WAVEId[1] := 'A';
-  wavHeader.WAVEId[2] := 'V';
-  wavHeader.WAVEId[3] := 'E';
-  wavHeader.fmtId[0] := 'f';
-  wavHeader.fmtId[1] := 'm';
-  wavHeader.fmtId[2] := 't';
-  wavHeader.fmtId[3] := ' ';
-  wavHeader.fmtSize := 16;
-  wavHeader.AudioFormat := 1;  { PCM }
-  wavHeader.NumChannels := snd^.Channels;
-  wavHeader.SampleRate := snd^.SampleRate;
-  wavHeader.ByteRate := snd^.SampleRate * snd^.Channels * 2;  { 16-bit }
-  wavHeader.BlockAlign := snd^.Channels * 2;
-  wavHeader.BitsPerSample := 16;
-  wavHeader.dataId[0] := 'd';
-  wavHeader.dataId[1] := 'a';
-  wavHeader.dataId[2] := 't';
-  wavHeader.dataId[3] := 'a';
-  wavHeader.DataSize := dataSize;
+    sample1 := samples16[j];
+    if j + 1 < snd^.Size then
+      sample2 := samples16[j + 1]
+    else
+      sample2 := sample1;
 
-  { Debug output }
-  writeln('[AUDIO] WAV header: Rate=', wavHeader.SampleRate, ', Ch=', wavHeader.NumChannels,
-          ', Bits=', wavHeader.BitsPerSample, ', DataSize=', wavHeader.DataSize);
+    { Linear interpolation }
+    samples16_resampled[i] := SmallInt(Round(sample1 + weight * (sample2 - sample1)));
+  end;
 
-  { Copy converted 16-bit data after header }
-  Move(samples16^, (PByte(wavBuffer) + SizeOf(TWAVHeader))^, dataSize);
+  { Create temp WAV file }
+  tempFileName := 'temp_sound_' + Format('%x', [PtrUInt(snd)]) + '.wav';
 
-  { Load WAV from memory }
-  writeln('[AUDIO] Loading WAV from memory (', SizeOf(TWAVHeader) + dataSize, ' bytes)...');
-  wave := raylib_helpers.LoadWaveFromMemory('wav', wavBuffer, SizeOf(TWAVHeader) + dataSize);
+  AssignFile(fil, tempFileName);
+  Rewrite(fil, 1);
+
+  { Write WAV header }
+  tempWAV[0] := 'R'; tempWAV[1] := 'I'; tempWAV[2] := 'F'; tempWAV[3] := 'F';
+  PLongInt(@tempWAV[4])^ := resampledSize + 36;
+  tempWAV[8] := 'W'; tempWAV[9] := 'A'; tempWAV[10] := 'V'; tempWAV[11] := 'E';
+  tempWAV[12] := 'f'; tempWAV[13] := 'm'; tempWAV[14] := 't'; tempWAV[15] := ' ';
+  PLongInt(@tempWAV[16])^ := 16;
+  PWord(@tempWAV[20])^ := 1;
+  PWord(@tempWAV[22])^ := snd^.Channels;
+  PLongInt(@tempWAV[24])^ := 44100;
+  PLongInt(@tempWAV[28])^ := 44100 * 2;
+  PWord(@tempWAV[32])^ := 2;
+  PWord(@tempWAV[34])^ := 16;
+  tempWAV[36] := 'd'; tempWAV[37] := 'a'; tempWAV[38] := 't'; tempWAV[39] := 'a';
+  PLongInt(@tempWAV[40])^ := resampledSize;
+
+  BlockWrite(fil, tempWAV, 44);
+  BlockWrite(fil, samples16_resampled^, resampledSize);
+  CloseFile(fil);
 
   FreeMem(samples16);
-  FreeMem(wavBuffer);
+  FreeMem(samples16_resampled);
+
+  { Load WAV from file }
+  writeln('[AUDIO] Loading WAV from file: ', tempFileName);
+  wave := raylib_helpers.LoadWave(PChar(tempFileName));
 
   if wave.data = nil then
   begin
@@ -332,11 +317,14 @@ begin
   raylib_sound := raylib_helpers.LoadSoundFromWave(wave);
   raylib_helpers.UnloadWave(wave);
 
-  if raylib_sound.stream = nil then
+  if raylib_sound.stream.buffer = nil then
   begin
     writeln('[AUDIO] ERROR: Failed to create Raylib sound');
     Exit;
   end;
+
+  { Set volume to 50% }
+  raylib_helpers.SetSoundVolume(raylib_sound, 0.5);
 
   { Play sound }
   raylib_helpers.PlaySound(raylib_sound);
@@ -445,6 +433,15 @@ begin
 
   { Original code had delay here - you can add if needed }
   { pulzx(10); }
+end;
+
+{ Get a sound pointer }
+function GetSound(num: word): PSound;
+begin
+  if (num >= 0) and (num < NumSounds) then
+    GetSound := Sound[num]
+  else
+    GetSound := nil;
 end;
 
 begin
