@@ -46,6 +46,10 @@ function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: w
 procedure Font_Load_block(fmeno, kluc: string; var fx, fy: word);
 procedure load_palette_block(sub, kluc: string; var palx: tpalette);
 
+{ Global GIF dimensions (set by draw_gif_block) }
+var
+  gif_x, gif_y: integer;
+
 implementation
 
 type
@@ -584,6 +588,7 @@ begin
   { Update global GIF dimensions }
   gif_x := raylib_img.width;
   gif_y := raylib_img.height;
+  writeln('  [DEBUG] Set gif_x=', gif_x, ' gif_y=', gif_y);
 
   { Copy Raylib image to our bitmap format with transparency support }
   { Pink/magenta background (RGB 252,84,252 or similar) is transparent }

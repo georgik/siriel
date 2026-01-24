@@ -28,7 +28,7 @@ begin
   writeln('');
 
   { Open file and read block count }
-  AssignFile(fil, 'data/MAIN.DAT');
+  AssignFile(fil, 'data/SIRIEL35.DAT');
   {$I-}
   Reset(fil, 1);
 
