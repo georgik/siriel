@@ -122,24 +122,18 @@ end;
 
 { Check if specific key is pressed }
 function zmack(cisl: byte): boolean;
-var
-  scan_code: word;
 begin
   zmack := False;
-  
+
   case cisl of
-    1: scan_code := kb_up;
-    2: scan_code := kb_down;
-    3: scan_code := kb_left;
-    4: scan_code := kb_right;
-    5: scan_code := kb_esc;
-    6: scan_code := kb_enter;
-    32: scan_code := kb_space;
-  else
-    exit;
+    1: zmack := (IsKeyDown(KEY_UP) <> 0);      { Up }
+    2: zmack := (IsKeyDown(KEY_DOWN) <> 0);    { Down }
+    3: zmack := (IsKeyDown(KEY_LEFT) <> 0);    { Left }
+    4: zmack := (IsKeyDown(KEY_RIGHT) <> 0);   { Right }
+    5: zmack := (IsKeyDown(KEY_ESCAPE) <> 0);  { ESC }
+    6: zmack := (IsKeyDown(KEY_ENTER) <> 0);   { Enter }
+    32: zmack := (IsKeyDown(KEY_SPACE) <> 0);   { Space }
   end;
-  
-  zmack := (key_buffer = scan_code);
 end;
 
 { Wait for specified milliseconds }
@@ -180,16 +174,39 @@ end;
 { Directional input handling }
 procedure sipky(var sipx, sipy: integer; var kluc: word);
 begin
-  kluc := kkey;
-  
-  if kluc = kb_left then
-    dec(sipx)
-  else if kluc = kb_right then
-    inc(sipx)
-  else if kluc = kb_up then
-    dec(sipy)
-  else if kluc = kb_down then
-    inc(sipy);
+  kluc := 0;
+  sipx := 0;
+  sipy := 0;
+
+  { Check arrow keys and set direction }
+  if IsKeyDown(KEY_LEFT) <> 0 then
+  begin
+    sipx := -1;
+    kluc := kb_left;
+  end
+  else if IsKeyDown(KEY_RIGHT) <> 0 then
+  begin
+    sipx := 1;
+    kluc := kb_right;
+  end
+  else if IsKeyDown(KEY_UP) <> 0 then
+  begin
+    sipy := -1;
+    kluc := kb_up;
+  end
+  else if IsKeyDown(KEY_DOWN) <> 0 then
+  begin
+    sipy := 1;
+    kluc := kb_down;
+  end;
+
+  { Check special keys }
+  if IsKeyDown(KEY_ESCAPE) <> 0 then
+    kluc := kb_esc
+  else if IsKeyDown(KEY_ENTER) <> 0 then
+    kluc := kb_enter
+  else if IsKeyDown(KEY_SPACE) <> 0 then
+    kluc := kb_space;
 end;
 
 { Simulate key press for movement }

@@ -26,7 +26,7 @@ FPCFLAGS = -MObjfpc -Scghi -O2 -g -gl \
 TARGET = test_menu
 
 # All test programs
-TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_spritesheet test_animation
+TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_gzal_display test_tile_display test_spritesheet test_animation test_menu_decor test_modern_mem test_keyboard
 
 # All targets
 .PHONY: all clean run menu resources tests help
@@ -126,11 +126,32 @@ test_play_wav: test_play_wav.pas
 test_play_dat: test_play_dat.pas
 	$(FPC) $(FPCFLAGS) test_play_dat.pas
 
+test_gzal_display: test_gzal_display.pas
+	$(FPC) $(FPCFLAGS) test_gzal_display.pas
+
+test_extract_tile: test_extract_tile.pas
+	$(FPC) $(FPCFLAGS) test_extract_tile.pas
+
+test_red_tile: test_red_tile.pas
+	$(FPC) $(FPCFLAGS) test_red_tile.pas
+
+test_tile_display: test_tile_display.pas
+	$(FPC) $(FPCFLAGS) test_tile_display.pas
+
 test_spritesheet: test_spritesheet.pas
 	$(FPC) $(FPCFLAGS) test_spritesheet.pas
 
 test_animation: test_animation.pas
 	$(FPC) $(FPCFLAGS) test_animation.pas
+
+test_menu_decor: test_menu_decor.pas
+	$(FPC) $(FPCFLAGS) test_menu_decor.pas
+
+test_modern_mem: test_modern_mem.pas
+	$(FPC) $(FPCFLAGS) test_modern_mem.pas
+
+test_keyboard: test_keyboard.pas
+	$(FPC) $(FPCFLAGS) test_keyboard.pas
 
 # Run the test
 run: $(TARGET)
