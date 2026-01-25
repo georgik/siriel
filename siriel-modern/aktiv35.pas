@@ -5,7 +5,8 @@ unit aktiv35;
 interface
 
 uses
-  jxvar;
+  jxvar,
+  modern_mem;
 
 { Constants }
 const
@@ -176,14 +177,6 @@ type
     h, m, s, o: word;
   end;
 
-{ XMS handle replacement - use pointer }
-type
-  PKlucka = ^TKlucka;
-  TKlucka = record
-    data: pointer;
-    size: longint;
-  end;
-
 { Global variables }
 var
   oldkey: word;
@@ -277,7 +270,7 @@ var
   smart_jump, lifting: boolean;
   menu_pointer, inicializacna_pauza: word;  { ukazuje na menu, ktore sa ma inicializovat }
   start_stage: byte;  { startovacia miestnost }
-  handles: array[1..max_handles] of TKlucka;
+  handles: array[1..max_handles] of klucka;
   { 1 - obrazovka
     2 - obrazovka pre menu
     3 - nazvy predmetov
@@ -285,9 +278,7 @@ var
     5 - sluzi na ulozenie map
     6 - pozadie pri hre }
 
-{ Helper functions for memory management (replacing XMS) }
-function AllocateHandle(size: longint): TKlucka;
-procedure FreeHandle(var handle: TKlucka);
+{ Initialization }
 procedure InitAktiv35;
 
 implementation
@@ -295,27 +286,21 @@ implementation
 uses
   SysUtils;
 
-{ Allocate memory (replaces XMS allocation) }
-function AllocateHandle(size: longint): TKlucka;
-begin
-  AllocateHandle.data := GetMem(size);
-  AllocateHandle.size := size;
-end;
-
-{ Free memory (replaces XMS free) }
-procedure FreeHandle(var handle: TKlucka);
-begin
-  if Assigned(handle.data) then
-  begin
-    FreeMem(handle.data, handle.size);
-    handle.data := nil;
-    handle.size := 0;
-  end;
-end;
-
 { Initialize AKTIV35 unit }
 procedure InitAktiv35;
+var
+  i: integer;
 begin
+  { Initialize handles array }
+  init_handles(max_handles, handles);
+  for i := 1 to max_handles do
+  begin
+    handles[i].h := i;
+    handles[i].used := False;
+    handles[i].ptr := nil;
+    handles[i].size := 0;
+  end;
+
   { Initialize pointers to nil }
   vec := nil;
   ar := nil;

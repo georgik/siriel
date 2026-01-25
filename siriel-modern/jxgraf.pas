@@ -84,6 +84,7 @@ var
   screen_image: PImage;
   screen_width, screen_height: word;
   current_palette: tpalette;
+  chardx, chardy: word;  { Character dimensions (8x8 font) }
 
 { Screen to texture rendering }
 { This converts our virtual screen to a Raylib texture and displays it }
@@ -373,6 +374,10 @@ begin
   screen^.y := 0;
   screen^.putpixel := nil;
   screen^.getpixel := nil;
+
+  { Initialize character dimensions (8x8 font) }
+  chardx := 8;
+  chardy := 8;
 
   { Initialize line pointers to point to screen rows }
   FillChar(screen_lines, SizeOf(screen_lines), 0);

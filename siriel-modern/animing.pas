@@ -9,6 +9,7 @@ interface
 
 uses
   jxgraf,
+  modern_mem,
   SysUtils;
 
 { === ORIGINAL ANIMING API - PRESERVED === }
@@ -39,14 +40,14 @@ procedure init_charakter(chsizex, chsizey, chx, chy, chpoloha, chbuf: word; var 
 procedure vypni_charakter(choldx, choldy, chbuf: word; var am: array of byte);
 procedure zapni_charakter(chx, chy, num, chbuf: word; var am: array of byte);
 
-{ XMS versions - for compatibility, using standard memory }
-procedure getsegxms(var kluka; gx, gy, gd, gs, num: longint);
-procedure putsegxms(var kluka; gx, gy, gd, gs, num: longint);
-procedure getseg2xms(var kluka; gx, gy, gd, gs, num, col: word);
-procedure putseg2xms(var kluka; gx, gy, gd, gs, num, col: longint);
-procedure putseg2_revxms(var kluka; gx, gy, gd, gs, num, col: word);
-procedure putseg2_mixxms(var kluka, kluka2; gx, gy, gd, gs, num, col, num2: word);
-procedure putseg2_rev_mixxms(var kluka, kluka2; gx, gy, gd, gs, num, col, num2: word);
+{ XMS versions - for compatibility, using modern_mem }
+procedure getsegxms(var kluka: klucka; gx, gy, gd, gs, num: longint);
+procedure putsegxms(var kluka: klucka; gx, gy, gd, gs, num: longint);
+procedure getseg2xms(var kluka: klucka; gx, gy, gd, gs, num, col: word);
+procedure putseg2xms(var kluka: klucka; gx, gy, gd, gs, num, col: longint);
+procedure putseg2_revxms(var kluka: klucka; gx, gy, gd, gs, num, col: word);
+procedure putseg2_mixxms(var kluka, kluka2: klucka; gx, gy, gd, gs, num, col, num2: word);
+procedure putseg2_rev_mixxms(var kluka, kluka2: klucka; gx, gy, gd, gs, num, col, num2: word);
 
 { Global variables }
 var
@@ -54,12 +55,6 @@ var
   lajna, lajno: tline;    { Line buffers }
 
 implementation
-
-type
-  TKlucka = record
-    data: pointer;
-    size: longint;
-  end;
 
 { === SECTOR OPERATIONS === }
 
@@ -300,42 +295,212 @@ begin
   putseg2(chx, chy, sizex, sizey, num, 255, am);
 end;
 
-{ === XMS VERSIONS (Using Standard Memory) === }
-{ These are stubs for now - will be implemented if needed }
+{ === XMS VERSIONS (Using modern_mem) === }
+{ These functions store/retrieve sprites in memory handles }
 
-procedure getsegxms(var kluka; gx, gy, gd, gs, num: longint);
+procedure getsegxms(var kluka: klucka; gx, gy, gd, gs, num: longint);
+var
+  gf, gff, cxx: longint;
+  src_ptr: PByte;
 begin
-  { TODO: Implement if needed for XMS handle support }
+  if kluka.used and (kluka.ptr <> nil) then
+  begin
+    cxx := num * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read line from screen }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offset in handle }
+      src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
+
+      { Store line data in handle }
+      for gff := 0 to gd - 1 do
+        src_ptr[gff] := lajna[gff];
+    end;
+  end;
 end;
 
-procedure putsegxms(var kluka; gx, gy, gd, gs, num: longint);
+procedure putsegxms(var kluka: klucka; gx, gy, gd, gs, num: longint);
+var
+  gf, gff, cxx: longint;
+  src_ptr: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and (kluka.ptr <> nil) then
+  begin
+    cxx := num * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Calculate offset in handle }
+      src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
+
+      { Load line data from handle }
+      for gff := 0 to gd - 1 do
+        lajna[gff] := src_ptr[gff];
+
+      { Write line to screen }
+      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    end;
+  end;
 end;
 
-procedure getseg2xms(var kluka; gx, gy, gd, gs, num, col: word);
+procedure getseg2xms(var kluka: klucka; gx, gy, gd, gs, num, col: word);
+var
+  gf, gff, cxx: longint;
+  src_ptr: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and (kluka.ptr <> nil) then
+  begin
+    cxx := num * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read line from screen }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offset in handle }
+      src_ptr := PByte(kluka.ptr) + (cxx + gf * gs);
+
+      { Store line data in handle, skipping transparent color }
+      for gff := 0 to gd - 1 do
+      begin
+        if lajna[gff] <> col then
+          src_ptr[gff] := lajna[gff]
+        else
+          src_ptr[gff] := 0;
+      end;
+    end;
+  end;
 end;
 
-procedure putseg2xms(var kluka; gx, gy, gd, gs, num, col: longint);
+procedure putseg2xms(var kluka: klucka; gx, gy, gd, gs, num, col: longint);
+var
+  gf, gff, cxx: longint;
+  src_ptr: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and (kluka.ptr <> nil) then
+  begin
+    cxx := num * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read current screen line }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offset in handle }
+      src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
+
+      { Blend line data from handle, preserving transparent color }
+      for gff := 0 to gd - 1 do
+      begin
+        if src_ptr[gff] <> col then
+          lajna[gff] := src_ptr[gff];
+      end;
+
+      { Write line to screen }
+      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    end;
+  end;
 end;
 
-procedure putseg2_revxms(var kluka; gx, gy, gd, gs, num, col: word);
+procedure putseg2_revxms(var kluka: klucka; gx, gy, gd, gs, num, col: word);
+var
+  gf, gff, cxx: longint;
+  src_ptr: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and (kluka.ptr <> nil) then
+  begin
+    cxx := num * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read current screen line }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offset in handle }
+      src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
+
+      { Mirror horizontally: read from right, write to left, preserving transparent color }
+      for gff := 0 to gd - 1 do
+      begin
+        if src_ptr[gd - 1 - gff] <> col then
+          lajna[gff] := src_ptr[gd - 1 - gff];
+      end;
+
+      { Write line to screen }
+      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    end;
+  end;
 end;
 
-procedure putseg2_mixxms(var kluka, kluka2; gx, gy, gd, gs, num, col, num2: word);
+procedure putseg2_mixxms(var kluka, kluka2: klucka; gx, gy, gd, gs, num, col, num2: word);
+var
+  gf, gff, cxx, cxx2: longint;
+  src_ptr1, src_ptr2: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and kluka2.used then
+  begin
+    cxx := num * gd * gs;
+    cxx2 := num2 * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read current screen line }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offsets in both handles }
+      src_ptr1 := PByte(kluka.ptr) + (cxx + gf * gd);
+      src_ptr2 := PByte(kluka2.ptr) + (cxx2 + gf * gd);
+
+      { Mix: replace transparent pixels from first with pixels from second }
+      for gff := 0 to gd - 1 do
+      begin
+        if src_ptr1[gff] = col then
+          lajna[gff] := src_ptr2[gff]
+        else
+          lajna[gff] := src_ptr1[gff];
+      end;
+
+      { Write line to screen }
+      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    end;
+  end;
 end;
 
-procedure putseg2_rev_mixxms(var kluka, kluka2; gx, gy, gd, gs, num, col, num2: word);
+procedure putseg2_rev_mixxms(var kluka, kluka2: klucka; gx, gy, gd, gs, num, col, num2: word);
+var
+  gf, gff, cxx, cxx2: longint;
+  src_ptr1, src_ptr2: PByte;
 begin
-  { TODO: Implement if needed }
+  if kluka.used and kluka2.used then
+  begin
+    cxx := num * gd * gs;
+    cxx2 := num2 * gd * gs;
+
+    for gf := 0 to gs - 1 do
+    begin
+      { Read current screen line }
+      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+
+      { Calculate offsets in both handles }
+      src_ptr1 := PByte(kluka.ptr) + (cxx + gf * gd);
+      src_ptr2 := PByte(kluka2.ptr) + (cxx2 + gf * gd);
+
+      { Mix with mirror: replace transparent pixels from first with pixels from second }
+      for gff := 0 to gd - 1 do
+      begin
+        if src_ptr1[gd - 1 - gff] = col then
+          lajna[gff] := src_ptr2[gff]
+        else
+          lajna[gff] := src_ptr1[gd - 1 - gff];
+      end;
+
+      { Write line to screen }
+      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    end;
+  end;
 end;
 
 end.
