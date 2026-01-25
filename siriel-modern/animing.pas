@@ -265,34 +265,41 @@ begin
   getcol := am[cxx];
 end;
 
-{ === CHARACTER/SPRITE MANAGEMENT === }
+{ === CHARACTER/SPRITE MANAGEMENT - EXACT PORT FROM ORIGINAL === }
 
-{ Move character from old position to new position }
+{ EXACT PORT from ANIMING.PAS lines 177-185 }
 procedure charakter(chx, chy, choldx, choldy, chpoloha, chbuf: word; var am: array of byte);
 begin
-  { Draw at new position }
-  putseg(chx, chy, sizex, sizey, chpoloha, am);
-  { Restore background at old position (with transparency) }
-  putseg2(choldx, choldy, sizex, sizey, chbuf, 255, am);
+  if (chx <> choldx) or (chy <> choldy) then
+  begin
+    putseg(choldx, choldy, sizex, sizey, chbuf, am);
+    getseg(chx, chy, sizex, sizey, chbuf, am);
+    putseg2(chx, chy, sizex, sizey, chpoloha, 13, am);
+  end
+  else
+    putseg2_mix(chx, chy, sizex, sizey, chpoloha, 13, am, chbuf, am);
 end;
 
-{ Initialize character/sprite }
+{ EXACT PORT from ANIMING.PAS lines 187-193 }
 procedure init_charakter(chsizex, chsizey, chx, chy, chpoloha, chbuf: word; var am: array of byte);
 begin
   sizex := chsizex;
   sizey := chsizey;
+  getseg(chx, chy, sizex, sizey, chbuf, am);
+  putseg2(chx, chy, sizex, sizey, chpoloha, 13, am);
 end;
 
-{ Hide character (restore background) }
+{ EXACT PORT from ANIMING.PAS lines 195-198 }
 procedure vypni_charakter(choldx, choldy, chbuf: word; var am: array of byte);
 begin
-  putseg2(choldx, choldy, sizex, sizey, chbuf, 255, am);
+  putseg(choldx, choldy, sizex, sizey, chbuf, am);
 end;
 
-{ Show character at position }
+{ EXACT PORT from ANIMING.PAS lines 215-219 }
 procedure zapni_charakter(chx, chy, num, chbuf: word; var am: array of byte);
 begin
-  putseg2(chx, chy, sizex, sizey, num, 255, am);
+  getseg(chx, chy, sizex, sizey, chbuf, am);
+  putseg2(chx, chy, sizex, sizey, num, 13, am);
 end;
 
 { === XMS VERSIONS (Using modern_mem) === }

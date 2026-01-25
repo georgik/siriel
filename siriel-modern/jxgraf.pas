@@ -11,7 +11,8 @@ interface
 uses
   ctypes,
   raylib_helpers,
-  SysUtils;
+  SysUtils,
+  Math;  { For Max and Min functions }
 
 type
   { Original JXGRAF types }
@@ -66,7 +67,8 @@ procedure read_linepos(bitmap: PImage; var line: tline; abscisse, ordonnee: word
 { Drawing primitives }
 procedure line(x1, y1, x2, y2: word; couleur: byte);
 procedure rectangle(bitmap: PImage; x1, y1, x2, y2: word);
-procedure rectangle2(bitmap: PImage; x1, y1, x2, y2, col: word);
+procedure rectangle2(bitmap: PImage; x1, y1, x2, y2, col: word); overload;
+procedure rectangle2(bitmap: PScreenImage; x1, y1, x2, y2, col: word); overload;
 procedure circle(bitmap: PImage; xc, yc, r: word; coul: longint);
 
 { Blitting }
@@ -76,6 +78,54 @@ procedure blit(bit1, bit2: PImage; x1, y1, x2, y2, numberx, numbery: word);
 type
   tpalette = array[0..255] of record
     r, v, b: byte;
+  end;
+
+  { Point type for TFrame }
+  TPoint = record
+    x, y: word;
+  end;
+
+  { Handle type (from original JXEFEKT.PAS) }
+  klucka = word;
+
+  { TFrame object - stub implementation }
+  PFrame = ^TFrame;
+  TFrame = object
+    ha_frame      : klucka;
+    ha_back       : klucka;
+    fill_color    : byte;
+    size_x,size_y : word;
+    version       : byte;
+    save          : boolean;
+    P1,P2         : TPoint;
+    killable      : boolean;
+    constructor init(handle:klucka;Block_file,Gif_file:string;Asave:boolean);
+    procedure   draw(x,y,dx,dy:word);
+    procedure   set_params(var Framex:TFrame);
+    destructor  done;
+  end;
+
+  { TPrint object - stub implementation }
+  PPrint_option = ^TPrint_option;
+  TPrint_option = record
+    px,py         : integer;
+    text_color    : byte;
+    shadow_color  : byte;
+    roll_color    : byte;
+    shadow        : boolean;
+    center        : boolean;
+    input_char    : char;
+  end;
+
+  PPrint = ^TPrint;
+
+  TPrint = object
+    opt : PPrint_option;
+    constructor init(PPx,PPy:integer;Tcol,CShadow,Roll:byte;Pcenter,Pshadow:boolean);
+    procedure   print(x,y:word;s:string);
+    procedure   print_col(x,y:word;s:string;col:byte);
+    function    input(x,y:word;max_len:word):string;
+    destructor  done;
   end;
 
 { Global variables }
@@ -91,9 +141,45 @@ var
 procedure init_screen(w, h: word);
 procedure RenderScreenToWindow();
 
+{ Type conversion helpers for PScreenImage <-> PImage compatibility }
+function ScreenImageToImage(scr: PScreenImage): PImage;
+function ImageToScreenImage(img: PImage): PScreenImage;
+
 { Palette management }
 function palette_to_rgba(color_index: byte): longint;
 procedure fill_palette_default;
+
+{ Palette manipulation functions }
+procedure decrease_palette(var pal: tpalette; steps: integer);
+procedure increase_palette(var pal: tpalette; steps: integer); overload;
+procedure increase_palette(var pal: tpalette); overload;
+procedure increase_palette(start, palx: tpalette; steps: integer); overload;
+procedure write_palette(var pal: tpalette; start, count: integer);
+
+{ GIF loading functions }
+procedure draw_gif(bitmap: PScreenImage; const filename: string; x, y: word; var pal: tpalette);
+procedure draw_gif_block(bitmap: PScreenImage; const datfile, blockname: string; x, y: word; var pal: tpalette);
+
+{ Text output functions }
+procedure printc(bitmap: PScreenImage; y: word; const text: string; col, back: word);
+procedure printx2(bitmap: PScreenImage; x, y: word; const text: string; col, back, transparent, styl: word; delay: word);
+procedure print_normal(bitmap: PScreenImage; x, y: word; const text: string; col, back: word); overload;
+procedure print_normal(bitmap: PImage; x, y: word; const text: string; col, back: word); overload;
+
+{ Drawing functions }
+procedure okno(x, y, w, h, back: word);
+procedure clear_bitmap(bitmap: PImage);
+procedure stvorec2(bitmap: PScreenImage; x, y, w, h, col, back: word);
+
+{ Frame and print wrapper functions (compatibility with original object methods) }
+procedure old_frame_draw(x, y, dx, dy: word);
+procedure old_frame_init(handle:word; const block_file, gif_file: string; asave:boolean);
+procedure old_frame_done;
+procedure napis_print(x, y: word; const s: string);
+procedure napis2_print(x, y: word; const s: string);
+function napis_input(x, y: word; max_len: word): string;
+procedure napis_init(px, py: integer; tcol, cshadow, roll: byte; pcenter, pshadow: boolean);
+procedure napis_done;
 
 implementation
 
@@ -293,9 +379,16 @@ begin
   for y := y1 to y2 do
     for x := x1 to x2 do
       putpixel(bitmap, x, y, color);
-      
+
   if bitmap = screen_image then
     screen_dirty := True;
+end;
+
+{ Overload for PScreenImage - convert to PImage and call original }
+procedure rectangle2(bitmap: PScreenImage; x1, y1, x2, y2, col: word);
+begin
+  if not Assigned(bitmap) then Exit;
+  rectangle2(ScreenImageToImage(bitmap), x1, y1, x2, y2, col);
 end;
 
 procedure circle(bitmap: PImage; xc, yc, r: word; coul: longint);
@@ -473,9 +566,283 @@ begin
   end;
 end;
 
+{ ========================================
+   PALETTE MANIPULATION FUNCTIONS
+   ======================================== }
+
+procedure decrease_palette(var pal: tpalette; steps: integer);
+begin
+  { Stub: Original palette darkening for fade-out effects }
+  { In modern Raylib, use alpha blending instead }
+  { For now, no-op - visual effects can be added later }
+end;
+
+procedure increase_palette(var pal: tpalette; steps: integer);
+begin
+  { Stub: Original palette brightening for fade-in effects }
+  { In modern Raylib, use alpha blending instead }
+  { For now, no-op - visual effects can be added later }
+end;
+
+procedure increase_palette(var pal: tpalette);
+begin
+  { Stub: Default fade-in }
+  { In modern Raylib, use alpha blending instead }
+end;
+
+{ 3-parameter version: copy from source palette to destination }
+procedure increase_palette(start, palx: tpalette; steps: integer);
+var
+  i: integer;
+begin
+  { Copy source palette to destination }
+  { In original, this would fade between palettes }
+  { For modern implementation, just copy directly }
+  for i := 0 to 255 do
+  begin
+    palx[i].r := start[i].r;
+    palx[i].v := start[i].v;
+    palx[i].b := start[i].b;
+  end;
+end;
+
+procedure write_palette(var pal: tpalette; start, count: integer);
+var
+  i: integer;
+begin
+  { Copy palette to current palette }
+  for i := start to Min(255, start + count - 1) do
+    current_palette[i] := pal[i];
+end;
+
+{ ========================================
+   GIF LOADING FUNCTIONS (Stubs)
+   ======================================== }
+
+procedure draw_gif(bitmap: PScreenImage; const filename: string; x, y: word; var pal: tpalette);
+begin
+  { TODO: Implement GIF loading from file }
+  { For now, this is a stub }
+  writeln('STUB: draw_gif(', filename, ') at (', x, ',', y, ')');
+end;
+
+procedure draw_gif_block(bitmap: PScreenImage; const datfile, blockname: string; x, y: word; var pal: tpalette);
+begin
+  { TODO: Implement GIF loading from DAT block }
+  { For now, this is a stub }
+  writeln('STUB: draw_gif_block(', datfile, ',', blockname, ') at (', x, ',', y, ')');
+end;
+
+{ ========================================
+   TEXT OUTPUT FUNCTIONS
+   ======================================== }
+
+procedure printc(bitmap: PScreenImage; y: word; const text: string; col, back: word);
+begin
+  { Print text centered horizontally at y position }
+  { TODO: Implement proper text rendering }
+  writeln('STUB: printc at y=', y, ' text=', text);
+end;
+
+procedure printx2(bitmap: PScreenImage; x, y: word; const text: string; col, back, transparent, styl: word; delay: word);
+begin
+  { Print text with extended options }
+  { TODO: Implement proper text rendering }
+  writeln('STUB: printx2 at (', x, ',', y, ') text=', text);
+end;
+
+procedure print_normal(bitmap: PScreenImage; x, y: word; const text: string; col, back: word);
+begin
+  { Print text normally }
+  { TODO: Implement proper text rendering }
+  writeln('STUB: print_normal at (', x, ',', y, ') text=', text);
+end;
+
+{ PImage version - convert and call through }
+procedure print_normal(bitmap: PImage; x, y: word; const text: string; col, back: word);
+begin
+  { TODO: Implement proper text rendering }
+  writeln('STUB: print_normal(PImage) at (', x, ',', y, ') text=', text);
+end;
+
+{ ========================================
+   DRAWING FUNCTIONS
+   ======================================== }
+
+procedure okno(x, y, w, h, back: word);
+begin
+  { Draw window/box }
+  { TODO: Implement window drawing }
+  writeln('STUB: okno at (', x, ',', y, ') size=', w, 'x', h);
+end;
+
+procedure clear_bitmap(bitmap: PImage);
+begin
+  { Clear bitmap to black }
+  if Assigned(bitmap) and Assigned(bitmap^.data) then
+    FillByte(bitmap^.data^, bitmap^.width * bitmap^.height * 4, 0);
+end;
+
+procedure stvorec2(bitmap: PScreenImage; x, y, w, h, col, back: word);
+begin
+  { Draw rectangle }
+  { TODO: Implement rectangle drawing }
+  writeln('STUB: stvorec2 at (', x, ',', y, ') size=', w, 'x', h);
+end;
+
+{ ========================================
+   TFrame and TPrint Object Implementations
+   ======================================== }
+
+constructor TFrame.init(handle:klucka;Block_file,Gif_file:string;Asave:boolean);
+begin
+  { TODO: Implement frame initialization }
+  writeln('STUB: TFrame.init');
+  ha_frame := handle;
+  save := Asave;
+end;
+
+procedure TFrame.draw(x,y,dx,dy:word);
+begin
+  { TODO: Implement frame drawing }
+  writeln('STUB: TFrame.draw at (', x, ',', y, ') size=', dx, 'x', dy);
+end;
+
+procedure TFrame.set_params(var Framex:TFrame);
+begin
+  { TODO: Implement parameter copying }
+  writeln('STUB: TFrame.set_params');
+end;
+
+destructor TFrame.done;
+begin
+  { TODO: Implement frame cleanup }
+  writeln('STUB: TFrame.done');
+end;
+
+constructor TPrint.init(PPx,PPy:integer;Tcol,CShadow,Roll:byte;Pcenter,Pshadow:boolean);
+begin
+  { TODO: Implement print initialization }
+  writeln('STUB: TPrint.init');
+  New(opt);
+  if Assigned(opt) then
+  begin
+    opt^.px := PPx;
+    opt^.py := PPy;
+    opt^.text_color := Tcol;
+    opt^.shadow_color := CShadow;
+    opt^.roll_color := Roll;
+    opt^.center := Pcenter;
+    opt^.shadow := Pshadow;
+  end;
+end;
+
+procedure TPrint.print(x,y:word;s:string);
+begin
+  { TODO: Implement text printing }
+  writeln('STUB: TPrint.print at (', x, ',', y, ') text=', s);
+end;
+
+procedure TPrint.print_col(x,y:word;s:string;col:byte);
+begin
+  { TODO: Implement colored text printing }
+  writeln('STUB: TPrint.print_col at (', x, ',', y, ') text=', s, ' col=', col);
+end;
+
+function TPrint.input(x,y:word;max_len:word):string;
+begin
+  { TODO: Implement text input }
+  writeln('STUB: TPrint.input at (', x, ',', y, ') max_len=', max_len);
+  Result := '';
+end;
+
+destructor TPrint.done;
+begin
+  { TODO: Implement print cleanup }
+  writeln('STUB: TPrint.done');
+  if Assigned(opt) then
+    Dispose(opt);
+end;
+
+{ ========================================
+   TYPE CONVERSION HELPERS
+   ======================================== }
+
+function ScreenImageToImage(scr: PScreenImage): PImage;
+begin
+  { Convert PScreenImage to PImage }
+  { For screen, we return the underlying image }
+  if Assigned(scr) then
+    Result := screen_image
+  else
+    Result := nil;
+end;
+
+function ImageToScreenImage(img: PImage): PScreenImage;
+begin
+  { Convert PImage to PScreenImage }
+  { This is a simplified conversion - return screen }
+  Result := screen;
+end;
+
+{ ========================================
+   FRAME AND PRINT WRAPPER FUNCTIONS
+   ======================================== }
+
+procedure old_frame_draw(x, y, dx, dy: word);
+begin
+  { Stub: Draw frame at position }
+  writeln('STUB: old_frame_draw at (', x, ',', y, ') size=', dx, 'x', dy);
+end;
+
+procedure old_frame_init(handle:word; const block_file, gif_file: string; asave:boolean);
+begin
+  { Stub: Initialize frame }
+  writeln('STUB: old_frame_init');
+end;
+
+procedure old_frame_done;
+begin
+  { Stub: Cleanup frame }
+  writeln('STUB: old_frame_done');
+end;
+
+procedure napis_print(x, y: word; const s: string);
+begin
+  { Stub: Print text using napis object }
+  writeln('STUB: napis_print at (', x, ',', y, ') text=', s);
+end;
+
+procedure napis2_print(x, y: word; const s: string);
+begin
+  { Stub: Print text using napis2 object }
+  writeln('STUB: napis2_print at (', x, ',', y, ') text=', s);
+end;
+
+function napis_input(x, y: word; max_len: word): string;
+begin
+  { Stub: Input text using napis object }
+  writeln('STUB: napis_input at (', x, ',', y, ') max_len=', max_len);
+  Result := '';
+end;
+
+procedure napis_init(px, py: integer; tcol, cshadow, roll: byte; pcenter, pshadow: boolean);
+begin
+  { Stub: Initialize napis object }
+  writeln('STUB: napis_init');
+end;
+
+procedure napis_done;
+begin
+  { Stub: Cleanup napis object }
+  writeln('STUB: napis_done');
+end;
+
 initialization
   fill_palette_default;
   init_screen(640, 480);
+
+  { Initialize text rendering objects (automatically done by object constructors) }
 
 finalization
   { Cleanup }

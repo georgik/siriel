@@ -26,15 +26,26 @@ FPCFLAGS = -MObjfpc -Scghi -O2 -g -gl \
 TARGET = test_menu
 
 # All test programs
-TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_gzal_display test_tile_display test_spritesheet test_animation test_menu_decor test_modern_mem test_keyboard test_aktiv35_init test_animing test_jxmenu test_load235 test_minimal_game test_phase4_complete
+TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_gzal_display test_tile_display test_spritesheet test_animation test_menu_decor test_modern_mem test_keyboard test_aktiv35_init test_animing test_jxmenu test_load235 test_load_predmet2 test_minimal_game test_phase4_complete
+
+# Main game executable
+SIRIEL = siriel
 
 # All targets
-.PHONY: all clean run menu resources tests help
+.PHONY: all clean run menu resources tests game siriel help
 
 all: $(TARGET)
 
 # Build all test programs
 tests: $(TESTS)
+
+# Build and run main game
+game: siriel
+	./siriel
+
+# Build siriel executable
+siriel: siriel.pas
+	$(FPC) $(FPCFLAGS) siriel.pas
 
 # Compile and run menu test
 menu: test_menu
@@ -165,6 +176,9 @@ test_jxmenu: test_jxmenu.pas
 test_load235: test_load235.pas
 	$(FPC) $(FPCFLAGS) test_load235.pas
 
+test_load_predmet2: test_load_predmet2.pas
+	$(FPC) $(FPCFLAGS) test_load_predmet2.pas
+
 test_minimal_game: test_minimal_game.pas
 	$(FPC) $(FPCFLAGS) test_minimal_game.pas
 
@@ -180,22 +194,28 @@ run: $(TARGET)
 
 # Clean build artifacts
 clean:
-	rm -f $(TESTS) *.o *.ppu
+	rm -f $(TESTS) siriel main *.o *.ppu
 
 # Help
 help:
-	@echo "Siriel Modern Test Programs"
+	@echo "Siriel Modern - Game Engine"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  FPC:    $(FPC)"
 	@echo "  Raylib: $(RAYLIB_LIB)"
 	@echo ""
-	@echo "Targets:"
+	@echo "Main Targets:"
+	@echo "  siriel     - Build main game executable"
+	@echo "  game       - Build and run main game"
+	@echo ""
+	@echo "Test Targets:"
 	@echo "  all        - Build menu test (default)"
 	@echo "  tests      - Build all test programs"
 	@echo "  menu       - Build and run menu test"
 	@echo "  resources  - Build and run resources test"
 	@echo "  run        - Run the default test"
+	@echo ""
+	@echo "Maintenance:"
 	@echo "  clean      - Remove build artifacts"
 	@echo "  help       - Show this help message"
 	@echo ""
@@ -207,8 +227,15 @@ help:
 	@echo "  test_graphics  - Graphics primitives"
 	@echo "  test_aktiv35   - Game engine tests"
 	@echo "  test_geo       - Geometry system tests"
+	@echo "  test_phase4_complete - Complete game loop test"
+	@echo ""
+	@echo "Game Usage:"
+	@echo "  make game"
+	@echo "  ./siriel"
+	@echo "  ./siriel --dat=MAIN.DAT"
+	@echo "  ./siriel --dat=MAIN.DAT --level=1"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make menu"
-	@echo "  ./test_menu 5 screenshot.png"
-	@echo "  make tests"
+	@echo "  make siriel"
+	@echo "  make game"
+	@echo "  ./siriel --dat=MAIN.DAT"

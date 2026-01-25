@@ -25,6 +25,7 @@ type
 var
   num_handles: word;    { Total number of handles available }
   no_handle: klucka;    { Empty/invalid handle }
+  handles_ptr: pointer; { Pointer to global handles array (set by aktiv35) }
 
 { Initialize array of handles }
 procedure init_handles(num: word; var handles: array of klucka);
@@ -41,6 +42,10 @@ function create_handle(var kluka: klucka; size: longint): boolean;
 { Screen save/restore functions (for compatibility) }
 procedure Save_scr(var kluka: klucka; X, Y, SX, SY: longint);
 procedure draw_scr(var kluka: klucka; X, Y, SX, SY: longint);
+
+{ Memory copy functions (XMS compatibility) }
+procedure CopyCMemToXMem(h: word; offset: longint; src: Pointer; size: longint);
+procedure CopyXMemToCMem(dst: Pointer; h: word; offset: longint; size: longint);
 
 implementation
 
@@ -109,6 +114,7 @@ begin
     begin
       kluka.used := True;
       kluka.size := size;
+      kluka.h := 0;  { Handle identifier (0 = unused) }
       create_handle := True;
     end;
   end
@@ -193,6 +199,60 @@ begin
   end;
 end;
 
+{ ========================================
+   MEMORY COPY FUNCTIONS (XMS Compatibility)
+   ======================================== }
+
+procedure CopyCMemToXMem(h: word; offset: longint; src: Pointer; size: longint);
+var
+  handles_array: array of klucka absolute handles_ptr;
+  dst_ptr: PByte;
+  src_ptr: PByte;
+  i: longint;
+begin
+  if handles_ptr = nil then
+    exit;
+
+  if h > 0 then
+  begin
+    src_ptr := PByte(src);
+    dst_ptr := PByte(handles_array[h].ptr) + offset;
+
+    { Copy data }
+    for i := 0 to size - 1 do
+    begin
+      dst_ptr^ := src_ptr^;
+      Inc(dst_ptr);
+      Inc(src_ptr);
+    end;
+  end;
+end;
+
+procedure CopyXMemToCMem(dst: Pointer; h: word; offset: longint; size: longint);
+var
+  handles_array: array of klucka absolute handles_ptr;
+  src_ptr: PByte;
+  dst_ptr: PByte;
+  i: longint;
+begin
+  if handles_ptr = nil then
+    exit;
+
+  if h > 0 then
+  begin
+    src_ptr := PByte(handles_array[h].ptr) + offset;
+    dst_ptr := PByte(dst);
+
+    { Copy data }
+    for i := 0 to size - 1 do
+    begin
+      dst_ptr^ := src_ptr^;
+      Inc(dst_ptr);
+      Inc(src_ptr);
+    end;
+  end;
+end;
+
 initialization
   { Initialize no_handle as invalid }
   no_handle.h := 0;
@@ -200,5 +260,6 @@ initialization
   no_handle.ptr := nil;
   no_handle.size := 0;
   num_handles := 0;
+  handles_ptr := nil;
 
 end.

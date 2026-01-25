@@ -44,6 +44,12 @@ procedure init_jxmenu(x, y, col1, col2, col3: word; meno: string; var menx: jxme
 procedure vloz_jxmenu2(meno: string; var menx: jxmenu_typ; k: word);
 procedure draw_jxmenu(var menx: jxmenu_typ);
 
+{ Missing menu functions (from original JXMENU.PAS) }
+procedure size_jxmenu(sirka, vyska: word; var menx: jxmenu_typ);
+procedure draw_jxmenu3(var menx: jxmenu_typ);
+procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word);
+procedure old_frame;
+
 { GLIST decoration system }
 procedure LoadGlistTiles;
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
@@ -338,6 +344,39 @@ begin
 
   glist_loaded := False;
   initialization_done := True;
+end;
+
+{ ========================================
+   MISSING MENU FUNCTIONS (from JXMENU.PAS)
+   ======================================== }
+
+procedure size_jxmenu(sirka, vyska: word; var menx: jxmenu_typ);
+begin
+  { Set menu size }
+  menx.x1 := sirka;
+  menx.y1 := vyska;
+end;
+
+procedure draw_jxmenu3(var menx: jxmenu_typ);
+begin
+  { Draw menu with alternative style }
+  { For now, just call regular draw }
+  draw_jxmenu(menx);
+end;
+
+procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word);
+begin
+  { Wait for user selection from menu }
+  { TODO: Implement proper menu selection logic }
+  { For now, this is a stub }
+  vyber := 1;
+end;
+
+procedure old_frame;
+begin
+  { Save current screen state }
+  { TODO: Implement screen save }
+  { For now, this is a stub }
 end;
 
 initialization

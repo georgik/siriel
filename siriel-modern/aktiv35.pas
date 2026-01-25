@@ -301,6 +301,10 @@ var
 begin
   { Initialize handles array }
   init_handles(max_handles, handles);
+
+  { Set handles_ptr for modern_mem copy functions }
+  handles_ptr := @handles;
+
   for i := 1 to max_handles do
   begin
     handles[i].h := i;
