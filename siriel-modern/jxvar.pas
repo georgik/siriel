@@ -24,9 +24,31 @@ type
     r, g, b: byte;
   end;
 
+  { Time structure for timer }
+  time_struct = record
+    h, m, s, o: word;
+  end;
+
 var
   palx, blackx: tpalette;
   sr: searchrec;
+
+  { Game state variables }
+  poloha: word;          { Current animation frame }
+  anim_count: word;      { Animation counter }
+  bloing: word;          { Animation index }
+  anic: word;            { Creature animation counter }
+
+  { Timer variables }
+  timer: integer;        { Level countdown timer (seconds) }
+  tim, tim2: time_struct; { Time tracking for timer }
+
+  { Power-up timers }
+  freez_time: integer;   { Freeze power-up timer }
+  god_time: integer;     { God mode power-up timer }
+
+  { Game state flags }
+  shut_down_siriel: boolean;  { Flag to redraw player character }
 
 implementation
 

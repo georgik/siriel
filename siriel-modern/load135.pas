@@ -15,11 +15,15 @@ procedure ending(varovanie: string);
 { Display error message and exit }
 procedure errormes(cisl: integer);
 
+{ Animation control - advances poloha and clamps to range }
+procedure pl(stav: integer);
+
 implementation
 
 uses
   SysUtils,
-  modern_mem;
+  modern_mem,
+  jxvar;  { For poloha variable }
 
 { === GAME ENDING === }
 
@@ -75,6 +79,33 @@ begin
   end;
 
   ending(msg);
+end;
+
+{ === ANIMATION CONTROL === }
+
+{ Animation frame controller
+  Advances poloha and clamps to specific ranges based on state
+  State ranges:
+    1: Standing (0-3)
+    2: Walking left (3-7)
+    3: Walking right (7-11)
+    4: Jumping (11-19)
+    5: Rolling (19-27)
+    6: Falling (27-35)
+    7: Special (40-43)
+}
+procedure pl(stav: integer);
+begin
+  inc(poloha);
+  case stav of
+    1: if (poloha < 0) or (poloha > 3) then poloha := 0;
+    2: if (poloha < 3) or (poloha > 7) then poloha := 4;
+    3: if (poloha < 7) or (poloha > 11) then poloha := 8;
+    4: if (poloha < 11) or (poloha > 19) then poloha := 12;
+    5: if (poloha < 19) or (poloha > 27) then poloha := 20;
+    6: if (poloha < 27) or (poloha > 35) then poloha := 28;
+    7: if (poloha < 40) or (poloha > 43) then poloha := 40;
+  end;
 end;
 
 { === INITIALIZATION === }

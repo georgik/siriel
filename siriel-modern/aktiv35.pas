@@ -278,6 +278,14 @@ var
     5 - sluzi na ulozenie map
     6 - pozadie pri hre }
 
+{ Collision detection }
+{ Check if position (x,y) has solid ground below }
+function po(a1, a2: word): boolean;
+
+{ Check if position (x1,y1) is NOT a solid tile }
+{ Returns TRUE if position is walkable }
+function po3(a1, a2: integer): boolean;
+
 { Initialization }
 procedure InitAktiv35;
 
@@ -379,6 +387,55 @@ begin
   s := '';
   
   writeln('AKTIV35: Initialized');
+end;
+
+{ === COLLISION DETECTION === }
+
+{ Check if position (a1,a2) has solid ground below
+  Returns TRUE if position is walkable (NOT solid)
+  Used for gravity detection
+}
+function po(a1, a2: word): boolean;
+var
+  b1, b2: word;
+begin
+  po := true;
+  inc(a1, 3);
+  b1 := a1 div 16;
+  b2 := (a2 + 16) div 16;
+
+  if (b1 <= mie_x) and (b2 <= mie_y) then
+  begin
+    if (st.mie[b1, b2] > inusable) then
+    begin
+      { TODO: Add pixel-level check with getcol when texture loading is implemented }
+      { For now, just check tile map }
+      po := false;
+    end;
+  end;
+end;
+
+{ Check if position (a1,a2) is NOT a solid tile
+  Returns TRUE if position is walkable
+  Used for collision detection
+}
+function po3(a1, a2: integer): boolean;
+var
+  b1, b2: word;
+begin
+  po3 := true;
+  b1 := (a1 + 3) div 16;
+  b2 := (a2 + 16) div 16;
+
+  if (b1 <= mie_x) and (b2 <= mie_y) then
+  begin
+    if (st.mie[b1, b2] > inusable) then
+    begin
+      { TODO: Add pixel-level check with getcol when texture loading is implemented }
+      { For now, just check tile map }
+      po3 := false;
+    end;
+  end;
 end;
 
 end.
