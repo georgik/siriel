@@ -352,17 +352,37 @@ var vystup:string;
 begin
   vrat_nazov_obrazku:=false;
   if f>0 then begin
-    CopyXMemToCMem( @vystup, handles[3].h, (dlzka_textu*(f-1))+posuv_obr, dlzka_obr );
-    c:=1;
-    mov_string(vystup,v2,c);
-    mov_num(vystup,n1,c);
-    mov_num(vystup,n2,c);
-    if (v2<>st.obr) {or (n1<>obrazok_x) or (n2<>obrazok_y)} then begin
-	 vrat_nazov_obrazku:=true;
-	 st.obr:=v2;
+    if not handles[3].used then begin
+      writeln('WARNING: vrat_nazov_obrazku called but handles[3] not initialized');
+      exit;
     end;
-	 obrazok_x:=n1;
-	 obrazok_y:=n2;
+
+    { Check if handles[3] has been initialized with data }
+    { If st.obr is empty, this is likely the first call and no images are loaded yet }
+    if st.obr = '' then begin
+      writeln('vrat_nazov_obrazku: st.obr is empty, assuming no background images loaded');
+      exit;
+    end;
+
+    try
+      CopyXMemToCMem( @vystup, handles[3].h, (dlzka_textu*(f-1))+posuv_obr, dlzka_obr );
+      c:=1;
+      mov_string(vystup,v2,c);
+      mov_num(vystup,n1,c);
+      mov_num(vystup,n2,c);
+      if (v2<>st.obr) {or (n1<>obrazok_x) or (n2<>obrazok_y)} then begin
+        vrat_nazov_obrazku:=true;
+        st.obr:=v2;
+      end;
+      obrazok_x:=n1;
+      obrazok_y:=n2;
+    except
+      on E: Exception do begin
+        writeln('vrat_nazov_obrazku: Exception reading handles[3] - ', E.Message);
+        writeln('vrat_nazov_obrazku: Assuming no background image for level ', f);
+        vrat_nazov_obrazku:=false;
+      end;
+    end;
   end;
 end;
 
@@ -687,9 +707,9 @@ var m,fm,l           : word;
     bl,stop,reloaded : boolean;
     arr              : ^arm;
     cxa              : longint;
-    linex,znak,mil   : integer;
+    linex,znak       : integer;
+    zx_write         : integer;
     sax              : string;
-    znak_tmp, znak_tmp2: word;
     t                : TextFile;
     ch               : char;
 begin
@@ -823,15 +843,17 @@ begin
 				   end;
 				 4:begin
 					  for linex:=0 to mie_y do begin
+					    zx_write := 0;
 					   for znak:=0 to mie_x do begin
-					     znak_tmp := znak;
 					     if bl then begin
 						  ch:=char(arr^[cxa]);
 						  inc(cxa);
 					     end else
 						read(t,ch);
-					     st.mie[znak_tmp,linex]:=ord(ch)-posuv;
-					     if (ord(ch)=10) or (ord(ch)=13) then dec(znak_tmp);
+					     if (ord(ch)<>10) and (ord(ch)<>13) then begin
+					       st.mie[zx_write,linex]:=ord(ch)-posuv;
+					       if zx_write < mie_x then inc(zx_write);
+					     end;
 					   end;
 					  end;
 					  save_map(1);
@@ -907,15 +929,17 @@ begin
 				49:begin
 				    val(sx,m,m);
 					  for linex:=0 to mie_y do begin
+					    zx_write := 0;
 					   for znak:=0 to mie_x do begin
-					     znak_tmp2 := znak;
 					     if bl then begin
 						  ch:=char(arr^[cxa]);
 						  inc(cxa);
 					     end else
 						read(t,ch);
-						st.mie[znak_tmp2,linex]:=ord(ch)-posuv;
-						if (ord(ch)=10) or (ord(ch)=13) then dec(znak_tmp2);
+					     if (ord(ch)<>10) and (ord(ch)<>13) then begin
+					       st.mie[zx_write,linex]:=ord(ch)-posuv;
+					       if zx_write < mie_x then inc(zx_write);
+					     end;
 					   end;
 					 end;
 					 save_map(m);
@@ -1182,12 +1206,17 @@ end;
 procedure load_texture;
 var f,ff:word;
 begin
+  writeln('load_texture: Starting with textura="', textura, '"');
+  writeln('load_texture: Calling draw_it to load spritesheet...');
   draw_it(textura,0,0);
+  writeln('load_texture: draw_it complete, extracting tiles...');
  for ff:=0 to 9 do begin
-  for f:=0 to 18 do begin
+  writeln('load_texture: Processing row ', ff, ' of 9...');
+  for f:=0 to 18 do begin;
 	getseg(f*resx,ff*resy,resx,resy,f+ff*19,te^);
   end;
  end;
+  writeln('load_texture: Complete!');
 end;
 
 procedure noline2;
@@ -1539,11 +1568,41 @@ end;
 
 procedure stage_image(num:word);	{vykresli obrazok v danej miestnosti}
 begin
+    writeln('stage_image: Starting for num=', num);
     {ak doslo k zmene obrazka}
-    if vrat_nazov_obrazku(num) then get_gif else
-	  if not handles[6].used then get_gif else
-	   if st.obr<>none then putsegxms(handles[6],obrazok_x,obrazok_y,obrazok_dx,obrazok_dy,0);
+    writeln('stage_image: Checking if image changed...');
+
+    { Skip background image loading if handles[3] not initialized with data }
+    { This happens when no background images are loaded yet }
+    try
+      if vrat_nazov_obrazku(num) then begin
+        writeln('stage_image: Image changed, calling get_gif...');
+        get_gif
+      end
+      else begin
+        writeln('stage_image: Image not changed, checking handles[6]...');
+        if not handles[6].used then begin
+          writeln('stage_image: handles[6] not used, calling get_gif...');
+          get_gif
+        end
+        else begin
+          writeln('stage_image: handles[6] used, checking st.obr...');
+          if st.obr<>none then begin
+            writeln('stage_image: Calling putsegxms for background image...');
+            putsegxms(handles[6],obrazok_x,obrazok_y,obrazok_dx,obrazok_dy,0);
+          end else
+            writeln('stage_image: st.obr is none, skipping');
+        end;
+      end;
+    except
+      on E: Exception do begin
+        writeln('stage_image: Exception - ', E.Message, ' (', E.ClassName, ')');
+        writeln('stage_image: Continuing without background image');
+      end;
+    end;
+
     clear_key_buffer;
+    writeln('stage_image: Complete');
 end;
 
 procedure help_line1;
@@ -1562,29 +1621,51 @@ end;
 
 procedure redraw(param:boolean);
 begin
- if param then clear_bitmap(screen_image);
+ writeln('redraw: Starting...');
+ if param then begin
+   writeln('redraw: Clearing screen...');
+   clear_bitmap(screen_image);
+ end;
    clear_key_buffer;
-    stvorec2(screen,416,639,62,20,0,10);
+    writeln('redraw: Drawing stvorec2...');
+    stvorec2(screen,0,416,639,62,20,0);
+    writeln('redraw: Setting lajna array (1)...');
     for f:=0 to 250 do lajna[f]:=1;
+    writeln('redraw: Calling help_line1...');
     help_line1;
+    writeln('redraw: Setting lajna array (197)...');
     for f:=0 to 250 do lajna[f]:=197;
+    writeln('redraw: Calling help_line2...');
     help_line2;
+   writeln('redraw: Calling stage_image...');
    stage_image(aktual);
+   writeln('redraw: Calling print_texture...');
    print_texture;
    clear_key_buffer;
-  if param then print_predmet
-  else
+  if param then begin
+   writeln('redraw: Calling print_predmet...');
+   print_predmet
+  end
+  else begin
+   writeln('redraw: Calling print_predmet2...');
    print_predmet2;
+  end;
    clear_key_buffer;
+   writeln('redraw: Calling redraw_score...');
    redraw_score;
    clear_key_buffer;
+   writeln('redraw: Calling vypis_skore...');
    vypis_skore;
    clear_key_buffer;
+   writeln('redraw: Calling reset_pol...');
    reset_pol;
    clear_key_buffer;
+   writeln('redraw: Calling draw_inventar...');
    draw_inventar;
    clear_key_buffer;
+   writeln('redraw: Calling getseg for player...');
    getseg(si.x+px,si.y+py,resx,resy,si.buf,ar^);
+   writeln('redraw: Complete!');
 end;
 
 procedure redraw3;

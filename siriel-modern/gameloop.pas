@@ -51,7 +51,7 @@ uses
 
 procedure arcade;
 label
-  retry;
+  retry, exit_loop;
 var
   k2, b, c: word;
   old5, old7: boolean;
@@ -63,6 +63,14 @@ begin
   retry:
     { Start Raylib rendering frame }
     BeginDrawing();
+
+    { Check for window close event - respond immediately }
+    if WindowShouldClose() <> 0 then
+    begin
+      the_koniec := True;
+      EndDrawing();  { Finish the frame cleanly }
+      goto exit_loop;  { Exit loop immediately }
+    end;
 
     if rollup = 0 then
       oldkey := 0;
@@ -318,6 +326,7 @@ begin
     RenderScreenToWindow();
     EndDrawing();
 
+  exit_loop:
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
 end;
 
@@ -327,7 +336,7 @@ end;
 
 procedure maze;
 label
-  retry;
+  retry, exit_loop;
 var
   movx, movy, mova, mavb: word;
 begin
@@ -346,6 +355,14 @@ begin
   retry:
     { Start Raylib rendering frame }
     BeginDrawing();
+
+    { Check for window close event - respond immediately }
+    if WindowShouldClose() <> 0 then
+    begin
+      the_koniec := True;
+      EndDrawing();  { Finish the frame cleanly }
+      goto exit_loop;  { Exit loop immediately }
+    end;
 
     if rollup = 0 then
       oldkey := 0;
@@ -431,6 +448,7 @@ begin
     RenderScreenToWindow();
     EndDrawing();
 
+  exit_loop:
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
 
   dispose(bl);

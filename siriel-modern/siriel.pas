@@ -72,7 +72,8 @@ begin
   begin
     repeat
       if (sr.Name <> '.') and (sr.Name <> '..') and
-         (UpperCase(ExtractFileExt(sr.Name)) = '.DAT') then
+         (UpperCase(ExtractFileExt(sr.Name)) = '.DAT') and
+         (sr.Size > 100000) then { Skip small files like MAIN.DAT (< 100KB) }
       begin
         inc(count);
         if count <= 10 then
@@ -706,11 +707,11 @@ begin
     if te = nil then
       new(te);
 
-    { Allocate XMS handles }
+    { Allocate XMS handles - EXACT PORT from SI35.PAS line 659-660 }
     if not handles[3].used then
-      create_handle(handles[3], 32000);
+      create_handle(handles[3], pocet_veci * 21 + pocet_textov * dlzka_textu + pocet_obr * dlzka_obr);
     if not handles[5].used then
-      create_handle(handles[5], 40 * 27 * 20);
+      create_handle(handles[5], map_size);
 
     { EXACT PORT from GAME.INC line 311: Set game mode BEFORE loading }
     st.stav := 1;
@@ -718,6 +719,33 @@ begin
 
     { Load the level }
     load_predmet2(levelFile);
+
+    { EXACT PORT from SI35.PAS line 742: Load TEXTURA spritesheet }
+    { TODO: Implement draw_gif first before calling load_texture }
+    writeln('Skipping TEXTURA load (draw_gif not implemented yet)');
+    {load_texture;
+    writeln('  TEXTURA loaded successfully');}
+
+    { DEBUG: Verify map data was loaded }
+    writeln('');
+    writeln('=== Level Load Debug ===');
+    writeln('  Map dimensions: ', mie_x, ' x ', mie_y);
+    writeln('  Player start: (', si.x, ', ', si.y, ')');
+    writeln('  Items loaded: ', nahrane_veci);
+    writeln('  Texture loaded: ', textura, ' (aktual=', aktual, ')');
+    writeln('');
+    writeln('  Complete map data (', mie_x+1, ' x ', mie_y+1, '):');
+    for f := 0 to mie_y do
+    begin
+      write('    Row ', f:2, ': ');
+      for ff := 0 to mie_x do
+      begin
+        write(st.mie[ff, f]:2, ' ');
+      end;
+      writeln('');
+    end;
+    writeln('=== End Debug ===');
+    writeln('');
 
     { EXACT PORT from GAME.INC lines 313-337: Post-load initialization }
     case st.stav of
@@ -766,8 +794,25 @@ begin
     rolldown := False;
     anim_count := 0;
 
+    { EXACT PORT from GAME.INC line 362: CRITICAL - Render initial screen! }
+    { TODO: Re-enable after implementing draw_gif, putseg2, and print_normal }
+    writeln('SKIPPING redraw(true) - rendering not implemented yet');
+    writeln('  - Need draw_gif to load TEXTURA from SIRIEL35.DAT');
+    writeln('  - Need putseg2 to render tiles');
+    writeln('  - Need print_normal for text rendering');
+    {try
+      redraw(true);
+      writeln('  Screen rendered successfully');
+    except
+      on E: Exception do
+      begin
+        writeln('  ERROR during redraw: ', E.Message);
+        writeln('  Exception class: ', E.ClassName);
+        writeln('  Continuing without redraw...');
+      end;
+    end;}
+
     { TODO: decrease_palette(palx,30); }
-    { TODO: redraw(true); }
     { TODO: init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^); }
     { TODO: redraw_score; }
     { TODO: increase_palette(blackx,palx,50); }
