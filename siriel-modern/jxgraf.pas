@@ -289,24 +289,34 @@ end;
 procedure write_line(bitmap: PImage; var line: tline; ordonnee: word; number: word);
 var
   x: word;
+  color_rgba: longint;
 begin
   if not Assigned(bitmap) then Exit;
   if ordonnee >= bitmap^.height then Exit;
 
   for x := 0 to number - 1 do
-    putpixel(bitmap, x, ordonnee, line[x]);
+  begin
+    { Convert palette index to RGBA color }
+    color_rgba := palette_to_rgba(line[x]);
+    putpixel(bitmap, x, ordonnee, color_rgba);
+  end;
 end;
 
 procedure write_linepos(bitmap: PImage; var line: tline; abscisse, ordonnee: word; number: word);
 var
   x: word;
+  color_rgba: longint;
 begin
   if not Assigned(bitmap) then Exit;
   if abscisse >= bitmap^.width then Exit;
   if ordonnee >= bitmap^.height then Exit;
 
   for x := 0 to number - 1 do
-    putpixel(bitmap, abscisse + x, ordonnee, line[x]);
+  begin
+    { Convert palette index to RGBA color }
+    color_rgba := palette_to_rgba(line[x]);
+    putpixel(bitmap, abscisse + x, ordonnee, color_rgba);
+  end;
 end;
 
 procedure read_line(bitmap: PImage; var line: tline; ordonnee: word; number: word);
@@ -373,11 +383,13 @@ var
 begin
   if not Assigned(bitmap) then Exit;
 
-  { Convert 16-bit color to RGBA }
-  color := MakeRGBA(col and $FF, (col shr 8) and $FF, (col shr 16) and $FF, 255);
+  { Convert palette index to RGBA color }
+  color := palette_to_rgba(col and $FF);
 
-  for y := y1 to y2 do
-    for x := x1 to x2 do
+  { Parameters: x1, y1 = starting coordinates, x2 = width, y2 = height }
+  { EXACT PORT from original JXGRAF.PAS:2228 }
+  for y := y1 to y1 + y2 - 1 do
+    for x := x1 to x1 + x2 - 1 do
       putpixel(bitmap, x, y, color);
 
   if bitmap = screen_image then
@@ -620,17 +632,65 @@ end;
    ======================================== }
 
 procedure draw_gif(bitmap: PScreenImage; const filename: string; x, y: word; var pal: tpalette);
+var
+  raylib_img: TRaylibImage;
+  px, py: integer;
+  pixel_ptr: PByte;
+  r, g, b, a: byte;
 begin
-  { TODO: Implement GIF loading from file }
-  { For now, this is a stub }
-  writeln('STUB: draw_gif(', filename, ') at (', x, ',', y, ')');
+  writeln('draw_gif: Loading ', filename, ' at (', x, ',', y, ')');
+
+  { Load image using Raylib }
+  raylib_img := LoadImage(PChar(filename));
+
+  if raylib_img.data = nil then
+  begin
+    writeln('  ERROR: Failed to load image: ', filename);
+    Exit;
+  end;
+
+  writeln('  Loaded image: ', raylib_img.width, 'x', raylib_img.height);
+
+  { Copy to bitmap with transparency support }
+  pixel_ptr := PByte(raylib_img.data);
+
+  for py := 0 to raylib_img.height - 1 do
+  begin
+    for px := 0 to raylib_img.width - 1 do
+    begin
+      { Read RGBA from Raylib }
+      r := pixel_ptr^;
+      Inc(pixel_ptr);
+      g := pixel_ptr^;
+      Inc(pixel_ptr);
+      b := pixel_ptr^;
+      Inc(pixel_ptr);
+      a := pixel_ptr^;
+      Inc(pixel_ptr);
+
+      { Check for transparent pink/magenta background }
+      if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+      begin
+        { Skip transparent pixels }
+      end
+      else if a > 0 then
+      begin
+        { Write opaque pixel to bitmap }
+        putpixel(screen_image, x + px, y + py, (a shl 24) or (r shl 16) or (g shl 8) or b);
+      end;
+    end;
+  end;
+
+  UnloadImage(raylib_img);
+  writeln('  Image loaded successfully');
 end;
 
 procedure draw_gif_block(bitmap: PScreenImage; const datfile, blockname: string; x, y: word; var pal: tpalette);
 begin
-  { TODO: Implement GIF loading from DAT block }
-  { For now, this is a stub }
+  { TODO: Implement DAT block loading directly to avoid circular dependency }
+  { For now, show stub message }
   writeln('STUB: draw_gif_block(', datfile, ',', blockname, ') at (', x, ',', y, ')');
+  writeln('  DAT block loading not yet implemented - need to avoid circular dependency with blockx');
 end;
 
 { ========================================
@@ -638,10 +698,23 @@ end;
    ======================================== }
 
 procedure printc(bitmap: PScreenImage; y: word; const text: string; col, back: word);
+var
+  i: integer;
+  px, x: word;
+  text_width: word;
 begin
   { Print text centered horizontally at y position }
-  { TODO: Implement proper text rendering }
-  writeln('STUB: printc at y=', y, ' text=', text);
+  text_width := Length(text) * 8;
+  x := (screen_width - text_width) div 2;
+
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw 8x8 rectangle for each character }
+    if (px + 8 <= screen_width) and (y + 8 <= screen_height) then
+      rectangle2(screen_image, px, y, 8, 8, col);
+    px := px + 8;
+  end;
 end;
 
 procedure printx2(bitmap: PScreenImage; x, y: word; const text: string; col, back, transparent, styl: word; delay: word);
@@ -652,17 +725,38 @@ begin
 end;
 
 procedure print_normal(bitmap: PScreenImage; x, y: word; const text: string; col, back: word);
+var
+  i: integer;
+  px, py: word;
 begin
-  { Print text normally }
-  { TODO: Implement proper text rendering }
-  writeln('STUB: print_normal at (', x, ',', y, ') text=', text);
+  { Simple text rendering - draw each character as 8x8 block }
+  { For now, just draw colored rectangles for each character }
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw 8x8 rectangle for each character }
+    if (px + 8 <= screen_width) and (y + 8 <= screen_height) then
+      rectangle2(screen_image, px, y, 8, 8, col);
+    px := px + 8;
+  end;
 end;
 
 { PImage version - convert and call through }
 procedure print_normal(bitmap: PImage; x, y: word; const text: string; col, back: word);
+var
+  i: integer;
+  px, py: word;
 begin
-  { TODO: Implement proper text rendering }
-  writeln('STUB: print_normal(PImage) at (', x, ',', y, ') text=', text);
+  { Simple text rendering - draw each character as 8x8 block }
+  { For now, just draw colored rectangles for each character }
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw 8x8 rectangle for each character }
+    if Assigned(bitmap) and (px + 8 <= bitmap^.width) and (y + 8 <= bitmap^.height) then
+      rectangle2(bitmap, px, y, 8, 8, col);
+    px := px + 8;
+  end;
 end;
 
 { ========================================
@@ -685,9 +779,9 @@ end;
 
 procedure stvorec2(bitmap: PScreenImage; x, y, w, h, col, back: word);
 begin
-  { Draw rectangle }
-  { TODO: Implement rectangle drawing }
-  writeln('STUB: stvorec2 at (', x, ',', y, ') size=', w, 'x', h);
+  { Draw rectangle - for modern port, draw directly to screen_image }
+  { Use Raylib's DrawRectangle via rectangle2 helper }
+  rectangle2(screen_image, x, y, w, h, back);
 end;
 
 { ========================================

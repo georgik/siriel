@@ -50,26 +50,28 @@ uses
    ======================================== }
 
 procedure arcade;
-label
-  retry, exit_loop;
 var
   k2, b, c: word;
   old5, old7: boolean;
+  frame_count: longint;  { For debugging - count rendered frames }
+  last_log_time: longint;
 begin
   same := 0;
+  frame_count := 0;
+  last_log_time := SysUtils.GetTickCount64;
+
+  writeln('arcade: Starting game loop...');
   { TODO: rewait; }
 
   repeat
-  retry:
     { Start Raylib rendering frame }
     BeginDrawing();
 
     { Check for window close event - respond immediately }
     if WindowShouldClose() <> 0 then
     begin
+      writeln('arcade: Window close requested, exiting loop');
       the_koniec := True;
-      EndDrawing();  { Finish the frame cleanly }
-      goto exit_loop;  { Exit loop immediately }
     end;
 
     if rollup = 0 then
@@ -78,6 +80,11 @@ begin
 
     { Display score }
     vypis_skore;
+
+    { Update game world rendering - CRITICAL for gameplay visibility }
+    { Call redraw every frame to ensure screen is updated }
+    { Use param=false to avoid clearing screen every frame }
+    redraw(false);
 
     { Wait for next frame - NON-BLOCKING for Raylib }
     { Original DOS busy-wait won't work with event-driven UI }
@@ -94,33 +101,53 @@ begin
       get_keyboard;
       k2 := 0;
 
+      { Log key press for debugging }
+      write('arcade: Frame ', frame_count, ' - Key pressed: $', HexStr(k, 4));
+
       case k of
         $3920, $1c0d:
-          if ((not truth) or (not rolldown)) then
           begin
-            { TODO: menu; }
-            { sace flag will cause loop exit in until condition }
+            writeln(' (ENTER/Space - Menu)');
+            if ((not truth) or (not rolldown)) then
+            begin
+              { TODO: menu; }
+              { sace flag will cause loop exit in until condition }
+            end;
           end;
 
         $3b00, $2368, $2348:
           begin
+            writeln(' (F1 - Help)');
             help_in_game;
             { TODO: rewait; }
           end;
 
         $3e00, $1970, $1950:
           begin
+            writeln(' (F5/Esc - Pause)');
             pauza;
           end;
 
         $011b:
-          restart := ano_nie2('Really quit?');
+          begin
+            writeln(' (ESC - Quit)');
+            restart := ano_nie2('Really quit?');
+          end;
 
         $3f00, 3062:
-          briefing_in_game;
+          begin
+            writeln(' (F2 - Briefing)');
+            briefing_in_game;
+          end;
 
         $4800, $4b00, $4d00, $5000, $4700, $4900, $5100, $4f00:
-          k2 := k;
+          begin
+            writeln(' (Arrow key)');
+            k2 := k;
+          end;
+
+        else
+          writeln(' (Unknown)');
       end;
 
       k := 0;
@@ -321,12 +348,20 @@ begin
 
       { TODO: zisti_vec; }
 
+    { Increment frame counter }
+    inc(frame_count);
+
+    { Log heartbeat every 60 frames (1 second at 60 FPS) }
+    if (frame_count mod 60) = 0 then
+    begin
+      writeln('arcade: Frame ', frame_count, ' - Player at (', si.x, ', ', si.y, ') - Timer: ', timer, 's');
+    end;
+
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
     RenderScreenToWindow();
     EndDrawing();
 
-  exit_loop:
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
 end;
 
@@ -335,8 +370,6 @@ end;
    ======================================== }
 
 procedure maze;
-label
-  retry, exit_loop;
 var
   movx, movy, mova, mavb: word;
 begin
@@ -352,7 +385,6 @@ begin
   { TODO: rewait; }
 
   repeat
-  retry:
     { Start Raylib rendering frame }
     BeginDrawing();
 
@@ -360,8 +392,6 @@ begin
     if WindowShouldClose() <> 0 then
     begin
       the_koniec := True;
-      EndDrawing();  { Finish the frame cleanly }
-      goto exit_loop;  { Exit loop immediately }
     end;
 
     if rollup = 0 then
@@ -370,6 +400,11 @@ begin
 
     { Display score }
     vypis_skore;
+
+    { Update game world rendering - CRITICAL for gameplay visibility }
+    { Call redraw every frame to ensure screen is updated }
+    { Use param=false to avoid clearing screen every frame }
+    redraw(false);
 
     { Wait for next frame - NON-BLOCKING for Raylib }
     { Original DOS busy-wait won't work with event-driven UI }
@@ -448,7 +483,6 @@ begin
     RenderScreenToWindow();
     EndDrawing();
 
-  exit_loop:
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
 
   dispose(bl);

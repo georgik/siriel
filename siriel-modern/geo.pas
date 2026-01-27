@@ -301,6 +301,11 @@ begin
   else if klu > 0 then
     klx[klu] := True;
 
+  { Set key_buffer to DOS scancode format (scan_code in high byte) }
+  { This allows keypressed() to detect the key }
+  if klu > 0 then
+    key_buffer := klu shl 8;
+
   { Special case: arrow keys clear all states }
   if (klu = 203) or (klu = 205) then
     reset_keyboard;
@@ -809,9 +814,24 @@ begin
 end;
 
 procedure printx(bitmap: Pointer; x, y: word; const text: string; col, back: word);
+var
+  i: integer;
+  px: word;
+  bmp: PImage;
 begin
-  { TODO: Implement text output }
-  writeln('STUB: printx at (', x, ',', y, ') text=', text, ' col=', col, ' back=', back);
+  { Simple text rendering - draw each character as 8x8 colored block }
+  bmp := PImage(bitmap);
+  if not Assigned(bmp) then
+    exit;
+
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw 8x8 rectangle for each character }
+    if (px + 8 <= 640) and (y + 8 <= 480) then
+      jxgraf.rectangle2(bmp, px, y, 8, 8, col);
+    px := px + 8;
+  end;
 end;
 
 { Name parsing helper implementations }

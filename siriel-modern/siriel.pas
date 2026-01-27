@@ -693,6 +693,11 @@ begin
 
   if currentLevel > 0 then
   begin
+    { Set default TEXTURA }
+    writeln('Setting default TEXTURA...');
+    textura := '>GTEXT';
+    writeln('  TEXTURA set to: ', textura);
+
     { Load level using original load_predmet2 }
     writeln('Loading level file: ', levelFile);
 
@@ -713,6 +718,15 @@ begin
     if not handles[5].used then
       create_handle(handles[5], map_size);
 
+    { EXACT PORT from SI35.PAS line 723: Initialize handles[3] with default values }
+    rerun;
+    writeln('Initialized handles[3] via rerun()');
+
+    { EXACT PORT from SI35.PAS line 610-611: Initialize tile dimensions }
+    resx := 16;
+    resy := 16;
+    writeln('Tile dimensions initialized: ', resx, 'x', resy);
+
     { EXACT PORT from GAME.INC line 311: Set game mode BEFORE loading }
     st.stav := 1;
     writeln('Game mode set to: ', st.stav, ' (platformer mode)');
@@ -721,10 +735,9 @@ begin
     load_predmet2(levelFile);
 
     { EXACT PORT from SI35.PAS line 742: Load TEXTURA spritesheet }
-    { TODO: Implement draw_gif first before calling load_texture }
-    writeln('Skipping TEXTURA load (draw_gif not implemented yet)');
-    {load_texture;
-    writeln('  TEXTURA loaded successfully');}
+    writeln('Loading TEXTURA spritesheet from DAT file...');
+    load_texture;
+    writeln('  TEXTURA loaded successfully');
 
     { DEBUG: Verify map data was loaded }
     writeln('');
@@ -795,14 +808,18 @@ begin
     anim_count := 0;
 
     { EXACT PORT from GAME.INC line 362: CRITICAL - Render initial screen! }
-    { TODO: Re-enable after implementing draw_gif, putseg2, and print_normal }
-    writeln('SKIPPING redraw(true) - rendering not implemented yet');
-    writeln('  - Need draw_gif to load TEXTURA from SIRIEL35.DAT');
-    writeln('  - Need putseg2 to render tiles');
-    writeln('  - Need print_normal for text rendering');
-    {try
+    writeln('Rendering initial screen with redraw(true)...');
+    try
       redraw(true);
       writeln('  Screen rendered successfully');
+
+      { CRITICAL: Display the initial screen to the window! }
+      writeln('Displaying initial screen to window...');
+      BeginDrawing();
+      ClearBackground(0, 0, 0, 255);
+      RenderScreenToWindow();
+      EndDrawing();
+      writeln('  Initial screen displayed');
     except
       on E: Exception do
       begin
@@ -810,7 +827,7 @@ begin
         writeln('  Exception class: ', E.ClassName);
         writeln('  Continuing without redraw...');
       end;
-    end;}
+    end;
 
     { TODO: decrease_palette(palx,30); }
     { TODO: init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^); }
@@ -841,6 +858,66 @@ begin
   writeln('');
 end;
 
+procedure CleanupGame;
+begin
+  writeln('Cleaning up allocated memory...');
+
+  { Free screen_image bitmap using jxgraf's cleanup }
+  if screen_image <> nil then
+  begin
+    destroy_bitmap(screen_image);
+    screen_image := nil;
+    writeln('  Freed screen_image bitmap');
+  end;
+
+  { Free screen structure }
+  if screen <> nil then
+  begin
+    Dispose(screen);
+    screen := nil;
+    writeln('  Freed screen structure');
+  end;
+
+  { Free texture array }
+  if te <> nil then
+  begin
+    dispose(te);
+    te := nil;
+    writeln('  Freed texture array (te)');
+  end;
+
+  { Free item graphics array }
+  if ar <> nil then
+  begin
+    dispose(ar);
+    ar := nil;
+    writeln('  Freed item graphics array (ar)');
+  end;
+
+  { Free XMS handles }
+  if handles[3].used then
+  begin
+    kill_handle(handles[3]);
+    writeln('  Freed handles[3]');
+  end;
+
+  if handles[5].used then
+  begin
+    kill_handle(handles[5]);
+    writeln('  Freed handles[5]');
+  end;
+
+  { Free bl array if allocated }
+  if bl <> nil then
+  begin
+    dispose(bl);
+    bl := nil;
+    writeln('  Freed bl array');
+  end;
+
+  writeln('Memory cleanup complete');
+end;
+
 { ========================================
    MAIN PROGRAM
    ======================================== }
@@ -864,6 +941,7 @@ begin
     StartNewGame;
     writeln('Test completed successfully');
     CloseWindow;
+    CleanupGame;
     Halt(0);
   end
   else
@@ -879,6 +957,7 @@ begin
           writeln('Thank you for playing!');
           writeln('');
           CloseWindow;
+          CleanupGame;
           Halt(0);
         end;
       end;

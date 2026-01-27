@@ -9,8 +9,8 @@ RAYLIB_LIB = /Volumes/ssdt5/Users/georgik/projects/raylib/build/raylib/libraylib
 SDK = /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 MACOS_VERSION = 13.0
 
-# FPC flags
-FPCFLAGS = -MObjfpc -Scghi -O2 -g -gl \
+# FPC flags - DEBUG BUILD with full symbols and runtime checks
+FPCFLAGS = -MObjfpc -Scghi -O- -g -gl -gh -Ci -Co -Ct \
            -WM$(MACOS_VERSION) \
            -Fu$(RTL) \
            -XR$(SDK) \
@@ -32,7 +32,7 @@ TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35
 SIRIEL = siriel
 
 # All targets
-.PHONY: all clean run menu resources tests game siriel help
+.PHONY: all clean run menu resources tests game siriel debug debug-interactive help
 
 all: $(TARGET)
 
@@ -46,6 +46,17 @@ game: siriel
 # Build siriel executable
 siriel: siriel.pas
 	$(FPC) $(FPCFLAGS) siriel.pas
+
+# Run siriel under LLDB debugger (batch mode - auto-captures crashes)
+debug: siriel
+	./debug_siriel.sh
+
+# Run siriel under LLDB debugger (interactive - for debugging freezes)
+# Press Ctrl+C when it freezes, then type 'bt' to see stack
+debug-interactive: siriel
+	@echo "Starting interactive LLDB session..."
+	@echo "Type 'run <args>' to start, Ctrl+C to interrupt, 'bt' for stack trace"
+	./debug_interactive.sh
 
 # Compile and run menu test
 menu: test_menu
@@ -203,10 +214,15 @@ help:
 	@echo "Configuration:"
 	@echo "  FPC:    $(FPC)"
 	@echo "  Raylib: $(RAYLIB_LIB)"
+	@echo "  Build: DEBUG mode with symbols (-g -gl -O-)"
 	@echo ""
 	@echo "Main Targets:"
-	@echo "  siriel     - Build main game executable"
-	@echo "  game       - Build and run main game"
+	@echo "  siriel           - Build main game executable"
+	@echo "  game             - Build and run main game"
+	@echo ""
+	@echo "Debug Targets:"
+	@echo "  debug            - Run under LLDB (batch mode, auto-captures crashes)"
+	@echo "  debug-interactive - Run under LLDB (interactive, press Ctrl+C if frozen)"
 	@echo ""
 	@echo "Test Targets:"
 	@echo "  all        - Build menu test (default)"
@@ -232,10 +248,15 @@ help:
 	@echo "Game Usage:"
 	@echo "  make game"
 	@echo "  ./siriel"
-	@echo "  ./siriel --dat=MAIN.DAT"
-	@echo "  ./siriel --dat=MAIN.DAT --level=1"
+	@echo "  ./siriel --level-file 1.MIE"
+	@echo ""
+	@echo "Debugging:"
+	@echo "  ./debug_siriel.sh --level-file 1.MIE --duration 1"
+	@echo "  ./debug_interactive.sh --level-file 1.MIE"
+	@echo "    (If app freezes, press Ctrl+C, then type 'bt')"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make siriel"
 	@echo "  make game"
-	@echo "  ./siriel --dat=MAIN.DAT"
+	@echo "  make debug"
+	@echo "  ./siriel --level-file 1.MIE"

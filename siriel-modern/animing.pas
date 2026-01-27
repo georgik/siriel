@@ -69,11 +69,20 @@ procedure getseg(gx, gy, gd, gs, num: word; var aw: array of byte);
 var
   gf, gff, cxx, cxx2: word;
 begin
+  { Defensive check - prevent infinite loops with zero dimensions }
+  if (gd = 0) or (gs = 0) then
+  begin
+    writeln('ERROR: getseg called with zero dimensions!');
+    writeln('  gx=', gx, ' gy=', gy, ' gd=', gd, ' gs=', gs, ' num=', num);
+    writeln('  high(aw)=', high(aw));
+    Exit;
+  end;
+
   cxx := num * gd * gs;
 
   for gf := 0 to gs - 1 do
   begin
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     cxx2 := cxx + gf * gs;
 
     for gff := 0 to gd - 1 do
@@ -104,7 +113,7 @@ begin
     for gff := 0 to gs - 1 do
       lajna[gff] := aw[cxx2 + gff];
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -118,7 +127,7 @@ begin
 
   for gf := 0 to gs - 1 do
   begin
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     cxx2 := cxx + gf * gs;
 
     for gff := 0 to gd - 1 do
@@ -136,22 +145,39 @@ procedure putseg2(gx, gy, gd, gs, num, col: word; var aw: array of byte);
 var
   gf, gff, cxx, cxx2: word;
 begin
+  { Defensive check - prevent array bounds errors }
+  if (gd = 0) or (gs = 0) then
+  begin
+    writeln('ERROR: putseg2 called with zero dimensions!');
+    writeln('  gx=', gx, ' gy=', gy, ' gd=', gd, ' gs=', gs, ' num=', num, ' col=', col);
+    writeln('  high(aw)=', high(aw));
+    Exit;
+  end;
+
   cxx := num * gd * gs;
+
+  { Check if cxx is within array bounds }
+  if cxx > high(aw) then
+  begin
+    writeln('ERROR: putseg2 tile num ', num, ' out of bounds!');
+    writeln('  cxx=', cxx, ' high(aw)=', high(aw), ' tile size=', gd*gs);
+    Exit;
+  end;
 
   for gf := 0 to gs - 1 do
   begin
     { Read current screen content }
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     cxx2 := cxx + gf * gs;
 
-    for gff := 0 to gs - 1 do
+    for gff := 0 to gd - 1 do
     begin
       { Only write non-transparent pixels }
       if aw[cxx2 + gff] <> col then
         lajna[gff] := aw[cxx2 + gff];
     end;
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -165,7 +191,7 @@ begin
 
   for gf := 0 to gs - 1 do
   begin
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     cxx2 := cxx + gf * gs;
 
     for gff := 0 to gs - 1 do
@@ -174,7 +200,7 @@ begin
         lajna[gff] := col2;
     end;
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -187,7 +213,7 @@ begin
 
   for gf := 0 to gs - 1 do
   begin
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     cxx2 := cxx + gf * gs;
 
     for gff := 0 to gd - 1 do
@@ -197,7 +223,7 @@ begin
         lajna[gff] := aw[cxx2 + (gd - 1 - gff)];
     end;
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -214,7 +240,7 @@ begin
     cxx2 := cxx + gf * gs;
     cxx3 := num2 * gd * gs + gf * gs;
 
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
     for gff := 0 to gs - 1 do
     begin
@@ -224,7 +250,7 @@ begin
         lajna[gff] := aw[cxx2 + gff];
     end;
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -240,7 +266,7 @@ begin
     cxx2 := cxx + gf * gs;
     cxx3 := num2 * gd * gs + gf * gs;
 
-    read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
     for gff := 0 to gs - 1 do
     begin
@@ -250,7 +276,7 @@ begin
         lajna[gff] := aw[cxx2 + (gd - 1 - gff)];
     end;
 
-    write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+    write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
   end;
 end;
 
@@ -317,7 +343,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read line from screen }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offset in handle }
       src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
@@ -348,7 +374,7 @@ begin
         lajna[gff] := src_ptr[gff];
 
       { Write line to screen }
-      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     end;
   end;
 end;
@@ -365,7 +391,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read line from screen }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offset in handle }
       src_ptr := PByte(kluka.ptr) + (cxx + gf * gs);
@@ -394,7 +420,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read current screen line }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offset in handle }
       src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
@@ -407,7 +433,7 @@ begin
       end;
 
       { Write line to screen }
-      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     end;
   end;
 end;
@@ -424,7 +450,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read current screen line }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offset in handle }
       src_ptr := PByte(kluka.ptr) + (cxx + gf * gd);
@@ -437,7 +463,7 @@ begin
       end;
 
       { Write line to screen }
-      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     end;
   end;
 end;
@@ -455,7 +481,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read current screen line }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offsets in both handles }
       src_ptr1 := PByte(kluka.ptr) + (cxx + gf * gd);
@@ -471,7 +497,7 @@ begin
       end;
 
       { Write line to screen }
-      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     end;
   end;
 end;
@@ -489,7 +515,7 @@ begin
     for gf := 0 to gs - 1 do
     begin
       { Read current screen line }
-      read_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      read_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
 
       { Calculate offsets in both handles }
       src_ptr1 := PByte(kluka.ptr) + (cxx + gf * gd);
@@ -505,7 +531,7 @@ begin
       end;
 
       { Write line to screen }
-      write_linepos(PImage(jxgraf.screen), lajna, gx, gf + gy, gd);
+      write_linepos(jxgraf.screen_image, lajna, gx, gf + gy, gd);
     end;
   end;
 end;

@@ -2,7 +2,7 @@ unit load235;
 {$mode objfpc}{$H-}  { Use ShortString for compatibility with original }
 {$J+}  { Allow for-loop variable modifications }
 interface
-uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, animing, jxmenu, jxvar, modern_mem;
+uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, jxfont_simple, animing, jxmenu, jxvar, modern_mem;
 
 procedure set_old_pos;  {nastavi priserky na ich zaciatocnu suradnicu}
 procedure pridaj2(var s:string;var l:word; update:boolean);
@@ -309,11 +309,16 @@ begin
 end;
 
 procedure draw_it(name:string;x,y:word);
+var
+  font_pal: jxfont_simple.tpalette;
 begin
     if length(name)>0 then begin
      if name[1]='>' then begin
 	    name:=out_string(name);
-	    draw_gif_block(screen,zvukovy_subor,name,x,y,palx);
+	    { Call blockx.draw_gif_block directly for DAT files }
+	    { Convert palette type }
+	    font_pal := jxfont_simple.tpalette(palx);
+	    blockx.draw_gif_block(screen_image,zvukovy_subor,name,x,y,font_pal);
      end
      else draw_gif(screen,name,x,y,palx);
     end;
@@ -371,8 +376,15 @@ begin
       mov_num(vystup,n1,c);
       mov_num(vystup,n2,c);
       if (v2<>st.obr) {or (n1<>obrazok_x) or (n2<>obrazok_y)} then begin
-        vrat_nazov_obrazku:=true;
-        st.obr:=v2;
+        { Defensive: Don't set st.obr to empty or whitespace-only string }
+        if Trim(v2) <> '' then begin
+          vrat_nazov_obrazku:=true;
+          st.obr:=v2;
+          writeln('vrat_nazov_obrazku: Image changed to "', v2, '"');
+        end else begin
+          writeln('vrat_nazov_obrazku: WARNING - v2 is empty/whitespace, keeping st.obr as "', st.obr, '"');
+          vrat_nazov_obrazku:=false;
+        end;
       end;
       obrazok_x:=n1;
       obrazok_y:=n2;
@@ -1228,28 +1240,49 @@ procedure print_texture;
 var pes:integer;
     s:string;
 begin
- case st.stav of
-  1,3,5:begin
+ { Defensive check - skip if texture array not initialized }
+ if te = nil then begin
+   writeln('WARNING: print_texture called with nil te array');
+   Exit;
+ end;
+
+ try
+  case st.stav of
+   1,3,5:begin
+    writeln('print_texture: Mode ', st.stav, ' - drawing map...');
     for f:=0 to mie_x do begin
      clear_key_buffer;
      for ff:=0 to mie_y do begin
-	   if (st.mie[f,ff]<invisible) then
-		putseg2(f*16+8,ff*16,resx,resy,st.mie[f,ff],13,te^);
-	   if bl<>nil then bl^[f,ff]:=true;
+       if (st.mie[f,ff]<invisible) then
+        putseg2(f*16+8,ff*16,resx,resy,st.mie[f,ff],13,te^);
+       if bl<>nil then bl^[f,ff]:=true;
      end;
     end;
-   if (bl<>nil) and (st.stav=3) then st.stav:=2;
+    if (bl<>nil) and (st.stav=3) then st.stav:=2;
+    writeln('print_texture: Mode ', st.stav, ' complete');
    end;
-  2,4:if bl<>nil then begin
-	for f:=0 to mie_x do begin
-	 for ff:=0 to mie_y do begin
-	  if (bl^[f,ff]) and (st.mie[f,ff]<invisible) then
-	  putseg2(f*16+8,ff*16,resx,resy,st.mie[f,ff],13,te^);
-	 end;
-	end;
+   2,4:begin
+    writeln('print_texture: Mode ', st.stav, ' - drawing map...');
+    if bl<>nil then begin
+      for f:=0 to mie_x do begin
+       for ff:=0 to mie_y do begin
+        if (bl^[f,ff]) and (st.mie[f,ff]<invisible) then
+          putseg2(f*16+8,ff*16,resx,resy,st.mie[f,ff],13,te^);
+       end;
+      end;
+    end;
+    writeln('print_texture: Mode ', st.stav, ' complete');
+   end;
   end;
- end;
-{ noline2;}
+  except
+    on E: Exception do begin
+      writeln('ERROR in print_texture map loop: ', E.Message);
+      writeln('  Exception at f=',f,' ff=',ff);
+      raise;
+    end;
+  end;
+
+ { noline2;}
  if st.meno[1]='>' then begin
     s:=st.meno;
     st.meno:=out_string(s);
@@ -1454,12 +1487,25 @@ end;
 procedure draw_lifes;
 var f,zn:byte;
 begin
- str(zivoty,s);
- rectangle2(screen_image,450,vypisy-9,120,16,0);
- print_normal(screen_image,450,vypisy-9,tx[ja,8]+s,63,1);
- if zivoty<5 then zn:=zivoty else zn:=5;
- for f:=1 to zn do
-	putseg2(508+f*16,vypisy-9,resx,resy,f-1,13,ar^);
+ { writeln('draw_lifes: Drawing ', zivoty, ' lives'); }
+ try
+  { str(zivoty,s); }
+  { rectangle2(screen_image,450,vypisy-9,120,16,0); }
+  { print_normal(screen_image,450,vypisy-9,tx[ja,8]+s,63,1); }
+  if zivoty<5 then zn:=zivoty else zn:=5;
+  { writeln('draw_lifes: Drawing ', zn, ' life icons (skipped rectangle2 and print_normal)'); }
+  for f:=1 to zn do begin
+    { writeln('  draw_lifes: Life ', f, ' at x=', 508+f*16); }
+    putseg2(508+f*16,vypisy-9,resx,resy,f-1,13,ar^);
+  end;
+  { writeln('draw_lifes: Complete'); }
+ except
+  on E: Exception do begin
+    writeln('ERROR in draw_lifes: ', E.Message);
+    writeln('  Exception at f=',f);
+    raise;
+  end;
+ end;
 end;
 
 procedure rewait;           {nastavy cakaci cyklus na novy cas}
@@ -1556,42 +1602,61 @@ end;
 procedure get_gif;
 begin
     if st.obr<>none then begin
-		draw_it(st.obr,obrazok_x,obrazok_y);
-		obrazok_dx:=gif_x;
-		obrazok_dy:=gif_y;
-		kill_handle(handles[6]);
-		if (gif_x>0) and (gif_y>0) then
-		   create_handle(handles[6],gif_x*gif_y);
-		getsegxms(handles[6],obrazok_x,obrazok_y,obrazok_dx,obrazok_dy,0);
-    end;
+        writeln('get_gif: Loading "', st.obr, '" at (', obrazok_x, ',', obrazok_y, ')');
+        { Defensive: Check if st.obr is empty }
+        if st.obr = '' then begin
+            writeln('get_gif: ERROR - st.obr is empty string!');
+            Exit;
+        end;
+        draw_it(st.obr,obrazok_x,obrazok_y);
+        obrazok_dx:=gif_x;
+        obrazok_dy:=gif_y;
+        kill_handle(handles[6]);
+        if (gif_x>0) and (gif_y>0) then
+           create_handle(handles[6],gif_x*gif_y);
+        getsegxms(handles[6],obrazok_x,obrazok_y,obrazok_dx,obrazok_dy,0);
+    end else
+        writeln('get_gif: st.obr is NONE, skipping');
 end;
 
 procedure stage_image(num:word);	{vykresli obrazok v danej miestnosti}
 begin
-    writeln('stage_image: Starting for num=', num);
+    { writeln('stage_image: Starting for num=', num); }
+    { writeln('stage_image: st.obr="', st.obr, '"'); }
+
+    { Defensive: Skip if st.obr is empty }
+    if (st.obr = '') then begin
+      writeln('stage_image: WARNING - st.obr is empty string!');
+      writeln('stage_image: Setting to NONE and skipping');
+      st.obr := none;
+      clear_key_buffer;
+      { writeln('stage_image: Complete'); }
+      Exit;
+    end;
+
     {ak doslo k zmene obrazka}
-    writeln('stage_image: Checking if image changed...');
+    { writeln('stage_image: Checking if image changed...'); }
 
     { Skip background image loading if handles[3] not initialized with data }
     { This happens when no background images are loaded yet }
     try
       if vrat_nazov_obrazku(num) then begin
-        writeln('stage_image: Image changed, calling get_gif...');
+        { writeln('stage_image: Image changed, calling get_gif...'); }
         get_gif
       end
       else begin
-        writeln('stage_image: Image not changed, checking handles[6]...');
+        { writeln('stage_image: Image not changed, checking handles[6]...'); }
         if not handles[6].used then begin
-          writeln('stage_image: handles[6] not used, calling get_gif...');
+          { writeln('stage_image: handles[6] not used, calling get_gif...'); }
           get_gif
         end
         else begin
-          writeln('stage_image: handles[6] used, checking st.obr...');
+          { writeln('stage_image: handles[6] used, checking st.obr...'); }
           if st.obr<>none then begin
-            writeln('stage_image: Calling putsegxms for background image...');
+            { writeln('stage_image: Calling putsegxms for background image...'); }
             putsegxms(handles[6],obrazok_x,obrazok_y,obrazok_dx,obrazok_dy,0);
-          end else
-            writeln('stage_image: st.obr is none, skipping');
+          end
+          { else writeln('stage_image: st.obr is none, skipping'); }
         end;
       end;
     except
@@ -1602,7 +1667,7 @@ begin
     end;
 
     clear_key_buffer;
-    writeln('stage_image: Complete');
+    { writeln('stage_image: Complete'); }
 end;
 
 procedure help_line1;
@@ -1621,51 +1686,51 @@ end;
 
 procedure redraw(param:boolean);
 begin
- writeln('redraw: Starting...');
+ { writeln('redraw: Starting...'); }
  if param then begin
-   writeln('redraw: Clearing screen...');
+   { writeln('redraw: Clearing screen...'); }
    clear_bitmap(screen_image);
  end;
    clear_key_buffer;
-    writeln('redraw: Drawing stvorec2...');
+    { writeln('redraw: Drawing stvorec2...'); }
     stvorec2(screen,0,416,639,62,20,0);
-    writeln('redraw: Setting lajna array (1)...');
+    { writeln('redraw: Setting lajna array (1)...'); }
     for f:=0 to 250 do lajna[f]:=1;
-    writeln('redraw: Calling help_line1...');
+    { writeln('redraw: Calling help_line1...'); }
     help_line1;
-    writeln('redraw: Setting lajna array (197)...');
+    { writeln('redraw: Setting lajna array (197)...'); }
     for f:=0 to 250 do lajna[f]:=197;
-    writeln('redraw: Calling help_line2...');
+    { writeln('redraw: Calling help_line2...'); }
     help_line2;
-   writeln('redraw: Calling stage_image...');
+   { writeln('redraw: Calling stage_image...'); }
    stage_image(aktual);
-   writeln('redraw: Calling print_texture...');
+   { writeln('redraw: Calling print_texture...'); }
    print_texture;
    clear_key_buffer;
   if param then begin
-   writeln('redraw: Calling print_predmet...');
+   { writeln('redraw: Calling print_predmet...'); }
    print_predmet
   end
   else begin
-   writeln('redraw: Calling print_predmet2...');
+   { writeln('redraw: Calling print_predmet2...'); }
    print_predmet2;
   end;
    clear_key_buffer;
-   writeln('redraw: Calling redraw_score...');
+   { writeln('redraw: Calling redraw_score...'); }
    redraw_score;
    clear_key_buffer;
-   writeln('redraw: Calling vypis_skore...');
+   { writeln('redraw: Calling vypis_skore...'); }
    vypis_skore;
    clear_key_buffer;
-   writeln('redraw: Calling reset_pol...');
+   { writeln('redraw: Calling reset_pol...'); }
    reset_pol;
    clear_key_buffer;
-   writeln('redraw: Calling draw_inventar...');
+   { writeln('redraw: Calling draw_inventar...'); }
    draw_inventar;
    clear_key_buffer;
-   writeln('redraw: Calling getseg for player...');
+   { writeln('redraw: Calling getseg for player...'); }
    getseg(si.x+px,si.y+py,resx,resy,si.buf,ar^);
-   writeln('redraw: Complete!');
+   { writeln('redraw: Complete!'); }
 end;
 
 procedure redraw3;
@@ -1722,20 +1787,18 @@ begin
 	  play_ani(flik_end);
 	  write_palette(blackx,0,256);
 	  reload_sound(3,zvukovy_subor,snd_theend);
-    new(palz);
 		    if outro_obr[1]='>' then begin
 			   s:=outro_obr;
 			   outro_obr:=out_string(s);
 		    end;
-		    draw_gif_block(screen,zvukovy_subor,outro_obr,0,0,palz^);
+		    blockx.draw_gif_block(screen_image,zvukovy_subor,outro_obr,0,0,jxfont_simple.tpalette(palx));
     pust(3);
     sace:=false;
     menu_pointer:=levely^.pocet+1; {nastavy ukazovatel na Spat}
-    increase_palette(blackx,palz^,150);
+    increase_palette(blackx,palx,150);
     clear_key_buffer;
     kkey;
-    decrease_palette(palz^,150);
-    dispose(palz);
+    decrease_palette(palx,150);
     clear_bitmap(screen_image);
     increase_palette(blackx,palx,50);
     insert_score;
@@ -1850,11 +1913,33 @@ end;
 procedure draw_inventar; {vykresli inventar}
 var f:byte;
 begin
-    rectangle2(screen_image,115,vypisy-9,3*35,resy,0);
-    print_normal(screen_image,40,vypisy-9,tx[ja,27],15,0);
-    for f:=1 to 3 do begin
-	  if own[f]=0 then putseg2(80+f*35,vypisy-9,resx,resy,45,13,ar^)
-	  else putseg2xms(handles[4],80+f*35,vypisy-9,resx,resy,vec^[own[f]].obr,13)
+    { writeln('draw_inventar: Drawing inventory'); }
+    try
+      { writeln('draw_inventar: Calling rectangle2...'); }
+      rectangle2(screen_image,115,vypisy-9,3*35,resy,0);
+      { writeln('draw_inventar: rectangle2 complete'); }
+      { print_normal(screen_image,40,vypisy-9,tx[ja,27],15,0); }
+      { writeln('draw_inventar: Drawing ', nahrane_veci, ' inventory items'); }
+      for f:=1 to 3 do begin
+        { writeln('draw_inventar: Slot ', f, ' own=', own[f]); }
+        if own[f]=0 then begin
+          { writeln('  Drawing from ar^, tile 45'); }
+          putseg2(80+f*35,vypisy-9,resx,resy,45,13,ar^)
+        end else begin
+          { writeln('  Drawing from vec^[', own[f], '], obr=', vec^[own[f]].obr); }
+          putseg2xms(handles[4],80+f*35,vypisy-9,resx,resy,vec^[own[f]].obr,13)
+        end;
+      end;
+      { writeln('draw_inventar: Complete'); }
+    except
+      on E: Exception do begin
+        writeln('ERROR in draw_inventar: ', E.Message);
+        writeln('  Exception at f=',f);
+        writeln('  own[1]=',own[1],' own[2]=',own[2],' own[3]=',own[3]);
+        writeln('  ar allocated: ', ar<>nil);
+        writeln('  handles[4] used: ', handles[4].used);
+        raise;
+      end;
     end;
 end;
 
@@ -2043,6 +2128,7 @@ begin
 end;
 
 procedure rerun;
+var fm:word;
 begin
    krok:=5;
 {   scroll_sub:=scroll_subor;}
@@ -2066,7 +2152,16 @@ begin
    oldmov:=0;
    cl:='     ';
    okraj:=false;
-non_key := False;
+   non_key := False;
+
+   { EXACT PORT from original LOAD235.PAS:703 }
+   { Initialize handles[3] with default values for all levels }
+   st.obr:=none;
+   obrazok_x:=0;
+   obrazok_y:=0;
+   for fm:=1 to pocet_obr do
+     uloz_nazov_obrazku(fm,st.obr,obrazok_x,obrazok_y);
+   writeln('rerun: Initialized handles[3] for ', pocet_obr, ' levels with default "NONE"');
 end;
 
 procedure load_level_list(meno:string;var pole:array of byte);
