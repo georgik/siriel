@@ -1239,10 +1239,7 @@ end;
 procedure print_texture;
 var pes:integer;
     s:string;
-    tile_count: longint;
 begin
- writeln('print_texture: ENTER - st.stav=', st.stav, ' te=nil=', te = nil);
-
  { Defensive check - skip if texture array not initialized }
  if te = nil then begin
    writeln('WARNING: print_texture called with nil te array');
@@ -1252,24 +1249,14 @@ begin
  try
   case st.stav of
    1,3,5:begin
-    writeln('print_texture: Mode ', st.stav, ' - drawing map (', mie_x+1, 'x', mie_y+1, ')');
-    writeln('print_texture: invisible=', invisible, ' resx=', resx, ' resy=', resy);
-    tile_count := 0;
     for f:=0 to mie_x do begin
      clear_key_buffer;
      for ff:=0 to mie_y do begin
-       if (tile_count < 3) and (st.mie[f,ff] > 0) then
-         writeln('  Check tile[', f, ',', ff, ']=', st.mie[f,ff], ' < invisible=', invisible, '? ', st.mie[f,ff] < invisible);
-       if (st.mie[f,ff]<invisible) then begin
-         inc(tile_count);
-         if (tile_count <= 5) then
-           writeln('  Drawing tile[', f, ',', ff, ']=', st.mie[f,ff], ' at (', f*16, ',', ff*16, ')');
-         putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
-       end;
+       if (st.mie[f,ff]<invisible) then
+        putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
        if bl<>nil then bl^[f,ff]:=true;
      end;
     end;
-    writeln('print_texture: Drew ', tile_count, ' tiles');
     if (bl<>nil) and (st.stav=3) then st.stav:=2;
     { writeln('print_texture: Mode ', st.stav, ' complete'); }
    end;
