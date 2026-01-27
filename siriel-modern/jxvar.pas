@@ -44,6 +44,9 @@ var
   timer: integer;        { Level countdown timer (seconds) }
   tim, tim2: time_struct; { Time tracking for timer }
 
+  { Test mode variables }
+  test_mode_duration_ms: longint;  { Test mode duration in milliseconds (0 = no limit) }
+
   { Power-up timers }
   freez_time: integer;   { Freeze power-up timer }
   god_time: integer;     { God mode power-up timer }

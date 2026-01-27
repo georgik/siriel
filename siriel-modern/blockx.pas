@@ -318,7 +318,10 @@ begin
     GetblockFile(Kluc);
 
     if (SoundSize = 0) then
+    begin
+      Dispose(dato);
       Exit;
+    end;
 
     Remaining := SoundSize;
     ffl := 0;
@@ -364,7 +367,10 @@ begin
   GetblockFile(Kluc);
 
   if (SoundSize = 0) then
+  begin
+    Dispose(dato);
     Exit;
+  end;
 
   Remaining := SoundSize;
   ffl := 0;

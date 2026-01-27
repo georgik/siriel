@@ -9,8 +9,21 @@ RAYLIB_LIB = /Volumes/ssdt5/Users/georgik/projects/raylib/build/raylib/libraylib
 SDK = /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 MACOS_VERSION = 13.0
 
-# FPC flags - DEBUG BUILD with full symbols and runtime checks
-FPCFLAGS = -MObjfpc -Scghi -O- -g -gl -gh -Ci -Co -Ct \
+# FPC flags - PRODUCTION BUILD (no heap tracing for clean output)
+FPCFLAGS = -MObjfpc -Scghi -O- -g -gl -Ci -Co -Ct \
+           -WM$(MACOS_VERSION) \
+           -Fu$(RTL) \
+           -XR$(SDK) \
+           -I$(RAYLIB_SRC) \
+           -k$(RAYLIB_LIB) \
+           -k-framework -kAppKit \
+           -k-framework -kCocoa \
+           -k-framework -kIOKit \
+           -k-framework -kCoreVideo \
+           -k-framework -kOpenGL
+
+# FPC flags - DEBUG BUILD with heap tracing (for development)
+FPCFLAGS_DEBUG = -MObjfpc -Scghi -O- -g -gl -gh -Ci -Co -Ct \
            -WM$(MACOS_VERSION) \
            -Fu$(RTL) \
            -XR$(SDK) \
@@ -32,7 +45,7 @@ TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35
 SIRIEL = siriel
 
 # All targets
-.PHONY: all clean run menu resources tests game siriel debug debug-interactive help
+.PHONY: all clean run menu resources tests game siriel debug debug-interactive help memcheck
 
 all: $(TARGET)
 
@@ -43,9 +56,15 @@ tests: $(TESTS)
 game: siriel
 	./siriel
 
-# Build siriel executable
+# Build siriel executable (production - no heap trace output)
 siriel: siriel.pas
 	$(FPC) $(FPCFLAGS) siriel.pas
+
+# Build siriel with memory leak detection (for development)
+memcheck: siriel.pas
+	@echo "Building with heap tracing enabled..."
+	$(FPC) $(FPCFLAGS_DEBUG) siriel.pas
+	@echo "Heap tracing enabled - will show memory allocation report"
 
 # Run siriel under LLDB debugger (batch mode - auto-captures crashes)
 debug: siriel
@@ -214,15 +233,17 @@ help:
 	@echo "Configuration:"
 	@echo "  FPC:    $(FPC)"
 	@echo "  Raylib: $(RAYLIB_LIB)"
-	@echo "  Build: DEBUG mode with symbols (-g -gl -O-)"
+	@echo "  Build: Production mode (symbols -g -gl, no heap tracing)"
 	@echo ""
 	@echo "Main Targets:"
-	@echo "  siriel           - Build main game executable"
-	@echo "  game             - Build and run main game"
+	@echo "  siriel   - Build main game (production - clean output)"
+	@echo "  game     - Build and run main game"
+	@echo "  memcheck - Build with heap tracing for memory leak detection"
 	@echo ""
 	@echo "Debug Targets:"
 	@echo "  debug            - Run under LLDB (batch mode, auto-captures crashes)"
 	@echo "  debug-interactive - Run under LLDB (interactive, press Ctrl+C if frozen)"
+	@echo "  memcheck         - Build with heap tracing to find memory leaks"
 	@echo ""
 	@echo "Test Targets:"
 	@echo "  all        - Build menu test (default)"
@@ -260,3 +281,9 @@ help:
 	@echo "  make game"
 	@echo "  make debug"
 	@echo "  ./siriel --level-file 1.MIE"
+
+	@echo ""
+	@echo "Note: Production builds have heap tracing disabled to avoid confusing"
+	@echo "      FPC ParamStr cache warnings. Use 'make memcheck' to enable"
+	@echo "      heap tracing for development."
+	@echo ""

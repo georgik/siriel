@@ -934,16 +934,23 @@ end;
 
 initialization
   fill_palette_default;
-  init_screen(640, 480);
+  { Note: init_screen is called by siriel.pas, not here }
+  { This avoids double-initialization and memory leaks }
 
   { Initialize text rendering objects (automatically done by object constructors) }
 
 finalization
-  { Cleanup }
+  { Cleanup - only if siriel.pas hasn't already cleaned up }
   if Assigned(screen_image) then
+  begin
     destroy_bitmap(screen_image);
+    screen_image := nil;
+  end;
   if Assigned(screen) then
+  begin
     Dispose(screen);
+    screen := nil;
+  end;
   { Note: screen_texture cleanup not needed with direct rendering }
 
 end.

@@ -380,9 +380,9 @@ begin
         if Trim(v2) <> '' then begin
           vrat_nazov_obrazku:=true;
           st.obr:=v2;
-          writeln('vrat_nazov_obrazku: Image changed to "', v2, '"');
+          { writeln('vrat_nazov_obrazku: Image changed to "', v2, '"'); }
         end else begin
-          writeln('vrat_nazov_obrazku: WARNING - v2 is empty/whitespace, keeping st.obr as "', st.obr, '"');
+          { writeln('vrat_nazov_obrazku: WARNING - v2 is empty/whitespace, keeping st.obr as "', st.obr, '"'); }
           vrat_nazov_obrazku:=false;
         end;
       end;
@@ -1249,7 +1249,7 @@ begin
  try
   case st.stav of
    1,3,5:begin
-    writeln('print_texture: Mode ', st.stav, ' - drawing map...');
+    { writeln('print_texture: Mode ', st.stav, ' - drawing map...'); }
     for f:=0 to mie_x do begin
      clear_key_buffer;
      for ff:=0 to mie_y do begin
@@ -1259,10 +1259,10 @@ begin
      end;
     end;
     if (bl<>nil) and (st.stav=3) then st.stav:=2;
-    writeln('print_texture: Mode ', st.stav, ' complete');
+    { writeln('print_texture: Mode ', st.stav, ' complete'); }
    end;
    2,4:begin
-    writeln('print_texture: Mode ', st.stav, ' - drawing map...');
+    { writeln('print_texture: Mode ', st.stav, ' - drawing map...'); }
     if bl<>nil then begin
       for f:=0 to mie_x do begin
        for ff:=0 to mie_y do begin
@@ -1271,7 +1271,7 @@ begin
        end;
       end;
     end;
-    writeln('print_texture: Mode ', st.stav, ' complete');
+    { writeln('print_texture: Mode ', st.stav, ' complete'); }
    end;
   end;
   except

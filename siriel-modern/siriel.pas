@@ -587,11 +587,14 @@ begin
   gameRunning := true;
   start_time := SysUtils.GetTickCount64;
 
-  { Calculate target duration if specified }
+  { Calculate target duration if specified and set global for game loop to check }
   if duration_sec > 0 then
     target_duration_ms := duration_sec * 1000
   else
     target_duration_ms := 0;
+
+  { Set global test mode duration for game loop procedures to check }
+  test_mode_duration_ms := target_duration_ms;
 
   { Store original test mode flag }
   original_test_mode := test_mode;
@@ -865,54 +868,94 @@ begin
   { Free screen_image bitmap using jxgraf's cleanup }
   if screen_image <> nil then
   begin
-    destroy_bitmap(screen_image);
-    screen_image := nil;
-    writeln('  Freed screen_image bitmap');
+    try
+      destroy_bitmap(screen_image);
+      screen_image := nil;
+      writeln('  Freed screen_image bitmap');
+    except
+      on E: Exception do
+        writeln('  Warning: Error freeing screen_image: ', E.Message);
+    end;
   end;
 
   { Free screen structure }
   if screen <> nil then
   begin
-    Dispose(screen);
-    screen := nil;
-    writeln('  Freed screen structure');
+    try
+      Dispose(screen);
+      screen := nil;
+      writeln('  Freed screen structure');
+    except
+      on E: Exception do
+        writeln('  Warning: Error freeing screen structure: ', E.Message);
+    end;
   end;
 
   { Free texture array }
   if te <> nil then
   begin
-    dispose(te);
-    te := nil;
-    writeln('  Freed texture array (te)');
+    try
+      dispose(te);
+      te := nil;
+      writeln('  Freed texture array (te)');
+    except
+      on E: Exception do
+        writeln('  Warning: Error freeing texture array: ', E.Message);
+    end;
   end;
 
   { Free item graphics array }
   if ar <> nil then
   begin
-    dispose(ar);
-    ar := nil;
-    writeln('  Freed item graphics array (ar)');
+    try
+      dispose(ar);
+      ar := nil;
+      writeln('  Freed item graphics array (ar)');
+    except
+      on E: Exception do
+        writeln('  Warning: Error freeing item graphics array: ', E.Message);
+    end;
   end;
 
-  { Free XMS handles }
-  if handles[3].used then
+  { Free XMS handles - clean up ALL used handles }
+  for f := 1 to max_handles do
   begin
-    kill_handle(handles[3]);
-    writeln('  Freed handles[3]');
-  end;
-
-  if handles[5].used then
-  begin
-    kill_handle(handles[5]);
-    writeln('  Freed handles[5]');
+    if handles[f].used then
+    begin
+      try
+        kill_handle(handles[f]);
+        writeln('  Freed handles[', f, ']');
+      except
+        on E: Exception do
+          writeln('  Warning: Error freeing handles[', f, ']: ', E.Message);
+      end;
+    end;
   end;
 
   { Free bl array if allocated }
   if bl <> nil then
   begin
-    dispose(bl);
-    bl := nil;
-    writeln('  Freed bl array');
+    try
+      dispose(bl);
+      bl := nil;
+      writeln('  Freed bl array');
+    except
+      on E: Exception do
+      writeln('  Warning: Error freeing bl array: ', E.Message);
+    end;
+  end;
+
+  { Free vec array if allocated }
+  if vec <> nil then
+  begin
+    try
+      dispose(vec);
+      vec := nil;
+      writeln('  Freed vec array');
+    except
+      on E: Exception do
+      writeln('  Warning: Error freeing vec array: ', E.Message);
+    end;
   end;
 
   writeln('Memory cleanup complete');

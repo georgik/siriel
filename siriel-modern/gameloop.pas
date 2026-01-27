@@ -55,10 +55,14 @@ var
   old5, old7: boolean;
   frame_count: longint;  { For debugging - count rendered frames }
   last_log_time: longint;
+  start_time, current_time: longint;
 begin
   same := 0;
   frame_count := 0;
   last_log_time := SysUtils.GetTickCount64;
+
+  { Track test mode duration }
+  start_time := SysUtils.GetTickCount64;
 
   writeln('arcade: Starting game loop...');
   { TODO: rewait; }
@@ -74,6 +78,17 @@ begin
       the_koniec := True;
     end;
 
+    { Check test mode duration }
+    if test_mode_duration_ms > 0 then
+    begin
+      current_time := SysUtils.GetTickCount64;
+      if (current_time - start_time) >= test_mode_duration_ms then
+      begin
+        writeln('arcade: Test mode duration reached, exiting loop');
+        the_koniec := True;
+      end;
+    end;
+
     if rollup = 0 then
       oldkey := 0;
     k := 0;
@@ -81,10 +96,15 @@ begin
     { Display score }
     vypis_skore;
 
-    { Update game world rendering - CRITICAL for gameplay visibility }
-    { Call redraw every frame to ensure screen is updated }
-    { Use param=false to avoid clearing screen every frame }
-    redraw(false);
+    { Update game world rendering - ORIGINAL ENGINE APPROACH }
+    { The original engine only redraws when necessary, not every frame }
+    { Only redraw if player moved or state changed }
+    if (si.x <> si.oldx) or (si.y <> si.oldy) or (oldpol <> poloha) then
+    begin
+      { Use redraw(false) for incremental updates (clears and redraws dynamic elements) }
+      { This calls print_predmet2 which only redraws changed items }
+      redraw(false);
+    end;
 
     { Wait for next frame - NON-BLOCKING for Raylib }
     { Original DOS busy-wait won't work with event-driven UI }
@@ -401,10 +421,15 @@ begin
     { Display score }
     vypis_skore;
 
-    { Update game world rendering - CRITICAL for gameplay visibility }
-    { Call redraw every frame to ensure screen is updated }
-    { Use param=false to avoid clearing screen every frame }
-    redraw(false);
+    { Update game world rendering - ORIGINAL ENGINE APPROACH }
+    { The original engine only redraws when necessary, not every frame }
+    { Only redraw if player moved or state changed }
+    if (si.x <> si.oldx) or (si.y <> si.oldy) or (oldpol <> poloha) then
+    begin
+      { Use redraw(false) for incremental updates (clears and redraws dynamic elements) }
+      { This calls print_predmet2 which only redraws changed items }
+      redraw(false);
+    end;
 
     { Wait for next frame - NON-BLOCKING for Raylib }
     { Original DOS busy-wait won't work with event-driven UI }
