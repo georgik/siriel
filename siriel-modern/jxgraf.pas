@@ -147,6 +147,7 @@ function ImageToScreenImage(img: PImage): PScreenImage;
 
 { Palette management }
 function palette_to_rgba(color_index: byte): longint;
+function rgba_to_palette_index(rgba: longint): byte;
 procedure fill_palette_default;
 
 { Palette manipulation functions }
@@ -322,24 +323,34 @@ end;
 procedure read_line(bitmap: PImage; var line: tline; ordonnee: word; number: word);
 var
   x: word;
+  rgba: longint;
 begin
   if not Assigned(bitmap) then Exit;
   if ordonnee >= bitmap^.height then Exit;
 
   for x := 0 to number - 1 do
-    line[x] := getpixel(bitmap, x, ordonnee);
+  begin
+    { Read RGBA pixel and convert back to palette index }
+    rgba := getpixel(bitmap, x, ordonnee);
+    line[x] := rgba_to_palette_index(rgba);
+  end;
 end;
 
 procedure read_linepos(bitmap: PImage; var line: tline; abscisse, ordonnee: word; number: word);
 var
   x: word;
+  rgba: longint;
 begin
   if not Assigned(bitmap) then Exit;
   if abscisse >= bitmap^.width then Exit;
   if ordonnee >= bitmap^.height then Exit;
 
   for x := 0 to number - 1 do
-    line[x] := getpixel(bitmap, abscisse + x, ordonnee);
+  begin
+    { Read RGBA pixel and convert back to palette index }
+    rgba := getpixel(bitmap, abscisse + x, ordonnee);
+    line[x] := rgba_to_palette_index(rgba);
+  end;
 end;
 
 { === DRAWING PRIMITIVES === }
@@ -540,6 +551,49 @@ begin
   b := current_palette[color_index].b shl 2;
 
   palette_to_rgba := (longint(255) shl 24) or (longint(r) shl 16) or (longint(g) shl 8) or b;
+end;
+
+{ Convert RGBA color to nearest palette index }
+function rgba_to_palette_index(rgba: longint): byte;
+var
+  r_in, g_in, b_in: byte;
+  r_pal, g_pal, b_pal: byte;
+  i, best_index: byte;
+  best_dist, curr_dist: longint;
+begin
+  { Extract RGB from RGBA (format: 0xAA RR GG BB) }
+  r_in := (rgba shr 16) and $FF;
+  g_in := (rgba shr 8) and $FF;
+  b_in := rgba and $FF;
+
+  best_index := 0;
+  best_dist := $7FFFFFFF; { Max longint }
+
+  { Find closest palette color using Euclidean distance }
+  for i := 0 to 255 do
+  begin
+    { Convert 6-bit palette to 8-bit for comparison }
+    r_pal := current_palette[i].r shl 2;
+    g_pal := current_palette[i].v shl 2;
+    b_pal := current_palette[i].b shl 2;
+
+    { Calculate color distance (simple Euclidean RGB distance) }
+    curr_dist := (longint(r_in - r_pal) * (r_in - r_pal) +
+                 longint(g_in - g_pal) * (g_in - g_pal) +
+                 longint(b_in - b_pal) * (b_in - b_pal));
+
+    if curr_dist < best_dist then
+    begin
+      best_dist := curr_dist;
+      best_index := i;
+
+      { Early exit if exact match found }
+      if best_dist = 0 then
+        break;
+    end;
+  end;
+
+  rgba_to_palette_index := best_index;
 end;
 
 { Fill default VGA palette }

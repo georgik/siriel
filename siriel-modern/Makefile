@@ -39,7 +39,7 @@ FPCFLAGS_DEBUG = -MObjfpc -Scghi -O- -g -gl -gh -Ci -Co -Ct \
 TARGET = test_menu
 
 # All test programs
-TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_gzal_display test_tile_display test_spritesheet test_animation test_menu_decor test_modern_mem test_keyboard test_aktiv35_init test_animing test_jxmenu test_load235 test_load_predmet2 test_minimal_game test_phase4_complete
+TESTS = test_menu test_resources test_api test_simple test_graphics test_aktiv35 test_geo test_blue_screen test_bitmap_render test_colors test_font test_gif_load test_gif_file test_block_debug test_background_load test_palette test_wav_header test_gzal_display test_tile_display test_spritesheet test_animation test_menu_decor test_modern_mem test_keyboard test_aktiv35_init test_animing test_jxmenu test_load235 test_load_predmet2 test_minimal_game test_phase4_complete test_grid_debug
 
 # Main game executable
 SIRIEL = siriel
@@ -214,6 +214,9 @@ test_minimal_game: test_minimal_game.pas
 
 test_phase4_complete: test_phase4_complete.pas
 	$(FPC) $(FPCFLAGS) test_phase4_complete.pas
+
+test_grid_debug: test_grid_debug.pas
+	$(FPC) $(FPCFLAGS) test_grid_debug.pas
 
 siriel_demo: siriel_demo.pas
 	$(FPC) $(FPCFLAGS) siriel_demo.pas

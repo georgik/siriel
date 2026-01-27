@@ -335,6 +335,9 @@ begin
   truth := False;
   death := False;
   talking := False;
+
+  { Initialize invisible to default value }
+  invisible := def_invisible;
   sounds_loaded := False;
   aktivita_snd := False;
   animabl := False;
