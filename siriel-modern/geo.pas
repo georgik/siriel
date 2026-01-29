@@ -272,28 +272,52 @@ end;
 procedure get_keyboard;
 var
   klu: byte;
-  scan_code: byte;
+  ascii_char: byte;
 begin
   { Clear buffer first }
   clear_key_buffer;
 
-  { Map Raylib keys to DOS scancodes }
+  { Map Raylib keys to DOS scancodes with ASCII }
   if IsKeyDown(KEY_UP) <> 0 then
-    klu := 72  { Up arrow }
+  begin
+    klu := 72;  { Up arrow scan code }
+    ascii_char := 0;  { No ASCII for arrows }
+  end
   else if IsKeyDown(KEY_DOWN) <> 0 then
-    klu := 80  { Down arrow }
+  begin
+    klu := 80;  { Down arrow scan code }
+    ascii_char := 0;
+  end
   else if IsKeyDown(KEY_LEFT) <> 0 then
-    klu := 75  { Left arrow }
+  begin
+    klu := 75;  { Left arrow scan code }
+    ascii_char := 0;
+  end
   else if IsKeyDown(KEY_RIGHT) <> 0 then
-    klu := 77  { Right arrow }
+  begin
+    klu := 77;  { Right arrow scan code }
+    ascii_char := 0;
+  end
   else if IsKeyDown(KEY_ESCAPE) <> 0 then
-    klu := 1   { ESC }
+  begin
+    klu := 1;   { ESC scan code }
+    ascii_char := 27;  { ASCII ESC }
+  end
   else if IsKeyDown(KEY_ENTER) <> 0 then
-    klu := 28  { Enter }
+  begin
+    klu := 28;  { Enter scan code }
+    ascii_char := 13;  { ASCII CR }
+  end
   else if IsKeyDown(KEY_SPACE) <> 0 then
-    klu := 57  { Space }
+  begin
+    klu := 57;  { Space scan code }
+    ascii_char := 32;  { ASCII space }
+  end
   else
+  begin
     klu := 0;
+    ascii_char := 0;
+  end;
 
   { Update state array }
   if klu >= 128 then
@@ -301,10 +325,9 @@ begin
   else if klu > 0 then
     klx[klu] := True;
 
-  { Set key_buffer to DOS scancode format (scan_code in high byte) }
-  { This allows keypressed() to detect the key }
+  { Set key_buffer to DOS keycode format (scan_code in high byte, ASCII in low byte) }
   if klu > 0 then
-    key_buffer := klu shl 8;
+    key_buffer := (klu shl 8) or ascii_char;
 
   { Special case: arrow keys clear all states }
   if (klu = 203) or (klu = 205) then

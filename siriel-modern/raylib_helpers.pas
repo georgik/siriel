@@ -66,6 +66,30 @@ type
     channels: cuint;
   end;
 
+{ Pixel format constants }
+const
+  PIXELFORMAT_UNCOMPRESSED_GRAYSCALE = 1;     // 8 bit per pixel (no alpha)
+  PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA = 2;    // 8*2 bpp (2 channels)
+  PIXELFORMAT_UNCOMPRESSED_R5G6B5 = 3;        // 16 bpp
+  PIXELFORMAT_UNCOMPRESSED_R8G8B8 = 4;        // 24 bpp
+  PIXELFORMAT_UNCOMPRESSED_R5G5B5A1 = 5;      // 16 bpp (1 bit alpha)
+  PIXELFORMAT_UNCOMPRESSED_R4G4B4A4 = 6;      // 16 bpp (4 bit alpha)
+  PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 = 7;      // 32 bpp
+  PIXELFORMAT_UNCOMPRESSED_R32 = 8;           // 32 bpp (1 channel - float)
+  PIXELFORMAT_UNCOMPRESSED_R32G32B32 = 9;     // 32*3 bpp (3 channels - float)
+  PIXELFORMAT_UNCOMPRESSED_R32G32B32A32 = 10; // 32*4 bpp (4 channels - float)
+  PIXELFORMAT_COMPRESSED_DXT1_RGB = 11;       // 4 bpp (no alpha)
+  PIXELFORMAT_COMPRESSED_DXT1_RGBA = 12;      // 4 bpp (1 bit alpha)
+  PIXELFORMAT_COMPRESSED_DXT3_RGBA = 13;      // 8 bpp
+  PIXELFORMAT_COMPRESSED_DXT5_RGBA = 14;      // 8 bpp
+  PIXELFORMAT_COMPRESSED_ETC1_RGB = 15;       // 4 bpp
+  PIXELFORMAT_COMPRESSED_ETC2_RGB = 16;       // 4 bpp
+  PIXELFORMAT_COMPRESSED_ETC2_EAC_RGBA = 17;  // 8 bpp
+  PIXELFORMAT_COMPRESSED_PVRT_RGB = 18;       // 4 bpp
+  PIXELFORMAT_COMPRESSED_PVRT_RGBA = 19;      // 4 bpp
+  PIXELFORMAT_COMPRESSED_ASTC_4x4_RGBA = 20;  // 8 bpp
+  PIXELFORMAT_COMPRESSED_ASTC_8x8_RGBA = 21;  // 2 bpp
+
 { Core Raylib functions }
 procedure InitWindow(width: cint; height: cint; title: PChar); cdecl; external 'raylib';
 procedure CloseWindow(); cdecl; external 'raylib';
@@ -88,6 +112,7 @@ function LoadImage(filename: PChar): TRaylibImage; cdecl; external 'raylib';
 function LoadImageFromMemory(fileType: PChar; data: pointer; dataSize: cint): TRaylibImage; cdecl; external 'raylib';
 procedure UnloadImage(image: TRaylibImage); cdecl; external 'raylib';
 function ImageCopy(image: TRaylibImage): TRaylibImage; cdecl; external 'raylib';
+procedure ImageFormat(img: PRaylibImage; newFormat: cint); cdecl; external 'raylib';
 procedure ImageDrawPixel(img: PRaylibImage; x: cint; y: cint; color: cuint); cdecl; external 'raylib';
 procedure ImageDrawLine(img: PRaylibImage; x1: cint; y1: cint; x2: cint; y2: cint; color: cuint); cdecl; external 'raylib';
 procedure ImageDrawRectangle(img: PRaylibImage; x: cint; y: cint; width: cint; height: cint; color: cuint); cdecl; external 'raylib';

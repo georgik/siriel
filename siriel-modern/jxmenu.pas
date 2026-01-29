@@ -177,6 +177,7 @@ procedure LoadGlistTiles;
 var
   palette: jxfont_simple.tpalette;
   glist_x, glist_y, tile_idx: word;
+  glist_width, glist_height: word;
 begin
   if glist_loaded then
     exit;
@@ -192,12 +193,17 @@ begin
     exit;
   end;
 
+  { Get GLIST dimensions }
+  glist_width := blockx.gif_x;
+  glist_height := blockx.gif_y;
+
   { Extract all 8 tiles }
   for tile_idx := 0 to GLIST_TILE_COUNT - 1 do
     ExtractTile(glist_x + tile_idx * TILE_SIZE, glist_y, glist_tiles[tile_idx]);
 
-  { Clear the temporary GLIST display }
-  FillChar(screen_image^.data^, screen_width * TILE_SIZE * 4, 0);
+  { Clear only the GLIST area, NOT the entire screen }
+  FillChar(PByte(screen_image^.data + (glist_y * screen_width + glist_x) * 4)^,
+         glist_width * glist_height * 4, 0);
 
   glist_loaded := True;
 end;
@@ -236,10 +242,22 @@ begin
                 y + (chardy div 2), napis, col1, 0);
 end;
 
-procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
+procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 begin
+  { Highlighted item: draw background rectangle first, then text }
+  rectangle2(screen_image, menx.dat[f].x - chardx, menx.dat[f].y - menx.posuv * chardy,
+             length(menx.dat[f].meno) * chardx, chardy, menx.col2);
   print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
               menx.dat[f].meno, menx.col1, 0);
+end;
+
+procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
+begin
+  { Use col2 (white) for normal text, not col1 (black) }
+  { Original DOS used col1=0 (black) but the background was lighter }
+  { For modern RGBA with dark menu interior, we need white text }
+  print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
+              menx.dat[f].meno, menx.col2, 0);
 end;
 
 procedure vloz_medzery(var s: string; len: byte);

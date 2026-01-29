@@ -584,10 +584,18 @@ begin
     Exit;
   end;
 
+  { Convert to proper RGBA format (32-bit) to avoid palette issues }
+  { This ensures we get full RGBA data, not palette indices }
+  if raylib_img.format <> PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 then
+  begin
+    writeln('  Converting image from format ', raylib_img.format, ' to RGBA (', PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, ')');
+    ImageFormat(@raylib_img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  end;
+
   { Update global GIF dimensions }
   gif_x := raylib_img.width;
   gif_y := raylib_img.height;
-  writeln('  [DEBUG] Set gif_x=', gif_x, ' gif_y=', gif_y);
+  writeln('  [DEBUG] Set gif_x=', gif_x, ' gif_y=', gif_y, ' format=', raylib_img.format);
 
   { Copy Raylib image to our bitmap format with transparency support }
   { Pink/magenta background (RGB 252,84,252 or similar) is transparent }

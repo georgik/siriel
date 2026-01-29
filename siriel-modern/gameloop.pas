@@ -125,9 +125,19 @@ begin
       write('arcade: Frame ', frame_count, ' - Key pressed: $', HexStr(k, 4));
 
       case k of
-        $3920, $1c0d:
+        $3920:
           begin
-            writeln(' (ENTER/Space - Menu)');
+            writeln(' (SPACE - Menu)');
+            if ((not truth) or (not rolldown)) then
+            begin
+              { TODO: menu; }
+              { sace flag will cause loop exit in until condition }
+            end;
+          end;
+
+        $1c0d:
+          begin
+            writeln(' (ENTER - Menu)');
             if ((not truth) or (not rolldown)) then
             begin
               { TODO: menu; }

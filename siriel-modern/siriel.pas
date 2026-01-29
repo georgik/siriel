@@ -33,7 +33,9 @@ uses
   aktiv35,
   jxvar,
   collision,
-  gameloop;
+  gameloop,
+  blockx,
+  jxfont_simple;
 
 const
   PROGRAM_NAME = 'Siriel Modern';
@@ -452,42 +454,119 @@ function ShowIntroMenu: integer;
 var
   menu: ^jxmenu_typ;
   choice: word;
+  key: word;
+  menu_done: boolean;
+  background_loaded: boolean;
+  font_pal: jxfont_simple.tpalette;
+  num_disks: integer;
 begin
   Result := 0;
 
   writeln('=== MAIN MENU ===');
   writeln('');
 
-  { Initialize graphical menu }
+  { Clear screen and try to load background }
+  clear_bitmap(screen_image);
+
+  { Try loading background graphics from SIRIEL35.DAT }
+  { GIFs contain their own palette - no need to load separate PALETA block }
+  writeln('[Menu] Loading background image...');
+
+  background_loaded := blockx.draw_gif_block(screen_image, selectedDAT, 'GTREEP', 0, 0, font_pal);
+  if not background_loaded then
+  begin
+    writeln('[Menu] GTREEP not found, trying GTEXT...');
+    background_loaded := blockx.draw_gif_block(screen_image, selectedDAT, 'GTEXT', 0, 0, font_pal);
+  end;
+
+  if background_loaded then
+    writeln('[Menu] Background loaded: ', blockx.gif_x, 'x', blockx.gif_y)
+  else
+    writeln('[Menu] No background found, using black screen');
+
+  { Initialize graphical menu - using original positioning }
+  { Original: init_jxmenu(200, 40, 0, 15, 0, 'Select DATADISK', mex^) }
   new(menu);
-  init_jxmenu(200, 150, 0, 15, 0, 'SIRIEL 3.5', menu^);
-  size_jxmenu(240, 200, menu^);
+  init_jxmenu(200, 40, 0, 15, 0, 'Select DATADISK', menu^);
+  size_jxmenu(192, 288, menu^);
 
-  { Add menu items }
-  vloz_jxmenu2('START GAME', menu^, 0);
-  vloz_jxmenu2('INFO', menu^, 0);
-  vloz_jxmenu2('HIGH SCORES', menu^, 0);
-  vloz_jxmenu2('QUIT', menu^, 0);
+  { Add menu items - original structure: available DAT files + Quit }
+  { For now, just show SIRIEL 3.5 as the only option }
+  vloz_jxmenu2('SIRIEL 3.5', menu^, 0);
+  vloz_jxmenu2('Quit', menu^, 0);
 
-  { Draw menu decorations }
+  num_disks := 2;  { SIRIEL 3.5 + Quit }
+
+  { Render background to window first }
+  BeginDrawing();
   ClearBackground(0, 0, 0, 255);
-  old_frame_draw(200, 150, 3, 3);
+  RenderScreenToWindow();
+  EndDrawing();
 
-  { Display and wait for selection }
-  size_jxmenu(240, 200, menu^);
+  { Draw menu decorations OVER the background - using original frame size }
+  { Original: old_frame.draw(200, 40, 12, 2+num_disks) }
+  { old_frame_draw(200, 40, 12, 2 + num_disks);  { TODO: Implement proper old_frame.draw } }
+
+  { Display menu }
   draw_jxmenu3(menu^);
-  vyber_jxmenu(menu^, choice);
+
+  { Menu input loop - wait for key press }
+  choice := 1;  { Default to first option }
+  menu_done := False;
+  repeat
+    { Update keyboard buffer }
+    geo.get_keyboard;
+
+    { Check for window close (modern addition - not in DOS version) }
+    if WindowShouldClose() <> 0 then
+    begin
+      choice := num_disks;  { Quit }
+      menu_done := True;
+    end;
+
+    { Render to window }
+    BeginDrawing();
+    ClearBackground(0, 0, 0, 255);
+    RenderScreenToWindow();
+    EndDrawing();
+
+    { Check for input }
+    if geo.keypressed then
+    begin
+      key := geo.kkey2;
+      case key of
+        geo.kb_up:
+          begin
+            if choice > 1 then dec(choice);
+            draw_jxmenu3(menu^);
+          end;
+        geo.kb_down:
+          begin
+            if choice < num_disks then inc(choice);
+            draw_jxmenu3(menu^);
+          end;
+        geo.kb_enter, geo.kb_space:
+          menu_done := True;
+        geo.kb_esc:
+          begin
+            choice := num_disks;  { Quit }
+            menu_done := True;
+          end;
+      end;
+    end;
+
+    { Small delay to prevent CPU spin }
+    Sleep(16);
+  until menu_done;
 
   { Cleanup }
-  draw_jxmenu3(menu^);
   dispose(menu);
 
   { Map choice to return value }
+  { Original: if vybr=mex^.pocet or (vybr=0) then ending('') }
   case choice of
-    1: Result := 1;  { Start Game }
-    2: Result := 2;  { Info }
-    3: Result := 3;  { High Scores }
-    4: Result := 0;  { Quit }
+    1: Result := 1;  { SIRIEL 3.5 - Start Game }
+    2: Result := 0;  { Quit }
   else
     Result := 0;
   end;
@@ -992,10 +1071,8 @@ begin
     { Main menu loop }
     repeat
       case ShowIntroMenu of
-        1: StartNewGame;
-        2: LoadSavedGame;
-        3: ShowSettings;
-        4: begin
+        1: StartNewGame;  { SIRIEL 3.5 }
+        0: begin  { Quit - via ESC, Quit option, or window close }
           writeln('Quitting ', PROGRAM_NAME, '...');
           writeln('Thank you for playing!');
           writeln('');
