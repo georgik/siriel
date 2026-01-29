@@ -400,6 +400,11 @@ begin
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, PChar(PROGRAM_NAME + ' - ' + datFile));
   SetTargetFPS(60);
   writeln('  OK - Screen: ', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);
+
+  { Initialize VGA palette - CRITICAL for correct colors }
+  writeln('[1/6] Initializing VGA palette...');
+  jxgraf.fill_palette_default;
+  writeln('  OK - VGA palette initialized');
   writeln('');
 
   { Initialize memory }
@@ -497,9 +502,9 @@ begin
   { For now, skip this - we'll add shadow text effect later }
 
   { Initialize graphical menu - matches original DOS structure }
-  { No title in the init, we'll display logo separately }
+  { col1=14 (yellow for selected), col2=15 (white for normal), col3=0 (black) }
   new(menu);
-  init_jxmenu(0, 0, 0, 15, 0, '', menu^);
+  init_jxmenu(0, 0, 14, 15, 0, '', menu^);
 
   { Add menu items at exact positions from original GAME.INC:402-459 }
   { tx[ja,10] = "Game" at (270, 150) }
@@ -532,12 +537,22 @@ begin
   { Original: old_frame.draw(200, 40, 12, 2+num_disks) }
   { old_frame_draw(200, 40, 12, 2 + num_disks);  { TODO: Implement proper old_frame.draw } }
 
-  { Display menu }
+  { Display menu - draw all items initially as normal }
   draw_jxmenu3(menu^);
 
   { Menu input loop - wait for key press }
   choice := 1;  { Default to first option }
   menu_done := False;
+
+  { Highlight initial selection }
+  jxmenu.hi_jxmenu(choice, menu^);
+
+  { Render to window with initial highlight }
+  BeginDrawing();
+  ClearBackground(0, 0, 0, 255);
+  RenderScreenToWindow();
+  EndDrawing();
+
   repeat
     { Update keyboard buffer }
     geo.get_keyboard;
@@ -545,15 +560,11 @@ begin
     { Check for window close (modern addition - not in DOS version) }
     if WindowShouldClose() <> 0 then
     begin
+      { Unhighlight current selection before exiting }
+      jxmenu.normal_jxmenu(choice, menu^);
       choice := num_disks;  { Quit }
       menu_done := True;
     end;
-
-    { Render to window }
-    BeginDrawing();
-    ClearBackground(0, 0, 0, 255);
-    RenderScreenToWindow();
-    EndDrawing();
 
     { Check for input }
     if geo.keypressed then
@@ -562,23 +573,43 @@ begin
       case key of
         geo.kb_up:
           begin
-            if choice > 1 then dec(choice);
-            draw_jxmenu3(menu^);
+            if choice > 1 then
+            begin
+              { Unhighlight current item }
+              jxmenu.normal_jxmenu(choice, menu^);
+              dec(choice);
+              { Highlight new item }
+              jxmenu.hi_jxmenu(choice, menu^);
+            end;
           end;
         geo.kb_down:
           begin
-            if choice < num_disks then inc(choice);
-            draw_jxmenu3(menu^);
+            if choice < num_disks then
+            begin
+              { Unhighlight current item }
+              jxmenu.normal_jxmenu(choice, menu^);
+              inc(choice);
+              { Highlight new item }
+              jxmenu.hi_jxmenu(choice, menu^);
+            end;
           end;
         geo.kb_enter, geo.kb_space:
           menu_done := True;
         geo.kb_esc:
           begin
+            { Unhighlight current selection before exiting }
+            jxmenu.normal_jxmenu(choice, menu^);
             choice := num_disks;  { Quit }
             menu_done := True;
           end;
       end;
     end;
+
+    { Render to window every frame }
+    BeginDrawing();
+    ClearBackground(0, 0, 0, 255);
+    RenderScreenToWindow();
+    EndDrawing();
 
     { Small delay to prevent CPU spin }
     Sleep(16);

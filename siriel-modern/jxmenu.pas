@@ -44,6 +44,8 @@ procedure init_jxmenu(x, y, col1, col2, col3: word; meno: string; var menx: jxme
 procedure vloz_jxmenu2(meno: string; var menx: jxmenu_typ; k: word);
 procedure vloz_jxmenu_pos(x, y: word; meno: string; var menx: jxmenu_typ; k: word);
 procedure draw_jxmenu(var menx: jxmenu_typ);
+procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
+procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
 
 { Missing menu functions (from original JXMENU.PAS) }
 procedure size_jxmenu(sirka, vyska: word; var menx: jxmenu_typ);
@@ -245,9 +247,8 @@ end;
 
 procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 begin
-  { Highlighted item: draw background rectangle first, then text }
-  rectangle2(screen_image, menx.dat[f].x - chardx, menx.dat[f].y - menx.posuv * chardy,
-             length(menx.dat[f].meno) * chardx, chardy, menx.col2);
+  { Highlighted item: draw text with highlight color (col1) }
+  { Original DOS version just changes the text color, no background }
   print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
               menx.dat[f].meno, menx.col1, 0);
 end;
