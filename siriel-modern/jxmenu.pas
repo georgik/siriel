@@ -42,6 +42,7 @@ type
 { Core menu functions - simplified for Step 5.5 }
 procedure init_jxmenu(x, y, col1, col2, col3: word; meno: string; var menx: jxmenu_typ);
 procedure vloz_jxmenu2(meno: string; var menx: jxmenu_typ; k: word);
+procedure vloz_jxmenu_pos(x, y: word; meno: string; var menx: jxmenu_typ; k: word);
 procedure draw_jxmenu(var menx: jxmenu_typ);
 
 { Missing menu functions (from original JXMENU.PAS) }
@@ -253,9 +254,7 @@ end;
 
 procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
 begin
-  { Use col2 (white) for normal text, not col1 (black) }
-  { Original DOS used col1=0 (black) but the background was lighter }
-  { For modern RGBA with dark menu interior, we need white text }
+  { Use col2 (white) for normal text }
   print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
               menx.dat[f].meno, menx.col2, 0);
 end;
@@ -345,6 +344,19 @@ begin
     inc(menx.pocet);
     menx.dat[menx.pocet].x := menx.x + 2 * chardx;
     menx.dat[menx.pocet].y := menx.y + chardy + menx.pocet * chardy;
+    menx.dat[menx.pocet].meno := ' ' + meno + ' ';
+    menx.dat[menx.pocet].k := k;
+  end;
+end;
+
+{ Add menu item at specific position (from original DOS version) }
+procedure vloz_jxmenu_pos(x, y: word; meno: string; var menx: jxmenu_typ; k: word);
+begin
+  if menx.pocet < max_menu then
+  begin
+    inc(menx.pocet);
+    menx.dat[menx.pocet].x := x;
+    menx.dat[menx.pocet].y := y;
     menx.dat[menx.pocet].meno := ' ' + meno + ' ';
     menx.dat[menx.pocet].k := k;
   end;

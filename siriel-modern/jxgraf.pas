@@ -164,6 +164,8 @@ procedure draw_gif_block(bitmap: PScreenImage; const datfile, blockname: string;
 { Text output functions }
 procedure printc(bitmap: PScreenImage; y: word; const text: string; col, back: word);
 procedure printx2(bitmap: PScreenImage; x, y: word; const text: string; col, back, transparent, styl: word; delay: word);
+procedure print_scaled(bitmap: PScreenImage; x, y: word; const text: string; col, back, zoomx, zoomy: word); overload;
+procedure print_scaled(bitmap: PImage; x, y: word; const text: string; col, back, zoomx, zoomy: word); overload;
 procedure print_normal(bitmap: PScreenImage; x, y: word; const text: string; col, back: word); overload;
 procedure print_normal(bitmap: PImage; x, y: word; const text: string; col, back: word); overload;
 
@@ -810,6 +812,50 @@ begin
     if Assigned(bitmap) and (px + 8 <= bitmap^.width) and (y + 8 <= bitmap^.height) then
       rectangle2(bitmap, px, y, 8, 8, col);
     px := px + 8;
+  end;
+end;
+
+{ Scaled text rendering - mimics original DOS printx2 with zoomx/zoomy scaling }
+procedure print_scaled(bitmap: PScreenImage; x, y: word; const text: string; col, back, zoomx, zoomy: word);
+var
+  i: integer;
+  px, py: word;
+  char_width, char_height: word;
+begin
+  { Each character is 8x8 pixels in the font }
+  { With zoomx/zoomy scaling, each font pixel becomes zoomx x zoomy rectangle }
+  char_width := 8 * zoomx;
+  char_height := 8 * zoomy;
+
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw scaled character as rectangle }
+    if (px + char_width <= screen_width) and (y + char_height <= screen_height) then
+      rectangle2(screen_image, px, y, char_width, char_height, col);
+    px := px + char_width;
+  end;
+end;
+
+{ PImage version for compatibility }
+procedure print_scaled(bitmap: PImage; x, y: word; const text: string; col, back, zoomx, zoomy: word);
+var
+  i: integer;
+  px, py: word;
+  char_width, char_height: word;
+begin
+  { Each character is 8x8 pixels in the font }
+  { With zoomx/zoomy scaling, each font pixel becomes zoomx x zoomy rectangle }
+  char_width := 8 * zoomx;
+  char_height := 8 * zoomy;
+
+  px := x;
+  for i := 1 to Length(text) do
+  begin
+    { Draw scaled character as rectangle }
+    if Assigned(bitmap) and (px + char_width <= bitmap^.width) and (y + char_height <= bitmap^.height) then
+      rectangle2(bitmap, px, y, char_width, char_height, col);
+    px := px + char_width;
   end;
 end;
 

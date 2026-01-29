@@ -484,18 +484,43 @@ begin
   else
     writeln('[Menu] No background found, using black screen');
 
-  { Initialize graphical menu - using original positioning }
-  { Original: init_jxmenu(200, 40, 0, 15, 0, 'Select DATADISK', mex^) }
+  { Load GLOGO (logo) - from original GAME.INC:409 }
+  writeln('[Menu] Loading GLOGO (Siriel 3.5 logo)...');
+  if blockx.draw_gif_block(screen_image, selectedDAT, 'GLOGO', 460, 100, font_pal) then
+    writeln('[Menu] GLOGO loaded at (460, 100)')
+  else
+    writeln('[Menu] WARNING - GLOGO not found');
+
+  { TODO: Display version and disk name with shadow }
+  { Original: print_zoom_shadow(screen, 250, 20, version, 14, 2, 2, 3, 3, 0); }
+  { Original: print_zoom_shadow(screen, 230, 60, 'DISK: ' + meno_disku, 11, 1, 2, 3, 3, 0); }
+  { For now, skip this - we'll add shadow text effect later }
+
+  { Initialize graphical menu - matches original DOS structure }
+  { No title in the init, we'll display logo separately }
   new(menu);
-  init_jxmenu(200, 40, 0, 15, 0, 'Select DATADISK', menu^);
-  size_jxmenu(192, 288, menu^);
+  init_jxmenu(0, 0, 0, 15, 0, '', menu^);
 
-  { Add menu items - original structure: available DAT files + Quit }
-  { For now, just show SIRIEL 3.5 as the only option }
-  vloz_jxmenu2('SIRIEL 3.5', menu^, 0);
-  vloz_jxmenu2('Quit', menu^, 0);
+  { Add menu items at exact positions from original GAME.INC:402-459 }
+  { tx[ja,10] = "Game" at (270, 150) }
+  vloz_jxmenu_pos(270, 150, 'Game', menu^, $2267);
 
-  num_disks := 2;  { SIRIEL 3.5 + Quit }
+  { tx[ja,11] = "Info + Help" at (270, 185) }
+  vloz_jxmenu_pos(270, 185, 'Info + Help', menu^, $1769);
+
+  { tx[ja,12] = "Hi-scores" at (270, 220) }
+  vloz_jxmenu_pos(270, 220, 'Hi-scores', menu^, $2368);
+
+  { "DATADISK" option at (270, 255) - ONLY if num_disks > 1 }
+  { For now, we have only one disk, so skip this }
+  { if num_disks > 1 then
+    vloz_jxmenu_pos(270, 255, 'DATADISK', menu^, $2064);
+  }
+
+  { tx[ja,13] = "Quit" at (280, 300) }
+  vloz_jxmenu_pos(280, 300, 'Quit', menu^, $1071);
+
+  num_disks := 4;  { Game, Info + Help, Hi-scores, Quit }
 
   { Render background to window first }
   BeginDrawing();
@@ -563,10 +588,12 @@ begin
   dispose(menu);
 
   { Map choice to return value }
-  { Original: if vybr=mex^.pocet or (vybr=0) then ending('') }
+  { Original DOS: 1=Game, 2=Info+Help, 3=Hi-scores, 4=Quit }
   case choice of
-    1: Result := 1;  { SIRIEL 3.5 - Start Game }
-    2: Result := 0;  { Quit }
+    1: Result := 1;  { Game - Start Game }
+    2: Result := 2;  { Info + Help - Show Help }
+    3: Result := 3;  { Hi-scores - Show High Scores }
+    4: Result := 0;  { Quit }
   else
     Result := 0;
   end;
@@ -1071,7 +1098,19 @@ begin
     { Main menu loop }
     repeat
       case ShowIntroMenu of
-        1: StartNewGame;  { SIRIEL 3.5 }
+        1: StartNewGame;  { Game - Start Game }
+        2: begin
+            { Info + Help - Show help screen }
+            writeln('Showing Info + Help...');
+            writeln('TODO: Implement help screen');
+            { For now, just return to menu }
+          end;
+        3: begin
+            { Hi-scores - Show high scores }
+            writeln('Showing High Scores...');
+            writeln('TODO: Implement high scores screen');
+            { For now, just return to menu }
+          end;
         0: begin  { Quit - via ESC, Quit option, or window close }
           writeln('Quitting ', PROGRAM_NAME, '...');
           writeln('Thank you for playing!');
