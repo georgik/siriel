@@ -552,7 +552,10 @@ begin
   g := current_palette[color_index].v shl 2;
   b := current_palette[color_index].b shl 2;
 
-  palette_to_rgba := (longint(255) shl 24) or (longint(r) shl 16) or (longint(g) shl 8) or b;
+  { SWAPPED: Blue and Red channels are swapped
+    Format: 0xAA BB GG RR (Alpha, Blue, Green, Red)
+    This fixes the issue where yellow appeared as cyan }
+  palette_to_rgba := (longint(255) shl 24) or (longint(b) shl 16) or (longint(g) shl 8) or r;
 end;
 
 { Convert RGBA color to nearest palette index }
