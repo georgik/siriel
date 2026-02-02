@@ -484,12 +484,12 @@ begin
     clear_bitmap(screen_image);
   end;
 
-  { Load GLOGO (logo) - from original GAME.INC:409 }
-  writeln('[Menu] Loading GLOGO (Siriel 3.5 logo)...');
-  if blockx.draw_gif_block(screen_image, selectedDAT, 'GLOGO', 460, 100, font_pal) then
+  { Load GLOGO (logo) - from MAIN.DAT (shared assets across all datadisks) }
+  writeln('[Menu] Loading GLOGO (Siriel 3.5 logo) from MAIN.DAT...');
+  if blockx.draw_gif_block(screen_image, 'data/MAIN.DAT', 'GLOGO', 460, 100, font_pal) then
     writeln('[Menu] GLOGO loaded at (460, 100)')
   else
-    writeln('[Menu] WARNING - GLOGO not found');
+    writeln('[Menu] WARNING - GLOGO not found in MAIN.DAT');
 
   { TODO: Display version and disk name with shadow }
   { Original: print_zoom_shadow(screen, 250, 20, version, 14, 2, 2, 3, 3, 0); }
