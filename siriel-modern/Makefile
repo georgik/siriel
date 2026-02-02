@@ -155,6 +155,9 @@ test_color_channels: test_color_channels.pas
 test_rgba_formats: test_rgba_formats.pas
 	$(FPC) $(FPCFLAGS) test_rgba_formats.pas
 
+test_gif_format: test_gif_format.pas
+	$(FPC) $(FPCFLAGS) test_gif_format.pas
+
 test_sound: test_sound.pas
 	$(FPC) $(FPCFLAGS) test_sound.pas
 

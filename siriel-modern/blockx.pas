@@ -628,6 +628,7 @@ begin
       else
       begin
         { Write opaque pixel to bitmap }
+        { Standard RGBA format: AA RR GG BB }
         putpixel(bitmap, fromx + x, fromy + y, (a shl 24) or (r shl 16) or (g shl 8) or b);
       end;
     end;

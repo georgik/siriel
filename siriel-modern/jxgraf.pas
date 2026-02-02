@@ -203,6 +203,7 @@ end;
 { Create RGBA color from components }
 function MakeRGBA(r, g, b, a: byte): longint;
 begin
+  { Standard RGBA format: AA RR GG BB }
   MakeRGBA := (a shl 24) or (r shl 16) or (g shl 8) or b;
 end;
 
@@ -284,6 +285,8 @@ begin
   Inc(data);
   a := data^;
 
+  { putpixel writes R-G-B-A to memory, so we read it back as R-G-B-A }
+  { Return in standard format: AA RR GG BB }
   getpixel := (a shl 24) or (r shl 16) or (g shl 8) or b;
 end;
 
@@ -534,7 +537,9 @@ begin
       { Only draw non-transparent pixels }
       if a > 0 then
       begin
-        color := (a shl 24) or (r shl 16) or (g shl 8) or b;
+        { CRITICAL: Raylib on little-endian interprets 32-bit color as 0xAABBGGRR in memory }
+        { So we need to SWAP red and blue when passing to Raylib }
+        color := (a shl 24) or (b shl 16) or (g shl 8) or r;
         raylib_helpers.DrawPixel(x, y, color);
       end;
     end;
@@ -552,10 +557,9 @@ begin
   g := current_palette[color_index].v shl 2;
   b := current_palette[color_index].b shl 2;
 
-  { SWAPPED: Blue and Red channels are swapped
-    Format: 0xAA BB GG RR (Alpha, Blue, Green, Red)
-    This fixes the issue where yellow appeared as cyan }
-  palette_to_rgba := (longint(255) shl 24) or (longint(b) shl 16) or (longint(g) shl 8) or r;
+  { Standard RGBA format: AA RR GG BB }
+  { putpixel expects this format and writes R-G-B-A to memory }
+  palette_to_rgba := (longint(255) shl 24) or (longint(r) shl 16) or (longint(g) shl 8) or b;
 end;
 
 { Convert RGBA color to nearest palette index }
@@ -735,6 +739,7 @@ begin
       else if a > 0 then
       begin
         { Write opaque pixel to bitmap }
+        { Standard RGBA format: AA RR GG BB }
         putpixel(screen_image, x + px, y + py, (a shl 24) or (r shl 16) or (g shl 8) or b);
       end;
     end;

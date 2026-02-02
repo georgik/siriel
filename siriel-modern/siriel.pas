@@ -457,6 +457,7 @@ end;
 
 function ShowIntroMenu: integer;
 var
+  f: integer;
   menu: ^jxmenu_typ;
   choice: word;
   key: word;
@@ -464,30 +465,24 @@ var
   background_loaded: boolean;
   font_pal: jxfont_simple.tpalette;
   num_disks: integer;
+  menu_start_time, current_time: uint64;
+  time_limit_ms: uint64;
 begin
   Result := 0;
 
   writeln('=== MAIN MENU ===');
   writeln('');
 
-  { Clear screen and try to load background }
-  clear_bitmap(screen_image);
-
-  { Try loading background graphics from SIRIEL35.DAT }
-  { GIFs contain their own palette - no need to load separate PALETA block }
-  writeln('[Menu] Loading background image...');
-
-  background_loaded := blockx.draw_gif_block(screen_image, selectedDAT, 'GTREEP', 0, 0, font_pal);
-  if not background_loaded then
-  begin
-    writeln('[Menu] GTREEP not found, trying GTEXT...');
-    background_loaded := blockx.draw_gif_block(screen_image, selectedDAT, 'GTEXT', 0, 0, font_pal);
-  end;
-
-  if background_loaded then
-    writeln('[Menu] Background loaded: ', blockx.gif_x, 'x', blockx.gif_y)
+  { Load GTREEP background - datadisk background image }
+  { From test_background_g.pas: GTREEP is 640x480 background }
+  writeln('[Menu] Loading GTREEP (background)...');
+  if blockx.draw_gif_block(screen_image, selectedDAT, 'GTREEP', 0, 0, font_pal) then
+    writeln('[Menu] GTREEP background loaded (640x480)')
   else
-    writeln('[Menu] No background found, using black screen');
+  begin
+    writeln('[Menu] WARNING - GTREEP not found, using black background');
+    clear_bitmap(screen_image);
+  end;
 
   { Load GLOGO (logo) - from original GAME.INC:409 }
   writeln('[Menu] Loading GLOGO (Siriel 3.5 logo)...');
@@ -537,12 +532,23 @@ begin
   { Original: old_frame.draw(200, 40, 12, 2+num_disks) }
   { old_frame_draw(200, 40, 12, 2 + num_disks);  { TODO: Implement proper old_frame.draw } }
 
-  { Display menu - draw all items initially as normal }
-  draw_jxmenu3(menu^);
+  { Display menu items WITHOUT decorative frame for intro screen }
+  { GLIST decorations should NOT appear in intro menu }
+  for f := 1 to menu^.pocet do
+  begin
+    jxmenu.normal_jxmenu(f, menu^);
+  end;
 
   { Menu input loop - wait for key press }
   choice := 1;  { Default to first option }
   menu_done := False;
+
+  { Initialize timeout for test mode }
+  menu_start_time := SysUtils.GetTickCount64;
+  if test_mode then
+    time_limit_ms := test_duration_sec * 1000  { Convert seconds to milliseconds }
+  else
+    time_limit_ms := 0;
 
   { Highlight initial selection }
   jxmenu.hi_jxmenu(choice, menu^);
@@ -556,6 +562,35 @@ begin
   repeat
     { Update keyboard buffer }
     geo.get_keyboard;
+
+    { Check for timeout in test mode }
+    if test_mode and (time_limit_ms > 0) then
+    begin
+      current_time := SysUtils.GetTickCount64;
+      if (current_time - menu_start_time) >= time_limit_ms then
+      begin
+        writeln('[Menu] Timeout reached, exiting...');
+
+        { Capture screenshot before exiting }
+        if screenshot_file <> '' then
+        begin
+          writeln('[Menu] Saving screenshot to: ', screenshot_file);
+          { Render final frame }
+          BeginDrawing();
+          ClearBackground(0, 0, 0, 255);
+          RenderScreenToWindow();
+          EndDrawing();
+          { Take screenshot }
+          TakeScreenshot(PChar(screenshot_file));
+          writeln('[Menu] Screenshot saved successfully');
+        end;
+
+        { Unhighlight current selection before exiting }
+        jxmenu.normal_jxmenu(choice, menu^);
+        choice := num_disks;  { Quit }
+        menu_done := True;
+      end;
+    end;
 
     { Check for window close (modern addition - not in DOS version) }
     if WindowShouldClose() <> 0 then
@@ -1112,22 +1147,8 @@ begin
   { Initialize game }
   InitializeGame(selectedDAT);
 
-  { If in test mode, start game automatically }
-  if test_mode then
-  begin
-    writeln('=== TEST MODE ===');
-    writeln('Running automated test...');
-    writeln('');
-    StartNewGame;
-    writeln('Test completed successfully');
-    CloseWindow;
-    CleanupGame;
-    Halt(0);
-  end
-  else
-  begin
-    { Main menu loop }
-    repeat
+  { Main menu loop - ALWAYS show intro menu first }
+  repeat
       case ShowIntroMenu of
         1: StartNewGame;  { Game - Start Game }
         2: begin
@@ -1152,5 +1173,4 @@ begin
         end;
       end;
     until false;
-  end;
 end.
