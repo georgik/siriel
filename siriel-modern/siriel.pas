@@ -650,6 +650,9 @@ begin
     Sleep(16);
   until menu_done;
 
+  { Clear keyboard buffer to prevent key carryover to next screen }
+  geo.clear_key_buffer;
+
   { Cleanup }
   dispose(menu);
 
