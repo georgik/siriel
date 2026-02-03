@@ -50,6 +50,7 @@ type
 var
   selectedDAT: string;
   cli_level_file: string;  { Level file specified via --level-file }
+  cli_level_select: boolean;  { Jump directly to level selection }
   currentLevel: integer;
   gameRunning: boolean;
   test_mode: boolean;
@@ -185,6 +186,7 @@ begin
   screenshot_file := 'siriel_screenshot.png';
   has_duration := False;
   has_level_file := False;
+  cli_level_select := False;
 
   i := 1;
   while i <= ParamCount do
@@ -299,6 +301,12 @@ begin
         end;
       end;
     end
+    { Handle --level-select }
+    else if param = '--level-select' then
+    begin
+      cli_level_select := True;
+      writeln('CLI: Will jump directly to level selection');
+    end
     else
     begin
       writeln('Warning: Unknown parameter: ', param);
@@ -390,6 +398,8 @@ end;
    ======================================== }
 
 procedure InitializeGame(const datFile: string);
+var
+  config_pole: array[0..32767] of byte;
 begin
   writeln('Initializing game systems...');
   writeln('');
@@ -425,7 +435,35 @@ begin
 
   { Load DAT file resources }
   writeln('[4/6] Loading DAT file resources...');
-  { TODO: Load GLIST, GZAL, sounds from DAT file }
+
+  { Allocate levely structure }
+  if aktiv35.levely = nil then
+    new(aktiv35.levely);
+
+  { Allocate data_disks structure }
+  if aktiv35.data_disks = nil then
+    new(aktiv35.data_disks);
+
+  { Load level list from DAT file CONFIG block }
+  writeln('  Loading level list from ', datFile, '...');
+  aktiv35.num_disks := 1;
+  aktiv35.data_disks^[1].meno := datFile;
+  aktiv35.data_disks^[1].subor := datFile;
+  load235.load_level_list(datFile, config_pole);
+
+  if aktiv35.levely^.pocet > 0 then
+    writeln('  Loaded ', aktiv35.levely^.pocet, ' levels')
+  else
+    writeln('  WARNING: No levels found in CONFIG');
+
+  { Load GLIST tiles for menu decoration }
+  writeln('  Loading GLIST tiles for menu decoration...');
+  jxmenu.LoadGlistTiles;
+  if jxmenu.glist_loaded then
+    writeln('  GLIST tiles loaded')
+  else
+    writeln('  WARNING: GLIST tiles not found');
+
   writeln('  OK - DAT file loaded');
   writeln('');
 
@@ -679,71 +717,90 @@ function SelectLevel: integer;
 var
   menu: ^jxmenu_typ;
   choice: word;
-  sr: TSearchRec;
-  levelCount: integer;
+  f: word;
+  back_text: string;
+  level_count: word;
 begin
   Result := 0;
-  levelCount := 0;
 
   writeln('=== LEVEL SELECTION ===');
   writeln('');
 
-  { Initialize graphical menu }
+  { Clear screen and set up background }
+  clear_bitmap(screen_image);
+
+  { Initialize graphical menu at position (200, 40) per original DOS code }
   new(menu);
-  init_jxmenu(150, 100, 0, 15, 0, 'SELECT LEVEL', menu^);
-  size_jxmenu(340, 300, menu^);
+  init_jxmenu(200, 40, 0, 15, 0, 'Level', menu^);
 
-  { Scan for .MIE files }
-  if SysUtils.FindFirst('*.MIE', faAnyFile, sr) = 0 then
+  { Add levels from levely^ structure if available }
+  if (aktiv35.levely <> nil) and (aktiv35.levely^.pocet > 0) then
   begin
-    repeat
-      if (sr.Name <> '.') and (sr.Name <> '..') and
-         (UpperCase(ExtractFileExt(sr.Name)) = '.MIE') then
-      begin
-        inc(levelCount);
-        writeln('  Found level: ', sr.Name);
-        { Add to menu (without .MIE extension) }
-        vloz_jxmenu2(Copy(sr.Name, 1, Length(sr.Name) - 4), menu^, 0);
-      end;
-    until (SysUtils.FindNext(sr) <> 0) or (levelCount >= 20);
+    writeln('  Found ', aktiv35.levely^.pocet, ' levels in DAT file');
+    for f := 1 to aktiv35.levely^.pocet do
+    begin
+      writeln('  Level ', f, ': ', aktiv35.levely^.lev[f].meno,
+              ' (', aktiv35.levely^.lev[f].subor, ')');
+      vloz_jxmenu2(aktiv35.levely^.lev[f].meno, menu^, 0);
+    end;
+    level_count := aktiv35.levely^.pocet;
+  end
+  else
+  begin
+    { Add test levels for now since levely is not populated yet }
+    writeln('  WARNING: levely not initialized, using test levels');
+    writeln('  Adding test levels...');
+    vloz_jxmenu2('LEVEL 1: The Beginning', menu^, 0);
+    vloz_jxmenu2('LEVEL 2: Dark Forest', menu^, 0);
+    vloz_jxmenu2('LEVEL 3: Mountain Pass', menu^, 0);
+    vloz_jxmenu2('LEVEL 4: Ice Caverns', menu^, 0);
+    vloz_jxmenu2('LEVEL 5: Final Castle', menu^, 0);
+    level_count := 5;
   end;
 
-  SysUtils.FindClose(sr);
+  { Add "Back" option - use original text position }
+  back_text := '   BACK';  { tx[ja,22] in original }
+  vloz_jxmenu2(back_text, menu^, 0);
 
-  if levelCount = 0 then
-  begin
-    writeln('  No level files (*.MIE) found!');
-    writeln('  Please extract level files from the DAT disk.');
-    dispose(menu);
-    Exit;
-  end;
+  { Size menu to 192x288 per original DOS code }
+  size_jxmenu(192, 288, menu^);
 
-  { Add "Back to Main Menu" option }
-  vloz_jxmenu2('BACK TO MAIN MENU', menu^, 0);
+  { Set initial selection to first level }
+  menu^.first := 1;
 
-  { Draw menu }
-  ClearBackground(0, 0, 0, 255);
-  old_frame_draw(150, 100, 3, 3);
-  size_jxmenu(340, 300, menu^);
+  { Draw menu with GLIST decoration using DrawMenuFrame }
+  { Original: old_frame.draw(200, 40, 12, 18) }
+  { Calculate tile dimensions: 192x288 pixels = 12x18 tiles (16x16 each) }
+  if jxmenu.glist_loaded then
+    jxmenu.DrawMenuFrame(200, 40, 12, 18, 0);
+
+  { Draw menu items }
   draw_jxmenu3(menu^);
 
-  { Display and wait for selection }
+  { Wait for user selection }
+  writeln('  Waiting for selection...');
   vyber_jxmenu(menu^, choice);
 
   { Cleanup }
-  draw_jxmenu3(menu^);
   dispose(menu);
 
-  { Map choice: levelCount+1 = Back to main menu }
-  if choice <= levelCount then
-    Result := choice
+  { Map choice: if "Back" was selected (last item), return 0 }
+  if choice <= level_count then
+  begin
+    Result := choice;
+    { Set global variables like original does }
+    aktiv35.vybrane := choice;
+    aktiv35.old_level := choice;
+    writeln('  Selected level: ', Result);
+  end
   else
+  begin
     Result := 0;
+    writeln('  Returning to main menu');
+  end;
 
-  if Result > 0 then
-    writeln('Selected level: ', Result)
-  else
-    writeln('Returning to main menu');
+  { Clear keyboard buffer to prevent key carryover }
+  geo.clear_key_buffer;
 
   writeln('');
 end;
@@ -1150,7 +1207,23 @@ begin
   { Initialize game }
   InitializeGame(selectedDAT);
 
-  { Main menu loop - ALWAYS show intro menu first }
+  { Main menu loop - ALWAYS show intro menu first (unless --level-select) }
+  if cli_level_select then
+  begin
+    { Jump directly to level selection for screenshot/debugging }
+    writeln('=== CLI: --level-select mode ===');
+    writeln('Skipping intro menu, going directly to level selection...');
+    writeln('');
+    currentLevel := SelectLevel;
+    if currentLevel > 0 then
+      RunGameLoop(test_duration_sec)
+    else
+      writeln('Level selection cancelled');
+    CloseWindow;
+    CleanupGame;
+    Halt(0);
+  end;
+
   repeat
       case ShowIntroMenu of
         1: StartNewGame;  { Game - Start Game }

@@ -396,11 +396,77 @@ begin
 end;
 
 procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word);
+var
+  f, k: word;
+  menu_done: boolean;
 begin
-  { Wait for user selection from menu }
-  { TODO: Implement proper menu selection logic }
-  { For now, this is a stub }
-  vyber := 1;
+  if menx.pocet > 0 then
+  begin
+    { Draw menu if not already drawn }
+    if not menx.draw_menu then
+      draw_jxmenu(menx);
+
+    f := menx.first;
+    menu_done := False;
+
+    repeat
+      { Highlight current selection }
+      hi_jxmenu(f, menx);
+
+      { Update keyboard }
+      get_keyboard;
+
+      { Check for window close }
+      if WindowShouldClose() <> 0 then
+      begin
+        vyber := menx.pocet;  { Select last item (Back) }
+        menu_done := True;
+      end;
+
+      { Handle keyboard input }
+      if keypressed then
+      begin
+        k := kkey2;
+
+        case k of
+          kb_up:
+            begin
+              normal_jxmenu(f, menx);
+              if f > 1 then
+                dec(f);
+            end;
+          kb_down:
+            begin
+              normal_jxmenu(f, menx);
+              if f < menx.pocet then
+                inc(f);
+            end;
+          kb_enter, kb_space:
+            menu_done := True;
+          kb_esc:
+            begin
+              normal_jxmenu(f, menx);
+              f := menx.pocet;  { Select last item (Back) }
+              menu_done := True;
+            end;
+        end;
+      end;
+
+      { Render to window every frame }
+      BeginDrawing();
+      ClearBackground(0, 0, 0, 255);
+      RenderScreenToWindow();
+      EndDrawing();
+
+      Sleep(16);
+    until menu_done;
+
+    vyber := f;
+    menx.vybrane := f;
+    menx.draw_menu := False;
+  end
+  else
+    vyber := 0;
 end;
 
 procedure old_frame;

@@ -302,3 +302,6 @@ help:
 	@echo "      FPC ParamStr cache warnings. Use 'make memcheck' to enable"
 	@echo "      heap tracing for development."
 	@echo ""
+test_config_read: test_config_read.pas
+	fpc -gl test_config_read.pas
+

@@ -2,7 +2,7 @@ unit load235;
 {$mode objfpc}{$H-}  { Use ShortString for compatibility with original }
 {$J+}  { Allow for-loop variable modifications }
 interface
-uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, jxfont_simple, animing, jxmenu, jxvar, modern_mem;
+uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, jxfont_simple, animing, jxmenu, jxvar, modern_mem, koder;
 
 procedure set_old_pos;  {nastavi priserky na ich zaciatocnu suradnicu}
 procedure pridaj2(var s:string;var l:word; update:boolean);
@@ -2172,7 +2172,7 @@ begin
 					   loadblock_array(meno,def_config,pole);
 					  closeblockfile;
 					   for f:=0 to maxlen do begin
-							if pole[f]<>0 then dekoduj(1,chr(pole[f]));
+							if pole[f]<>0 then koder.dekoduj(1,pole[f]);
 					   end;
 					    countx:=0;
 					    levely^.pocet:=0;
