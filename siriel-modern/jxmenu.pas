@@ -77,6 +77,8 @@ var
   avatar_loaded: boolean;
   poloha: byte;  { Animation frame counter (0-35), mirrors original }
   gzal_loaded_at_least_once: boolean;  { Track if GZAL has been loaded to screen }
+  avatar_rgba_frames: array[0..63] of pointer;  { Store RGBA frame data directly }
+  avatar_frame_count: word;
 
 { Extract a single 16x16 tile from screen buffer }
 procedure ExtractTile(src_x, src_y: word; var tile: TTileBuffer);
@@ -233,19 +235,10 @@ var
   frame_buffers: array[0..63] of pointer;
   frame_count: word;
   frame: word;
-  frame_data: sprite_anim.PFrame;
-  x, y: word;
   src_ptr: PByte;
-  r, g, b, a: byte;
-  palette: jxfont_simple.tpalette;
-  best_idx, best_dist: word;
-  i, dist: word;
 begin
   if avatar_loaded then
     exit;
-
-  { Load VGA palette for color matching }
-  load_palette_block('data/MAIN.DAT', 'PALET1', palette);
 
   { Load and extract frames using Raylib - all in C memory space! }
   if not blockx.load_gif_spritesheet('data/MAIN.DAT', 'GZAL', 16, 16, frame_buffers, frame_count) then
@@ -254,75 +247,28 @@ begin
     Exit;
   end;
 
-  writeln('[JXMENU] GZAL loaded: ', frame_count, ' frames, converting to palette indices');
+  writeln('[JXMENU] GZAL loaded: ', frame_count, ' frames, keeping RGBA data');
 
-  { Convert RGBA frames to palette-indexed frames }
+  { Store RGBA frames directly - no palette conversion! }
   for frame := 0 to frame_count - 1 do
   begin
-    New(frame_data);
-    avatar_sheet.frames[frame] := frame_data;
-
-    { Convert RGBA to palette indices using proper VGA palette matching }
-    src_ptr := PByte(frame_buffers[frame]);
-
-    for y := 0 to 15 do
-    begin
-      for x := 0 to 15 do
-      begin
-        r := src_ptr^;
-        Inc(src_ptr);
-        g := src_ptr^;
-        Inc(src_ptr);
-        b := src_ptr^;
-        Inc(src_ptr);
-        a := src_ptr^;
-        Inc(src_ptr);
-
-        { Check for transparency }
-        if a < 128 then
-        begin
-          frame_data^[y * 16 + x] := 13;  { Transparent color index }
-          Continue;
-        end;
-
-        { Find nearest VGA palette color }
-        best_idx := 0;
-        best_dist := $7FFFFFFF;
-        for i := 0 to 255 do
-        begin
-          { VGA palette uses 6-bit values (0-63), convert to 8-bit for comparison }
-          dist := abs(r - (palette[i].r shl 2)) +
-                  abs(g - (palette[i].v shl 2)) +
-                  abs(b - (palette[i].b shl 2));
-          if dist < best_dist then
-          begin
-            best_dist := dist;
-            best_idx := i;
-          end;
-        end;
-
-        frame_data^[y * 16 + x] := best_idx;
-      end;
-    end;
-
-    { Free the RGBA buffer }
-    FreeMem(frame_buffers[frame]);
+    { Keep the RGBA buffer from Raylib extraction }
+    avatar_rgba_frames[frame] := frame_buffers[frame];
   end;
 
-  avatar_sheet.total_frames := frame_count;
-  avatar_sheet.loaded := True;
+  avatar_frame_count := frame_count;
   avatar_loaded := True;
 
-  { Store palette for rendering }
-  avatar_sheet.palette := palette;
-
-  writeln('[JXMENU] Avatar ready: ', frame_count, ' frames');
+  writeln('[JXMENU] Avatar ready: ', frame_count, ' RGBA frames');
 end;
 
 { Draw avatar frame at specified position }
 procedure DrawAvatar(x, y: word);
 var
   frame_num: word;
+  frame_rgba: PByte;
+  px, py: word;
+  r, g, b, a: byte;
 begin
   { Load GZAL if not already loaded }
   if not avatar_loaded then
@@ -332,7 +278,30 @@ begin
   if avatar_loaded then
   begin
     frame_num := poloha mod 36;  { Original DOS used 0-35 }
-    sprite_anim.DrawFrame(avatar_sheet.frames[frame_num], x, y);
+    frame_rgba := PByte(avatar_rgba_frames[frame_num]);
+
+    { Draw RGBA pixels directly to screen }
+    for py := 0 to 15 do
+    begin
+      for px := 0 to 15 do
+      begin
+        r := frame_rgba^;
+        Inc(frame_rgba);
+        g := frame_rgba^;
+        Inc(frame_rgba);
+        b := frame_rgba^;
+        Inc(frame_rgba);
+        a := frame_rgba^;
+        Inc(frame_rgba);
+
+        { Skip transparent pixels }
+        if a < 128 then
+          Continue;
+
+        { Write RGBA directly to screen }
+        putpixel(screen_image, x + px, y + py, (a shl 24) or (r shl 16) or (g shl 8) or b);
+      end;
+    end;
   end
   else
     writeln('[JXMENU] ERROR: GZAL not loaded');
