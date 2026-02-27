@@ -27,7 +27,7 @@ const
   TRANSPARENT_COLOR_INDEX = 13;  { DOS palette index for transparency }
 
 type
-  { Single frame buffer (16x16 = 256 bytes) }
+  { Single frame buffer (16x16 = 256 bytes for palette indices) }
   PFrame = ^TFrame;
   TFrame = array[0..TILE_WIDTH * TILE_HEIGHT - 1] of byte;
 
@@ -53,6 +53,7 @@ type
     rows: word;
     total_frames: word;
     frames: array[0..MAX_FRAMES-1] of PFrame;
+    palette: jxfont_simple.tpalette;  { Palette for color conversion }
     loaded: boolean;
   end;
 
@@ -123,19 +124,25 @@ begin
   writeln('[SPRITE] Frame size: ', frame_w, 'x', frame_h);
 
   { Load GIF to determine dimensions }
-  if not draw_gif_block(screen_image, dat_name, block_key, 0, 0, palette) then
+  writeln('[SPRITE] Calling draw_gif_block...');
+  if not blockx.draw_gif_block(screen_image, dat_name, block_key, 0, 0, palette) then
   begin
     writeln('[SPRITE] ERROR: Failed to load GIF block: ', block_key);
+    writeln('[SPRITE] Debug: screen_image=', PtrUInt(screen_image), ' file=', dat_name, ' key=', block_key);
     Exit;
   end;
 
-  writeln('[SPRITE] GIF dimensions: ', gif_x, 'x', gif_y);
+  { Store the palette for use in extraction }
+  Result.palette := palette;
+
+  writeln('[SPRITE] GIF loaded: gif_x=', blockx.gif_x, ' gif_y=', blockx.gif_y);
 
   { Calculate grid dimensions }
-  if (gif_x > 0) and (gif_y > 0) then
+  writeln('[SPRITE] Checking dimensions: gif_x>0 = ', blockx.gif_x > 0, ' gif_y>0 = ', blockx.gif_y > 0);
+  if (blockx.gif_x > 0) and (blockx.gif_y > 0) then
   begin
-    Result.columns := gif_x div frame_w;
-    Result.rows := gif_y div frame_h;
+    Result.columns := blockx.gif_x div frame_w;
+    Result.rows := blockx.gif_y div frame_h;
     Result.total_frames := Result.columns * Result.rows;
 
     writeln('[SPRITE] Grid: ', Result.columns, ' columns x ', Result.rows, ' rows');
@@ -166,15 +173,32 @@ var
   frame, row, col: word;
   src_x, src_y: word;
   frame_data: PFrame;
-  palette: jxfont_simple.tpalette;
+  local_x, local_y: word;
+  src_idx, dst_idx: longint;
+  r, g, b: byte;
+  best_idx, best_dist: word;
+  i, dist: word;
+  non_zero_count: word;
 begin
-  writeln('[SPRITE] Extracting frames...');
+  writeln('[SPRITE] Extracting frames from RGBA data...');
 
-  { Load GIF to screen buffer }
-  if not draw_gif_block(screen_image, sheet.source_dat, sheet.source_block, 0, 0, palette) then
+  { NOTE: GIF is already loaded from LoadSpritesheet in RGBA format }
+  { The screen_image still contains the GIF data from LoadSpritesheet }
+
+  { DEBUG: Print first few pixels of first frame }
+  if sheet.total_frames > 0 then
   begin
-    writeln('[SPRITE] ERROR: Failed to load GIF for extraction');
-    Exit;
+    writeln('[SPRITE] DEBUG: First frame at (0,0), screen_width=', screen_width, ' screen_height=', screen_height);
+    writeln('[SPRITE] DEBUG: Reading from offset 0, 16, 32...');
+    for local_y := 0 to 1 do
+      for local_x := 0 to 1 do
+      begin
+        src_idx := (local_y * screen_width + local_x) * 4;
+        r := PByte(screen_image^.data + src_idx)^;
+        g := PByte(screen_image^.data + src_idx + 1)^;
+        b := PByte(screen_image^.data + src_idx + 2)^;
+        writeln('[SPRITE] DEBUG: Pixel (', local_x, ',', local_y, ') = RGB(', r, ',', g, ',', b, ')');
+      end;
   end;
 
   { Extract each frame }
@@ -190,11 +214,48 @@ begin
     New(frame_data);
     sheet.frames[frame] := frame_data;
 
-    { Extract pixels using animing.pas getseg }
-    getseg(src_x, src_y, sheet.frame_width, sheet.frame_height, 0, frame_data^);
+    non_zero_count := 0;
+
+    { Extract pixels directly from RGBA data }
+    for local_y := 0 to sheet.frame_height - 1 do
+    begin
+      for local_x := 0 to sheet.frame_width - 1 do
+      begin
+        { Read RGBA pixel from screen - use screen_width for correct stride }
+        src_idx := ((src_y + local_y) * screen_width + (src_x + local_x)) * 4;
+        if src_idx + 3 < (screen_width * screen_height * 4) then
+        begin
+          r := PByte(screen_image^.data + src_idx)^;
+          g := PByte(screen_image^.data + src_idx + 1)^;
+          b := PByte(screen_image^.data + src_idx + 2)^;
+
+          { Find nearest palette color using stored palette }
+          best_idx := 0;
+          best_dist := $7FFFFFFF;
+          for i := 0 to 255 do
+          begin
+            dist := abs(r - (sheet.palette[i].r shl 2)) +
+                    abs(g - (sheet.palette[i].v shl 2)) +
+                    abs(b - (sheet.palette[i].b shl 2));
+            if dist < best_dist then
+            begin
+              best_dist := dist;
+              best_idx := i;
+            end;
+          end;
+
+          { Store palette index }
+          frame_data^[local_y * 16 + local_x] := best_idx;
+
+          { Count non-zero pixels for debugging }
+          if best_idx > 0 then
+            inc(non_zero_count);
+        end;
+      end;
+    end;
 
     if (frame mod 10 = 0) then
-      writeln('[SPRITE]   Extracted frame ', frame, ' at (', src_x, ',', src_y, ')');
+      writeln('[SPRITE]   Extracted frame ', frame, ' at (', src_x, ',', src_y, ') - ', non_zero_count, ' non-zero pixels');
   end;
 
   writeln('[SPRITE] Extracted ', sheet.total_frames, ' frames successfully');

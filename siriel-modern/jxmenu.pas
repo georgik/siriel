@@ -14,7 +14,9 @@ uses
   jxgraf,
   jxfont_simple,
   blockx,
-  geo;
+  geo,
+  sprite_anim,
+  animing;
 
 const
   max_menu = 64;
@@ -57,12 +59,24 @@ procedure old_frame;
 procedure LoadGlistTiles;
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
 
+{ Avatar animation system - mirrors original DOS implementation }
+procedure LoadGzalTiles;
+procedure DrawAvatar(x, y: word);
+procedure UpdateAvatar;
+
 { Global GLIST tiles }
 var
   glist_tiles: array[0..GLIST_TILE_COUNT - 1] of TTileBuffer;
   glist_loaded: boolean;
 
 implementation
+
+{ Avatar animation state - mirrors original DOS implementation }
+var
+  avatar_sheet: TSpritesheet;
+  avatar_loaded: boolean;
+  poloha: byte;  { Animation frame counter (0-35), mirrors original }
+  gzal_loaded_at_least_once: boolean;  { Track if GZAL has been loaded to screen }
 
 { Extract a single 16x16 tile from screen buffer }
 procedure ExtractTile(src_x, src_y: word; var tile: TTileBuffer);
@@ -213,6 +227,128 @@ end;
 
 { === MENU DRAWING FUNCTIONS === }
 
+{ Load GZAL spritesheet and extract all frames using Raylib }
+procedure LoadGzalTiles;
+var
+  frame_buffers: array[0..63] of pointer;
+  frame_count: word;
+  frame: word;
+  frame_data: sprite_anim.PFrame;
+  x, y: word;
+  src_ptr: PByte;
+  r, g, b, a: byte;
+  palette: jxfont_simple.tpalette;
+  best_idx, best_dist: word;
+  i, dist: word;
+begin
+  if avatar_loaded then
+    exit;
+
+  { Load VGA palette for color matching }
+  load_palette_block('data/MAIN.DAT', 'PALET1', palette);
+
+  { Load and extract frames using Raylib - all in C memory space! }
+  if not blockx.load_gif_spritesheet('data/MAIN.DAT', 'GZAL', 16, 16, frame_buffers, frame_count) then
+  begin
+    writeln('[JXMENU] Failed to load GZAL spritesheet');
+    Exit;
+  end;
+
+  writeln('[JXMENU] GZAL loaded: ', frame_count, ' frames, converting to palette indices');
+
+  { Convert RGBA frames to palette-indexed frames }
+  for frame := 0 to frame_count - 1 do
+  begin
+    New(frame_data);
+    avatar_sheet.frames[frame] := frame_data;
+
+    { Convert RGBA to palette indices using proper VGA palette matching }
+    src_ptr := PByte(frame_buffers[frame]);
+
+    for y := 0 to 15 do
+    begin
+      for x := 0 to 15 do
+      begin
+        r := src_ptr^;
+        Inc(src_ptr);
+        g := src_ptr^;
+        Inc(src_ptr);
+        b := src_ptr^;
+        Inc(src_ptr);
+        a := src_ptr^;
+        Inc(src_ptr);
+
+        { Check for transparency }
+        if a < 128 then
+        begin
+          frame_data^[y * 16 + x] := 13;  { Transparent color index }
+          Continue;
+        end;
+
+        { Find nearest VGA palette color }
+        best_idx := 0;
+        best_dist := $7FFFFFFF;
+        for i := 0 to 255 do
+        begin
+          { VGA palette uses 6-bit values (0-63), convert to 8-bit for comparison }
+          dist := abs(r - (palette[i].r shl 2)) +
+                  abs(g - (palette[i].v shl 2)) +
+                  abs(b - (palette[i].b shl 2));
+          if dist < best_dist then
+          begin
+            best_dist := dist;
+            best_idx := i;
+          end;
+        end;
+
+        frame_data^[y * 16 + x] := best_idx;
+      end;
+    end;
+
+    { Free the RGBA buffer }
+    FreeMem(frame_buffers[frame]);
+  end;
+
+  avatar_sheet.total_frames := frame_count;
+  avatar_sheet.loaded := True;
+  avatar_loaded := True;
+
+  { Store palette for rendering }
+  avatar_sheet.palette := palette;
+
+  writeln('[JXMENU] Avatar ready: ', frame_count, ' frames');
+end;
+
+{ Draw avatar frame at specified position }
+procedure DrawAvatar(x, y: word);
+var
+  frame_num: word;
+begin
+  { Load GZAL if not already loaded }
+  if not avatar_loaded then
+    LoadGzalTiles;
+
+  { Draw animated frame - cycle through frames 0-35 like original DOS }
+  if avatar_loaded then
+  begin
+    frame_num := poloha mod 36;  { Original DOS used 0-35 }
+    sprite_anim.DrawFrame(avatar_sheet.frames[frame_num], x, y);
+  end
+  else
+    writeln('[JXMENU] ERROR: GZAL not loaded');
+end;
+
+{ Update avatar animation frame - mirrors original DOS panak procedure }
+procedure UpdateAvatar;
+begin
+  { Increment animation frame counter }
+  inc(poloha);
+
+  { Cycle through frames 0-35 like original }
+  if poloha > 35 then
+    poloha := 0;
+end;
+
 procedure graphicswindow(x, y, x1, y1, col1, col2: word; napis: string);
 var
   width_tiles, height_tiles: word;
@@ -246,9 +382,21 @@ begin
 end;
 
 procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
+var
+  avatar_x, avatar_y: word;
 begin
+  { Calculate avatar position - moved further left for testing }
+  avatar_x := menx.dat[f].x - 80;  { TEST: Further left position }
+  avatar_y := menx.dat[f].y - menx.posuv * chardy;
+
+  { Debug: Log position for first item }
+  if (f = 1) and (poloha < 3) then
+    writeln('[DEBUG] hi_jxmenu: text_pos=(', menx.dat[f].x, ',', menx.dat[f].y, ') avatar_pos=(', avatar_x, ',', avatar_y, ')');
+
+  { Draw animated avatar BEFORE text - appears to the left }
+  DrawAvatar(avatar_x, avatar_y);
+
   { Highlighted item: draw text with highlight color (col1) }
-  { Original DOS version just changes the text color, no background }
   print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
               menx.dat[f].meno, menx.col1, 0);
 end;
@@ -279,6 +427,9 @@ var
 begin
   { Load GLIST tiles if not already loaded }
   LoadGlistTiles;
+
+  { Load GZAL avatar if not already loaded }
+  LoadGzalTiles;
 
   if menx.pocet < menx.roll then
     menx.roll := menx.pocet;
@@ -374,6 +525,12 @@ begin
     exit;
 
   glist_loaded := False;
+  avatar_loaded := False;
+  poloha := 0;  { Initialize animation frame counter }
+
+  { Load avatar animation spritesheet }
+  LoadGzalTiles;
+
   initialization_done := True;
 end;
 
@@ -410,7 +567,10 @@ begin
     menu_done := False;
 
     repeat
-      { Highlight current selection }
+      { Update avatar animation frame - mirrors original DOS panak procedure }
+      UpdateAvatar;
+
+      { Highlight current selection (draws avatar) }
       hi_jxmenu(f, menx);
 
       { Update keyboard }

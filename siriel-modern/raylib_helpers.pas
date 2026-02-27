@@ -112,6 +112,7 @@ function LoadImage(filename: PChar): TRaylibImage; cdecl; external 'raylib';
 function LoadImageFromMemory(fileType: PChar; data: pointer; dataSize: cint): TRaylibImage; cdecl; external 'raylib';
 procedure UnloadImage(image: TRaylibImage); cdecl; external 'raylib';
 function ImageCopy(image: TRaylibImage): TRaylibImage; cdecl; external 'raylib';
+function ImageFromImage(image: TRaylibImage; rec: TRectangle): TRaylibImage; cdecl; external 'raylib';
 procedure ImageFormat(img: PRaylibImage; newFormat: cint); cdecl; external 'raylib';
 procedure ImageDrawPixel(img: PRaylibImage; x: cint; y: cint; color: cuint); cdecl; external 'raylib';
 procedure ImageDrawLine(img: PRaylibImage; x1: cint; y1: cint; x2: cint; y2: cint; color: cuint); cdecl; external 'raylib';

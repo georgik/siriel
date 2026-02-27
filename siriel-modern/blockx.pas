@@ -48,6 +48,7 @@ function getblock_out(sub, kluc, vystup: string): boolean;
 
 { Resource loading }
 function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: word; var pal: tpalette): boolean;
+function load_gif_spritesheet(file_name, kluc: string; frame_width, frame_height: word; out frames: array of pointer; out frame_count: word): boolean;
 procedure Font_Load_block(fmeno, kluc: string; var fx, fy: word);
 procedure load_palette_block(sub, kluc: string; var palx: tpalette);
 
@@ -638,6 +639,193 @@ begin
   UnloadImage(raylib_img);
 
   draw_gif_block := true;
+end;
+
+{ Load GIF spritesheet and extract all frames using Raylib }
+function load_gif_spritesheet(file_name, kluc: string; frame_width, frame_height: word; out frames: array of pointer; out frame_count: word): boolean;
+var
+  NumSounds: Word;
+  ResKey: TKey;
+  ResHeader: TResource;
+  Index: integer;
+  i: integer;
+  Found: boolean;
+  fil: file;
+  data: pointer;
+  DataSize: longint;
+  BytesRead: longint;
+  raylib_img: TRaylibImage;
+  raw_data: PByte;
+  cols, rows: word;
+  frame, col, row: word;
+  src_rec: TRectangle;
+  frame_img: TRaylibImage;
+  x, y: integer;
+  pixel_ptr: PByte;
+  r, g, b, a: byte;
+  frame_buffer: PByte;
+begin
+  load_gif_spritesheet := false;
+  frame_count := 0;
+
+  writeln('[SPRITE] Loading spritesheet: ', kluc, ' from ', file_name);
+
+  { Prepare key }
+  for i := 1 to 8 do
+    if i <= Length(kluc) then
+      ResKey[i] := kluc[i]
+    else
+      ResKey[i] := #0;
+
+  { Open file and find block }
+  AssignFile(fil, file_name);
+  Reset(fil, 1);
+  BlockRead(fil, NumSounds, SizeOf(NumSounds));
+
+  Found := false;
+  Index := 0;
+
+  while not(Found) and (Index < NumSounds) do
+  begin
+    Index := Index + 1;
+    BlockRead(fil, ResHeader, SizeOf(ResHeader));
+
+    if MatchingKeys(ResHeader.Key, ResKey) then
+      Found := true;
+  end;
+
+  if not Found then
+  begin
+    CloseFile(fil);
+    writeln('[SPRITE] ERROR: Key not found: ', kluc);
+    Exit;
+  end;
+
+  { Allocate memory and read data }
+  DataSize := ResHeader.Size;
+  GetMem(data, DataSize);
+
+  Seek(fil, ResHeader.Start);
+  BlockRead(fil, data^, DataSize, BytesRead);
+  CloseFile(fil);
+
+  if BytesRead <> DataSize then
+  begin
+    FreeMem(data);
+    writeln('[SPRITE] ERROR: Failed to read complete block');
+    Exit;
+  end;
+
+  { Fix Jx1 signature if needed }
+  raw_data := PByte(data);
+  if (DataSize >= 6) and (raw_data[0] = Ord('J')) and (raw_data[1] = Ord('x')) and (raw_data[2] = Ord('1')) then
+  begin
+    raw_data[0] := Ord('G');
+    raw_data[1] := Ord('I');
+    raw_data[2] := Ord('F');
+    raw_data[3] := Ord('8');
+    raw_data[4] := Ord('9');
+    raw_data[5] := Ord('a');
+  end;
+
+  { Load image using Raylib }
+  raylib_img := LoadImageFromMemory('.gif', data, DataSize);
+  FreeMem(data);
+
+  if raylib_img.data = nil then
+  begin
+    writeln('[SPRITE] ERROR: Failed to load GIF');
+    Exit;
+  end;
+
+  { Convert to RGBA if needed }
+  if raylib_img.format <> PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 then
+    ImageFormat(@raylib_img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+  writeln('[SPRITE] Loaded: ', raylib_img.width, 'x', raylib_img.height);
+
+  { Calculate grid dimensions }
+  cols := raylib_img.width div frame_width;
+  rows := raylib_img.height div frame_height;
+  frame_count := cols * rows;
+
+  writeln('[SPRITE] Grid: ', cols, 'x', rows, ' = ', frame_count, ' frames');
+
+  if frame_count > Length(frames) then
+  begin
+    writeln('[SPRITE] ERROR: Too many frames (', frame_count, ' > ', Length(frames), ')');
+    UnloadImage(raylib_img);
+    Exit;
+  end;
+
+  { Extract each frame using Raylib's ImageFromImage }
+  for frame := 0 to frame_count - 1 do
+  begin
+    col := frame mod cols;
+    row := frame div cols;
+
+    { Define source rectangle for this frame }
+    src_rec.x := col * frame_width;
+    src_rec.y := row * frame_height;
+    src_rec.width := frame_width;
+    src_rec.height := frame_height;
+
+    { Extract frame from spritesheet - this happens in C/Raylib! }
+    frame_img := ImageFromImage(raylib_img, src_rec);
+
+    if frame_img.data = nil then
+    begin
+      writeln('[SPRITE] ERROR: Failed to extract frame ', frame);
+      UnloadImage(raylib_img);
+      Exit;
+    end;
+
+    { Allocate Pascal buffer for this frame }
+    GetMem(frames[frame], frame_width * frame_height * 4);
+
+    { Copy RGBA data from Raylib image to Pascal buffer }
+    pixel_ptr := PByte(frame_img.data);
+    frame_buffer := PByte(frames[frame]);
+
+    for y := 0 to frame_height - 1 do
+    begin
+      for x := 0 to frame_width - 1 do
+      begin
+        { Read RGBA from Raylib frame }
+        r := pixel_ptr^;
+        Inc(pixel_ptr);
+        g := pixel_ptr^;
+        Inc(pixel_ptr);
+        b := pixel_ptr^;
+        Inc(pixel_ptr);
+        a := pixel_ptr^;
+        Inc(pixel_ptr);
+
+        { Write RGBA to Pascal buffer }
+        frame_buffer^ := r;
+        Inc(frame_buffer);
+        frame_buffer^ := g;
+        Inc(frame_buffer);
+        frame_buffer^ := b;
+        Inc(frame_buffer);
+        frame_buffer^ := a;
+        Inc(frame_buffer);
+      end;
+    end;
+
+    { Unload the temporary Raylib frame image }
+    UnloadImage(frame_img);
+
+    if (frame mod 10 = 0) then
+      writeln('[SPRITE] Extracted frame ', frame, '/');
+  end;
+
+  writeln('[SPRITE] Extracted all ', frame_count, ' frames');
+
+  { Unload the source spritesheet image }
+  UnloadImage(raylib_img);
+
+  load_gif_spritesheet := true;
 end;
 
 end.

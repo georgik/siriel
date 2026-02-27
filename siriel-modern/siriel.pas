@@ -598,6 +598,12 @@ begin
   EndDrawing();
 
   repeat
+    { Update avatar animation frame - mirrors original DOS implementation }
+    jxmenu.UpdateAvatar;
+
+    { Redraw highlighted item with updated avatar frame }
+    jxmenu.hi_jxmenu(choice, menu^);
+
     { Update keyboard buffer }
     geo.get_keyboard;
 
