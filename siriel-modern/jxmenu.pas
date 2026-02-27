@@ -294,7 +294,12 @@ begin
         a := frame_rgba^;
         Inc(frame_rgba);
 
-        { Skip transparent pixels }
+        { Check for transparent pink/magenta background (same as draw_gif_block) }
+        { Pink range: R:250-255, G:0-100, B:250-255 }
+        if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+          Continue;
+
+        { Also skip if alpha is 0 }
         if a < 128 then
           Continue;
 
