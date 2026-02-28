@@ -688,6 +688,7 @@ begin
     BeginDrawing();
     ClearBackground(0, 0, 0, 255);
     RenderScreenToWindow();
+    jxmenu.RenderAvatar;  { Draw avatar on GPU after menu }
     EndDrawing();
 
     { Small delay to prevent CPU spin }

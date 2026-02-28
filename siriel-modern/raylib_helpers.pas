@@ -125,6 +125,10 @@ procedure UnloadTexture(texture: TRaylibTexture2D); cdecl; external 'raylib';
 procedure DrawTexture(texture: TRaylibTexture2D; x: cint; y: cint; tint: cuint); cdecl; external 'raylib';
 procedure DrawTextureRec(texture: TRaylibTexture2D; srcRec: TRectangle; pos: TVector2; tint: cuint); cdecl; external 'raylib';
 
+{ Image data manipulation }
+function LoadImagePro(data: pointer; width: cint; height: cint; format: cint): TRaylibImage; cdecl; external 'raylib';
+function LoadImageFromRaw(width: cint; height: cint; format: cint; data: pointer): TRaylibImage; cdecl; external 'raylib';
+
 { Screenshot function }
 procedure TakeScreenshot(fileName: PChar); cdecl; external 'raylib';
 

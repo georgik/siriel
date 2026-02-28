@@ -16,7 +16,8 @@ uses
   blockx,
   geo,
   sprite_anim,
-  animing;
+  animing,
+  raylib_helpers;
 
 const
   max_menu = 64;
@@ -59,10 +60,10 @@ procedure old_frame;
 procedure LoadGlistTiles;
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
 
-{ Avatar animation system - mirrors original DOS implementation }
+{ Avatar animation system - using Raylib GPU rendering }
 procedure LoadGzalTiles;
-procedure DrawAvatar(x, y: word);
 procedure UpdateAvatar;
+procedure RenderAvatar;  { Render avatar at current position using Raylib texture }
 
 { Global GLIST tiles }
 var
@@ -71,14 +72,14 @@ var
 
 implementation
 
-{ Avatar animation state - mirrors original DOS implementation }
+{ Avatar animation state - using Raylib textures with GPU rendering }
 var
   avatar_sheet: TSpritesheet;
   avatar_loaded: boolean;
   poloha: byte;  { Animation frame counter (0-35), mirrors original }
-  gzal_loaded_at_least_once: boolean;  { Track if GZAL has been loaded to screen }
-  avatar_rgba_frames: array[0..63] of pointer;  { Store RGBA frame data directly }
+  avatar_textures: array[0..63] of TRaylibTexture2D;  { Raylib textures for each frame }
   avatar_frame_count: word;
+  avatar_x, avatar_y: word;  { Current avatar position for rendering }
 
 { Extract a single 16x16 tile from screen buffer }
 procedure ExtractTile(src_x, src_y: word; var tile: TTileBuffer);
@@ -229,89 +230,24 @@ end;
 
 { === MENU DRAWING FUNCTIONS === }
 
-{ Load GZAL spritesheet and extract all frames using Raylib }
+{ Load GZAL spritesheet and create Raylib textures }
 procedure LoadGzalTiles;
-var
-  frame_buffers: array[0..63] of pointer;
-  frame_count: word;
-  frame: word;
-  src_ptr: PByte;
 begin
   if avatar_loaded then
     exit;
 
-  { Load and extract frames using Raylib - all in C memory space! }
-  if not blockx.load_gif_spritesheet('data/MAIN.DAT', 'GZAL', 16, 16, frame_buffers, frame_count) then
+  { Load and create textures using Raylib - all in GPU memory! }
+  if not blockx.load_gif_spritesheet_textures('data/MAIN.DAT', 'GZAL', 16, 16, avatar_textures, avatar_frame_count) then
   begin
-    writeln('[JXMENU] Failed to load GZAL spritesheet');
+    writeln('[JXMENU] Failed to load GZAL spritesheet textures');
     Exit;
   end;
 
-  writeln('[JXMENU] GZAL loaded: ', frame_count, ' frames, keeping RGBA data');
-
-  { Store RGBA frames directly - no palette conversion! }
-  for frame := 0 to frame_count - 1 do
-  begin
-    { Keep the RGBA buffer from Raylib extraction }
-    avatar_rgba_frames[frame] := frame_buffers[frame];
-  end;
-
-  avatar_frame_count := frame_count;
+  writeln('[JXMENU] GZAL loaded: ', avatar_frame_count, ' frames as Raylib textures');
   avatar_loaded := True;
-
-  writeln('[JXMENU] Avatar ready: ', frame_count, ' RGBA frames');
 end;
 
-{ Draw avatar frame at specified position }
-procedure DrawAvatar(x, y: word);
-var
-  frame_num: word;
-  frame_rgba: PByte;
-  px, py: word;
-  r, g, b, a: byte;
-begin
-  { Load GZAL if not already loaded }
-  if not avatar_loaded then
-    LoadGzalTiles;
-
-  { Draw animated frame - cycle through frames 0-35 like original DOS }
-  if avatar_loaded then
-  begin
-    frame_num := poloha mod 36;  { Original DOS used 0-35 }
-    frame_rgba := PByte(avatar_rgba_frames[frame_num]);
-
-    { Draw RGBA pixels directly to screen }
-    for py := 0 to 15 do
-    begin
-      for px := 0 to 15 do
-      begin
-        r := frame_rgba^;
-        Inc(frame_rgba);
-        g := frame_rgba^;
-        Inc(frame_rgba);
-        b := frame_rgba^;
-        Inc(frame_rgba);
-        a := frame_rgba^;
-        Inc(frame_rgba);
-
-        { Check for transparent pink/magenta background (same as draw_gif_block) }
-        { Pink range: R:250-255, G:0-100, B:250-255 }
-        if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
-          Continue;
-
-        { Also skip if alpha is 0 }
-        if a < 128 then
-          Continue;
-
-        { Write RGBA directly to screen }
-        putpixel(screen_image, x + px, y + py, (a shl 24) or (r shl 16) or (g shl 8) or b);
-      end;
-    end;
-  end
-  else
-    writeln('[JXMENU] ERROR: GZAL not loaded');
-end;
-
+{ Draw avatar frame at specified position using Raylib texture }
 { Update avatar animation frame - mirrors original DOS panak procedure }
 procedure UpdateAvatar;
 begin
@@ -321,6 +257,31 @@ begin
   { Cycle through frames 0-35 like original }
   if poloha > 35 then
     poloha := 0;
+end;
+
+{ Render avatar at stored position using Raylib texture }
+procedure RenderAvatar;
+var
+  frame_num: word;
+  tex: TRaylibTexture2D;
+begin
+  { Load textures on first use (after InitWindow) }
+  if not avatar_loaded then
+    LoadGzalTiles;
+
+  if not avatar_loaded then
+  begin
+    writeln('[JXMENU] RenderAvatar: GZAL not loaded, skipping');
+    Exit;
+  end;
+
+  frame_num := poloha mod 36;
+  tex := avatar_textures[frame_num];
+
+  writeln('[JXMENU] RenderAvatar: Drawing frame ', frame_num, ' at (', avatar_x, ', ', avatar_y, ')');
+
+  { Draw directly to GPU back buffer - WHITE tint = no color modification }
+  DrawTexture(tex, avatar_x, avatar_y, $FFFFFFFF);
 end;
 
 procedure graphicswindow(x, y, x1, y1, col1, col2: word; napis: string);
@@ -357,22 +318,27 @@ end;
 
 procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 var
-  avatar_x, avatar_y: word;
+  prev_choice: byte;
 begin
-  { Calculate avatar position - moved further left for testing }
-  avatar_x := menx.dat[f].x - 80;  { TEST: Further left position }
+  { Only redraw text if selection changed }
+  if menx.vybrane <> f then
+  begin
+    prev_choice := menx.vybrane;
+    if prev_choice > 0 then
+    begin
+      { Clear previous selection's text }
+      print_normal(screen_image, menx.dat[prev_choice].x, menx.dat[prev_choice].y - menx.posuv * chardy,
+                  menx.dat[prev_choice].meno, menx.col2, 0);
+    end;
+
+    { Draw new selection's text }
+    print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
+                menx.dat[f].meno, menx.col1, 0);
+  end;
+
+  { Calculate and store avatar position for rendering }
+  avatar_x := menx.dat[f].x - 20;
   avatar_y := menx.dat[f].y - menx.posuv * chardy;
-
-  { Debug: Log position for first item }
-  if (f = 1) and (poloha < 3) then
-    writeln('[DEBUG] hi_jxmenu: text_pos=(', menx.dat[f].x, ',', menx.dat[f].y, ') avatar_pos=(', avatar_x, ',', avatar_y, ')');
-
-  { Draw animated avatar BEFORE text - appears to the left }
-  DrawAvatar(avatar_x, avatar_y);
-
-  { Highlighted item: draw text with highlight color (col1) }
-  print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
-              menx.dat[f].meno, menx.col1, 0);
 end;
 
 procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
@@ -502,8 +468,8 @@ begin
   avatar_loaded := False;
   poloha := 0;  { Initialize animation frame counter }
 
-  { Load avatar animation spritesheet }
-  LoadGzalTiles;
+  { Note: Texture loading deferred until after InitWindow() }
+  { LoadGzalTiles will be called on first RenderAvatar }
 
   initialization_done := True;
 end;

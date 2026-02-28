@@ -49,6 +49,7 @@ function getblock_out(sub, kluc, vystup: string): boolean;
 { Resource loading }
 function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: word; var pal: tpalette): boolean;
 function load_gif_spritesheet(file_name, kluc: string; frame_width, frame_height: word; out frames: array of pointer; out frame_count: word): boolean;
+function load_gif_spritesheet_textures(file_name, kluc: string; frame_width, frame_height: word; out textures: array of TRaylibTexture2D; out frame_count: word): boolean;
 procedure Font_Load_block(fmeno, kluc: string; var fx, fy: word);
 procedure load_palette_block(sub, kluc: string; var palx: tpalette);
 
@@ -826,6 +827,189 @@ begin
   UnloadImage(raylib_img);
 
   load_gif_spritesheet := true;
+end;
+
+{ Load GIF spritesheet and create Raylib textures for each frame }
+function load_gif_spritesheet_textures(file_name, kluc: string; frame_width, frame_height: word; out textures: array of TRaylibTexture2D; out frame_count: word): boolean;
+var
+  NumSounds: Word;
+  ResKey: TKey;
+  ResHeader: TResource;
+  Index: integer;
+  i: integer;
+  Found: boolean;
+  fil: file;
+  data: pointer;
+  DataSize: longint;
+  BytesRead: longint;
+  raylib_img: TRaylibImage;
+  raw_data: PByte;
+  cols, rows: word;
+  frame, col, row: word;
+  src_rec: TRectangle;
+  frame_img: TRaylibImage;
+  pixel_ptr: PByte;
+  x, y: integer;
+  r, g, b, a: byte;
+begin
+  load_gif_spritesheet_textures := false;
+  frame_count := 0;
+
+  writeln('[SPRITE] Loading spritesheet as textures: ', kluc, ' from ', file_name);
+
+  { Prepare key }
+  for i := 1 to 8 do
+    if i <= Length(kluc) then
+      ResKey[i] := kluc[i]
+    else
+      ResKey[i] := #0;
+
+  { Open file and find block }
+  AssignFile(fil, file_name);
+  Reset(fil, 1);
+  BlockRead(fil, NumSounds, SizeOf(NumSounds));
+
+  Found := false;
+  Index := 0;
+
+  while not(Found) and (Index < NumSounds) do
+  begin
+    Index := Index + 1;
+    BlockRead(fil, ResHeader, SizeOf(ResHeader));
+
+    if MatchingKeys(ResHeader.Key, ResKey) then
+      Found := true;
+  end;
+
+  if not Found then
+  begin
+    CloseFile(fil);
+    writeln('[SPRITE] ERROR: Key not found: ', kluc);
+    Exit;
+  end;
+
+  { Allocate memory and read data }
+  DataSize := ResHeader.Size;
+  GetMem(data, DataSize);
+
+  Seek(fil, ResHeader.Start);
+  BlockRead(fil, data^, DataSize, BytesRead);
+  CloseFile(fil);
+
+  if BytesRead <> DataSize then
+  begin
+    FreeMem(data);
+    writeln('[SPRITE] ERROR: Failed to read complete block');
+    Exit;
+  end;
+
+  { Fix Jx1 signature if needed }
+  raw_data := PByte(data);
+  if (DataSize >= 6) and (raw_data[0] = Ord('J')) and (raw_data[1] = Ord('x')) and (raw_data[2] = Ord('1')) then
+  begin
+    raw_data[0] := Ord('G');
+    raw_data[1] := Ord('I');
+    raw_data[2] := Ord('F');
+    raw_data[3] := Ord('8');
+    raw_data[4] := Ord('9');
+    raw_data[5] := Ord('a');
+  end;
+
+  { Load image using Raylib }
+  raylib_img := LoadImageFromMemory('.gif', data, DataSize);
+  FreeMem(data);
+
+  if raylib_img.data = nil then
+  begin
+    writeln('[SPRITE] ERROR: Failed to load GIF');
+    Exit;
+  end;
+
+  { Convert to RGBA if needed }
+  if raylib_img.format <> PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 then
+    ImageFormat(@raylib_img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+  writeln('[SPRITE] Loaded: ', raylib_img.width, 'x', raylib_img.height);
+
+  { Calculate grid dimensions }
+  cols := raylib_img.width div frame_width;
+  rows := raylib_img.height div frame_height;
+  frame_count := cols * rows;
+
+  writeln('[SPRITE] Grid: ', cols, 'x', rows, ' = ', frame_count, ' frames');
+
+  if frame_count > Length(textures) then
+  begin
+    writeln('[SPRITE] ERROR: Too many frames (', frame_count, ' > ', Length(textures), ')');
+    UnloadImage(raylib_img);
+    Exit;
+  end;
+
+  { Extract each frame and create Raylib texture directly }
+  for frame := 0 to frame_count - 1 do
+  begin
+    col := frame mod cols;
+    row := frame div cols;
+
+    { Define source rectangle for this frame }
+    src_rec.x := col * frame_width;
+    src_rec.y := row * frame_height;
+    src_rec.width := frame_width;
+    src_rec.height := frame_height;
+
+    { Extract frame from spritesheet - this happens in C/Raylib! }
+    frame_img := ImageFromImage(raylib_img, src_rec);
+
+    if frame_img.data = nil then
+    begin
+      writeln('[SPRITE] ERROR: Failed to extract frame ', frame);
+      UnloadImage(raylib_img);
+      Exit;
+    end;
+
+    { Apply transparency filter - convert pink/magenta to transparent }
+    { This must be done BEFORE creating the texture }
+    pixel_ptr := PByte(frame_img.data);
+    for y := 0 to frame_height - 1 do
+    begin
+      for x := 0 to frame_width - 1 do
+      begin
+        r := pixel_ptr^;
+        Inc(pixel_ptr);
+        g := pixel_ptr^;
+        Inc(pixel_ptr);
+        b := pixel_ptr^;
+        Inc(pixel_ptr);
+        a := pixel_ptr^;
+        Inc(pixel_ptr);
+
+        { Check for pink/magenta background (RGB 250-255, 0-100, 250-255) }
+        if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+        begin
+          { Set alpha to 0 (transparent) }
+          Dec(pixel_ptr);
+          pixel_ptr^ := 0;
+          Inc(pixel_ptr);
+        end;
+      end;
+    end;
+
+    { Create texture directly from the extracted frame image }
+    textures[frame] := LoadTextureFromImage(frame_img);
+
+    { Unload the temporary Raylib frame image (texture now owns the data) }
+    UnloadImage(frame_img);
+
+    if (frame mod 10 = 0) then
+      writeln('[SPRITE] Created texture for frame ', frame, '/');
+  end;
+
+  writeln('[SPRITE] Created all ', frame_count, ' textures');
+
+  { Unload the source spritesheet image }
+  UnloadImage(raylib_img);
+
+  load_gif_spritesheet_textures := true;
 end;
 
 end.
