@@ -207,7 +207,7 @@ begin
      old_frame_draw(270,180,3,3);
      size_jxmenu(64,48,mass^);
      draw_jxmenu3(mass^);
-     vyber_jxmenu(mass^,f);
+     vyber_jxmenu(mass^,f,0);  { No timeout - wait for user input }
      if f=1 then ano_nie2:=true;
      draw_scr(handles[2],269,170,120,120);
      kill_handle(handles[2]);

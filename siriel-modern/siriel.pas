@@ -54,6 +54,7 @@ var
   currentLevel: integer;
   gameRunning: boolean;
   test_mode: boolean;
+  test_mode_duration_ms: uint64;  { Test mode timeout in milliseconds }
   test_duration_sec: integer;
   screenshot_file: string;
   movx, movy, mova: word;  { Movement variables for maze mode }
@@ -145,6 +146,7 @@ begin
   writeln('');
   writeln('Game Options:');
   writeln('  --level-file FILE.MIE    Load specific level file');
+  writeln('  --level-select           Jump directly to level selection menu');
   writeln('  --dat FILE.DAT           Use specific DAT file');
   writeln('');
   writeln('Test Mode Options:');
@@ -160,9 +162,7 @@ begin
   writeln('  ', ParamStr(0), ' --duration 10 --screenshot test.png');
   writeln('  ', ParamStr(0), ' --duration 5 --level-file 2.MIE --screenshot demo.png');
   writeln('  ', ParamStr(0), ' --dat MAIN.DAT --level-file 1.MIE --duration 15');
-  writeln('');
-  writeln('Legacy (positional) syntax still supported:');
-  writeln('  ', ParamStr(0), ' [duration_seconds] [screenshot.png]');
+  writeln('  ', ParamStr(0), ' --level-select --duration 3 --screenshot menu.png');
   writeln('');
 end;
 
@@ -775,18 +775,12 @@ begin
   { Set initial selection to first level }
   menu^.first := 1;
 
-  { Draw menu with GLIST decoration using DrawMenuFrame }
-  { Original: old_frame.draw(200, 40, 12, 18) }
-  { Calculate tile dimensions: 192x288 pixels = 12x18 tiles (16x16 each) }
-  if jxmenu.glist_loaded then
-    jxmenu.DrawMenuFrame(200, 40, 12, 18, 0);
-
-  { Draw menu items }
+  { Draw menu items (graphicswindow will handle GLIST decoration) }
   draw_jxmenu3(menu^);
 
   { Wait for user selection }
   writeln('  Waiting for selection...');
-  vyber_jxmenu(menu^, choice);
+  vyber_jxmenu(menu^, choice, test_duration_sec * 1000);
 
   { Cleanup }
   dispose(menu);
@@ -1222,6 +1216,23 @@ begin
     writeln('Skipping intro menu, going directly to level selection...');
     writeln('');
     currentLevel := SelectLevel;
+
+    { In test mode with --level-select, just exit after selection (don't run game) }
+    if test_mode then
+    begin
+      writeln('[CLI] Test mode: Level selection completed, exiting');
+      { Save screenshot if requested }
+      if screenshot_file <> '' then
+      begin
+        writeln('[CLI] Saving screenshot to: ', screenshot_file);
+        TakeScreenshot(PChar(screenshot_file));
+        writeln('[CLI] Screenshot saved');
+      end;
+      CloseWindow;
+      CleanupGame;
+      Halt(0);
+    end;
+
     if currentLevel > 0 then
       RunGameLoop(test_duration_sec)
     else

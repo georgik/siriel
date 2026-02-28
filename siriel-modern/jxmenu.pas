@@ -25,7 +25,7 @@ const
   GLIST_TILE_COUNT = 8;
 
 type
-  { RGBA tile buffer }
+  { RGBA tile buffer (still used for other purposes) }
   TTileBuffer = array[0..TILE_SIZE * TILE_SIZE * 4 - 1] of byte;
 
   polozka_typ = record
@@ -53,21 +53,22 @@ procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
 { Missing menu functions (from original JXMENU.PAS) }
 procedure size_jxmenu(sirka, vyska: word; var menx: jxmenu_typ);
 procedure draw_jxmenu3(var menx: jxmenu_typ);
-procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word);
+procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word; timeout_ms: uint64);
 procedure old_frame;
 
 { GLIST decoration system }
 procedure LoadGlistTiles;
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
+procedure RenderMenuFrame(x, y, width_tiles, height_tiles: word);  { Call every frame in rendering loop }
 
 { Avatar animation system - using Raylib GPU rendering }
 procedure LoadGzalTiles;
 procedure UpdateAvatar;
 procedure RenderAvatar;  { Render avatar at current position using Raylib texture }
 
-{ Global GLIST tiles }
+{ Global GLIST tiles - using Raylib textures for GPU rendering }
 var
-  glist_tiles: array[0..GLIST_TILE_COUNT - 1] of TTileBuffer;
+  glist_textures: array[0..GLIST_TILE_COUNT - 1] of TRaylibTexture2D;
   glist_loaded: boolean;
 
 implementation
@@ -80,57 +81,6 @@ var
   avatar_textures: array[0..63] of TRaylibTexture2D;  { Raylib textures for each frame }
   avatar_frame_count: word;
   avatar_x, avatar_y: word;  { Current avatar position for rendering }
-
-{ Extract a single 16x16 tile from screen buffer }
-procedure ExtractTile(src_x, src_y: word; var tile: TTileBuffer);
-var
-  local_x, local_y: word;
-  src_idx, dst_idx: longint;
-begin
-  for local_y := 0 to TILE_SIZE - 1 do
-  begin
-    for local_x := 0 to TILE_SIZE - 1 do
-    begin
-      src_idx := ((src_y + local_y) * screen_width + (src_x + local_x)) * 4;
-      dst_idx := (local_y * TILE_SIZE + local_x) * 4;
-
-      tile[dst_idx] := PByte(screen_image^.data + src_idx)^;
-      tile[dst_idx + 1] := PByte(screen_image^.data + src_idx + 1)^;
-      tile[dst_idx + 2] := PByte(screen_image^.data + src_idx + 2)^;
-      tile[dst_idx + 3] := PByte(screen_image^.data + src_idx + 3)^;
-    end;
-  end;
-end;
-
-{ Draw a single tile to screen buffer with transparency }
-procedure DrawTile(var tile: TTileBuffer; dst_x, dst_y: word);
-var
-  local_x, local_y: word;
-  src_idx, dst_idx: longint;
-  r, g, b, a: byte;
-begin
-  for local_y := 0 to TILE_SIZE - 1 do
-  begin
-    for local_x := 0 to TILE_SIZE - 1 do
-    begin
-      src_idx := (local_y * TILE_SIZE + local_x) * 4;
-      r := tile[src_idx];
-      g := tile[src_idx + 1];
-      b := tile[src_idx + 2];
-      a := tile[src_idx + 3];
-
-      { Check for magenta transparency (RGB: 255, 0, 255) }
-      if (r > 250) and (g < 10) and (b > 250) then
-        continue;
-
-      dst_idx := ((dst_y + local_y) * screen_width + (dst_x + local_x)) * 4;
-      PByte(screen_image^.data + dst_idx)^ := r;
-      PByte(screen_image^.data + dst_idx + 1)^ := g;
-      PByte(screen_image^.data + dst_idx + 2)^ := b;
-      PByte(screen_image^.data + dst_idx + 3)^ := 255;
-    end;
-  end;
-end;
 
 { Fill the interior of menu with solid color }
 procedure FillInterior(x, y, width_tiles, height_tiles: word; fill_col: byte);
@@ -157,74 +107,87 @@ begin
 end;
 
 { Draw fancy menu frame using GLIST tiles }
+{ Draw menu frame using GLIST tiles with Raylib textures
+  This is called ONCE during menu setup to draw the background fill
+  The actual tile rendering happens in RenderMenuFrame which is called every frame
+}
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
+begin
+  { Just draw the interior fill - tiles are rendered every frame in RenderMenuFrame }
+  FillInterior(x, y, width_tiles, height_tiles, fill_col);
+end;
+
+{ Render GLIST tiles using Raylib textures - called every frame in rendering loop }
+procedure RenderMenuFrame(x, y, width_tiles, height_tiles: word);
 var
   tile_num: word;
+  dst_x, dst_y: word;
 begin
-  FillInterior(x, y, width_tiles, height_tiles, fill_col);
+  if not glist_loaded then
+    exit;
 
   { Top-left corner (tile 0) }
-  DrawTile(glist_tiles[0], x, y);
+  DrawTexture(glist_textures[0], x, y, $FFFFFFFF);
 
   { Top edge (tile 1, repeated) }
   for tile_num := 1 to width_tiles - 2 do
-    DrawTile(glist_tiles[1], x + tile_num * TILE_SIZE, y);
+  begin
+    dst_x := x + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[1], dst_x, y, $FFFFFFFF);
+  end;
 
   { Top-right corner (tile 2) }
-  DrawTile(glist_tiles[2], x + (width_tiles - 1) * TILE_SIZE, y);
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[2], dst_x, y, $FFFFFFFF);
 
   { Left edge (tile 3, repeated) }
   for tile_num := 1 to height_tiles - 2 do
-    DrawTile(glist_tiles[3], x, y + tile_num * TILE_SIZE);
+  begin
+    dst_y := y + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[3], x, dst_y, $FFFFFFFF);
+  end;
 
   { Right edge (tile 4, repeated) }
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
   for tile_num := 1 to height_tiles - 2 do
-    DrawTile(glist_tiles[4], x + (width_tiles - 1) * TILE_SIZE, y + tile_num * TILE_SIZE);
+  begin
+    dst_y := y + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[4], dst_x, dst_y, $FFFFFFFF);
+  end;
 
   { Bottom-left corner (tile 5) }
-  DrawTile(glist_tiles[5], x, y + (height_tiles - 1) * TILE_SIZE);
+  dst_y := y + (height_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[5], x, dst_y, $FFFFFFFF);
 
   { Bottom edge (tile 6, repeated) }
   for tile_num := 1 to width_tiles - 2 do
-    DrawTile(glist_tiles[6], x + tile_num * TILE_SIZE, y + (height_tiles - 1) * TILE_SIZE);
+  begin
+    dst_x := x + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[6], dst_x, dst_y, $FFFFFFFF);
+  end;
 
   { Bottom-right corner (tile 7) }
-  DrawTile(glist_tiles[7], x + (width_tiles - 1) * TILE_SIZE, y + (height_tiles - 1) * TILE_SIZE);
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[7], dst_x, dst_y, $FFFFFFFF);
 end;
 
-{ Load GLIST tiles from MAIN.DAT }
+{ Load GLIST tiles from MAIN.DAT using Raylib textures }
 procedure LoadGlistTiles;
-var
-  palette: jxfont_simple.tpalette;
-  glist_x, glist_y, tile_idx: word;
-  glist_width, glist_height: word;
 begin
   if glist_loaded then
     exit;
 
-  { Load GLIST to temporary location }
-  glist_x := 0;
-  glist_y := 0;
+  writeln('[JXMENU] Loading GLIST tiles as textures...');
 
-  if not draw_gif_block(screen_image, 'data/MAIN.DAT', 'GLIST', glist_x, glist_y, palette) then
+  { Use the same loading mechanism as avatar - Raylib handles palette correctly }
+  if not blockx.load_gif_tiles_textures('data/MAIN.DAT', 'GLIST', TILE_SIZE, TILE_SIZE, GLIST_TILE_COUNT, glist_textures) then
   begin
-    writeln('Warning: Failed to load GLIST for menu decoration');
+    writeln('[JXMENU] Warning: Failed to load GLIST for menu decoration');
     glist_loaded := False;
     exit;
   end;
 
-  { Get GLIST dimensions }
-  glist_width := blockx.gif_x;
-  glist_height := blockx.gif_y;
-
-  { Extract all 8 tiles }
-  for tile_idx := 0 to GLIST_TILE_COUNT - 1 do
-    ExtractTile(glist_x + tile_idx * TILE_SIZE, glist_y, glist_tiles[tile_idx]);
-
-  { Clear only the GLIST area, NOT the entire screen }
-  FillChar(PByte(screen_image^.data + (glist_y * screen_width + glist_x) * 4)^,
-         glist_width * glist_height * 4, 0);
-
+  writeln('[JXMENU] GLIST tiles loaded successfully as textures');
   glist_loaded := True;
 end;
 
@@ -320,6 +283,8 @@ procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 var
   prev_choice: byte;
 begin
+  writeln('[JXMENU] hi_jxmenu: called with f=', f, ' vybrane=', menx.vybrane);
+
   { Only redraw text if selection changed }
   if menx.vybrane <> f then
   begin
@@ -327,11 +292,13 @@ begin
     if prev_choice > 0 then
     begin
       { Clear previous selection's text }
+      writeln('[JXMENU] hi_jxmenu: Clearing previous choice ', prev_choice);
       print_normal(screen_image, menx.dat[prev_choice].x, menx.dat[prev_choice].y - menx.posuv * chardy,
                   menx.dat[prev_choice].meno, menx.col2, 0);
     end;
 
     { Draw new selection's text }
+    writeln('[JXMENU] hi_jxmenu: Drawing new choice ', f, ' text at (', menx.dat[f].x, ',', menx.dat[f].y - menx.posuv * chardy, ')');
     print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
                 menx.dat[f].meno, menx.col1, 0);
   end;
@@ -339,6 +306,8 @@ begin
   { Calculate and store avatar position for rendering }
   avatar_x := menx.dat[f].x - 20;
   avatar_y := menx.dat[f].y - menx.posuv * chardy;
+
+  writeln('[JXMENU] hi_jxmenu: Avatar position set to (', avatar_x, ',', avatar_y, ')');
 end;
 
 procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
@@ -400,8 +369,9 @@ begin
     graphicswindow(menx.x, menx.y, menx.x1, menx.y1, menx.col1, menx.col3,
                    ' ' + menx.meno + ' ');
 
-  for f := 1 to menx.roll do
-    normal_jxmenu(f, menx);
+  { REMOVED: Don't redraw menu items after graphicswindow - it overwrites the tiles! }
+  { for f := 1 to menx.roll do
+    normal_jxmenu(f, menx); }
 
   menx.draw_menu := True;
 end;
@@ -434,7 +404,12 @@ begin
   if menx.pocet < max_menu then
   begin
     inc(menx.pocet);
-    menx.dat[menx.pocet].x := menx.x + 2 * chardx;
+    { Add margin for decorative frame if GLIST is loaded }
+    { Need 4 characters (32 pixels) to clear the 16x16 corner tile + 16x16 edge tile }
+    if glist_loaded then
+      menx.dat[menx.pocet].x := menx.x + 4 * chardx
+    else
+      menx.dat[menx.pocet].x := menx.x + 2 * chardx;
     menx.dat[menx.pocet].y := menx.y + chardy + menx.pocet * chardy;
     menx.dat[menx.pocet].meno := ' ' + meno + ' ';
     menx.dat[menx.pocet].k := k;
@@ -492,10 +467,12 @@ begin
   draw_jxmenu(menx);
 end;
 
-procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word);
+procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word; timeout_ms: uint64);
 var
   f, k: word;
   menu_done: boolean;
+  menu_start_time: uint64;
+  current_time: uint64;
 begin
   if menx.pocet > 0 then
   begin
@@ -505,6 +482,9 @@ begin
 
     f := menx.first;
     menu_done := False;
+
+    { Initialize start time for timeout checking }
+    menu_start_time := SysUtils.GetTickCount64;
 
     repeat
       { Update avatar animation frame - mirrors original DOS panak procedure }
@@ -521,6 +501,18 @@ begin
       begin
         vyber := menx.pocet;  { Select last item (Back) }
         menu_done := True;
+      end;
+
+      { Check for timeout }
+      if timeout_ms > 0 then
+      begin
+        current_time := SysUtils.GetTickCount64;
+        if (current_time - menu_start_time) >= timeout_ms then
+        begin
+          writeln('[JXMENU] Level selector timeout reached, auto-selecting first level');
+          vyber := 1;  { Auto-select first level }
+          menu_done := True;
+        end;
       end;
 
       { Handle keyboard input }
@@ -555,7 +547,18 @@ begin
       { Render to window every frame }
       BeginDrawing();
       ClearBackground(0, 0, 0, 255);
+
+      { Render screen_image (menu text, etc) }
       RenderScreenToWindow();
+
+      { Render GLIST decoration frame on top using GPU textures }
+      if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+      begin
+        RenderMenuFrame(menx.x, menx.y,
+                       (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                       (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+      end;
+
       EndDrawing();
 
       Sleep(16);
