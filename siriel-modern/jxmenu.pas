@@ -309,14 +309,11 @@ begin
 
   if not avatar_loaded then
   begin
-    writeln('[JXMENU] RenderAvatar: GZAL not loaded, skipping');
     Exit;
   end;
 
   frame_num := poloha mod 36;
   tex := avatar_textures[frame_num];
-
-  writeln('[JXMENU] RenderAvatar: Drawing frame ', frame_num, ' at (', avatar_x, ', ', avatar_y, ')');
 
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
   DrawTexture(tex, avatar_x, avatar_y, $FFFFFFFF);
@@ -358,8 +355,6 @@ procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 var
   prev_choice: byte;
 begin
-  writeln('[JXMENU] hi_jxmenu: called with f=', f, ' vybrane=', menx.vybrane);
-
   { Only redraw text if selection changed }
   if menx.vybrane <> f then
   begin
@@ -367,13 +362,11 @@ begin
     if prev_choice > 0 then
     begin
       { Clear previous selection's text }
-      writeln('[JXMENU] hi_jxmenu: Clearing previous choice ', prev_choice);
       print_normal(screen_image, menx.dat[prev_choice].x, menx.dat[prev_choice].y - menx.posuv * chardy,
                   menx.dat[prev_choice].meno, menx.col2, 0);
     end;
 
     { Draw new selection's text }
-    writeln('[JXMENU] hi_jxmenu: Drawing new choice ', f, ' text at (', menx.dat[f].x, ',', menx.dat[f].y - menx.posuv * chardy, ')');
     print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
                 menx.dat[f].meno, menx.col1, 0);
   end;
@@ -381,8 +374,6 @@ begin
   { Calculate and store avatar position for rendering }
   avatar_x := menx.dat[f].x - 20;
   avatar_y := menx.dat[f].y - menx.posuv * chardy;
-
-  writeln('[JXMENU] hi_jxmenu: Avatar position set to (', avatar_x, ',', avatar_y, ')');
 end;
 
 procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);

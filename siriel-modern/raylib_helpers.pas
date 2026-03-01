@@ -90,9 +90,21 @@ const
   PIXELFORMAT_COMPRESSED_ASTC_4x4_RGBA = 20;  // 8 bpp
   PIXELFORMAT_COMPRESSED_ASTC_8x8_RGBA = 21;  // 2 bpp
 
+{ Trace log level }
+const
+  LOG_ALL = 0;
+  LOG_TRACE = 1;
+  LOG_DEBUG = 2;
+  LOG_INFO = 3;
+  LOG_WARNING = 4;
+  LOG_ERROR = 5;
+  LOG_FATAL = 6;
+  LOG_NONE = 7;
+
 { Core Raylib functions }
 procedure InitWindow(width: cint; height: cint; title: PChar); cdecl; external 'raylib';
 procedure CloseWindow(); cdecl; external 'raylib';
+procedure SetTraceLogLevel(logLevel: cint); cdecl; external 'raylib';
 function WindowShouldClose(): cint; cdecl; external 'raylib';
 procedure BeginDrawing(); cdecl; external 'raylib';
 procedure EndDrawing(); cdecl; external 'raylib';

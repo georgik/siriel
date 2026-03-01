@@ -732,6 +732,9 @@ begin
     raw_data[5] := Ord('a');
   end;
 
+  { Disable Raylib logging to avoid spam during texture loading }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_NONE);
+
   { Load image using Raylib }
   raylib_img := LoadImageFromMemory('.gif', data, DataSize);
   FreeMem(data);
@@ -918,6 +921,9 @@ begin
     raw_data[5] := Ord('a');
   end;
 
+  { Disable Raylib logging to avoid spam during texture loading }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_NONE);
+
   { Load image using Raylib }
   raylib_img := LoadImageFromMemory('.gif', data, DataSize);
   FreeMem(data);
@@ -1012,6 +1018,9 @@ begin
   { Unload the source spritesheet image }
   UnloadImage(raylib_img);
 
+  { Re-enable Raylib logging }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_INFO);
+
   load_gif_spritesheet_textures := true;
 end;
 
@@ -1103,6 +1112,9 @@ begin
     writeln('[TILES] Fixed Jx1 signature to GIF89a');
   end;
 
+  { Disable Raylib logging to avoid spam during texture loading }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_NONE);
+
   { Load image using Raylib }
   raylib_img := LoadImageFromMemory('.gif', data, DataSize);
   FreeMem(data);
@@ -1187,6 +1199,9 @@ begin
 
   writeln('[TILES] Created all ', tile_count, ' tile textures');
   UnloadImage(raylib_img);
+
+  { Re-enable Raylib logging }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_INFO);
 
   load_gif_tiles_textures := true;
 end;
@@ -1437,6 +1452,9 @@ begin
     writeln('[MAP_TILES] Fixed Jx1 signature to GIF89a');
   end;
 
+  { Disable Raylib logging to avoid spam during texture loading }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_NONE);
+
   { Load image using Raylib }
   raylib_img := LoadImageFromMemory('.gif', data, DataSize);
   FreeMem(data);
@@ -1520,6 +1538,9 @@ begin
 
   writeln('[MAP_TILES] Created all ', tile_count, ' map tile textures');
   UnloadImage(raylib_img);
+
+  { Re-enable Raylib logging }
+  raylib_helpers.SetTraceLogLevel(raylib_helpers.LOG_INFO);
 
   load_map_tiles_textures := true;
 end;
