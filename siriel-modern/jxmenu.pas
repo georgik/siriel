@@ -193,10 +193,12 @@ begin
   fill_width := (width_tiles - 2) * TILE_SIZE;
   fill_height := (height_tiles - 2) * TILE_SIZE;
 
-  { Get fill color from VGA palette #d0946c at index 128 }
-  { Convert to RGBA: R=52*4=208, G=37*4=148, B=27*4=108, A=255 }
-  { Raylib format: RRGGBBAA }
-  fill_color := $D0946CFF;
+  { Use VGA palette color at index 128: #d0946c }
+  { VGA palette: R=52, G=37, B=27 (6-bit) → RGB: R=208, G=148, B=108 }
+  { Raylib uses 0xAABBGGRR format for 32-bit colors }
+  { A=FF, B=6C, G=94, R=D0 }
+  fill_color := $FF6C94D0;
+
   raylib_helpers.DrawRectangle(fill_x, fill_y, fill_width, fill_height, fill_color);
 
   { Top-left corner (tile 0) }
