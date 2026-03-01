@@ -54,7 +54,6 @@ var
   currentLevel: integer;
   gameRunning: boolean;
   test_mode: boolean;
-  test_mode_duration_ms: uint64;  { Test mode timeout in milliseconds }
   test_duration_sec: integer;
   screenshot_file: string;
   movx, movy, mova: word;  { Movement variables for maze mode }
@@ -1248,8 +1247,7 @@ begin
     writeln('=== CLI: --level-file mode ===');
     writeln('Skipping intro menu, loading level file: ', cli_level_file);
     writeln('');
-    StartNewGame;
-    RunGameLoop(test_duration_sec);
+    StartNewGame;  { This calls RunGameLoop internally }
     CloseWindow;
     CleanupGame;
     Halt(0);
