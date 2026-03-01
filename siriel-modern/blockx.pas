@@ -51,6 +51,7 @@ function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: w
 function load_gif_spritesheet(file_name, kluc: string; frame_width, frame_height: word; out frames: array of pointer; out frame_count: word): boolean;
 function load_gif_spritesheet_textures(file_name, kluc: string; frame_width, frame_height: word; out textures: array of TRaylibTexture2D; out frame_count: word): boolean;
 function load_gif_tiles_textures(file_name, kluc: string; tile_width, tile_height: word; tile_count: word; out textures: array of TRaylibTexture2D): boolean;
+function draw_gif_block_raylib(bitmap: pimage; file_name, kluc: string; fromx, fromy: word): boolean;
 procedure Font_Load_block(fmeno, kluc: string; var fx, fy: word);
 procedure load_palette_block(sub, kluc: string; var palx: tpalette);
 
@@ -1187,6 +1188,164 @@ begin
   UnloadImage(raylib_img);
 
   load_gif_tiles_textures := true;
+end;
+
+{ Load GIF block to screen_image using Raylib for proper color handling
+  This is a replacement for draw_gif_block that uses Raylib's LoadImageFromMemory
+  which handles palette conversion correctly, avoiding the black pixel bug
+}
+function draw_gif_block_raylib(bitmap: pimage; file_name, kluc: string; fromx, fromy: word): boolean;
+var
+  NumSounds: Word;
+  ResKey: TKey;
+  ResHeader: TResource;
+  Index: integer;
+  i: integer;
+  Found: boolean;
+  fil: file;
+  data: pointer;
+  DataSize: longint;
+  BytesRead: longint;
+  raylib_img: TRaylibImage;
+  raw_data: PByte;
+  src_x, src_y, dst_x, dst_y: integer;
+  pixel_ptr: PByte;
+  dst_idx: longint;
+  r, g, b, a: byte;
+  pixel_color: longword;
+begin
+  draw_gif_block_raylib := false;
+
+  writeln('[RAYLIB_GIF] Loading: ', kluc, ' from ', file_name);
+
+  { Prepare key }
+  for i := 1 to 8 do
+    if i <= Length(kluc) then
+      ResKey[i] := kluc[i]
+    else
+      ResKey[i] := #0;
+
+  { Open file and find block }
+  AssignFile(fil, file_name);
+  Reset(fil, 1);
+  BlockRead(fil, NumSounds, SizeOf(NumSounds));
+
+  Found := false;
+  Index := 0;
+
+  while not(Found) and (Index < NumSounds) do
+  begin
+    Index := Index + 1;
+    BlockRead(fil, ResHeader, SizeOf(ResHeader));
+
+    if MatchingKeys(ResHeader.Key, ResKey) then
+      Found := true;
+  end;
+
+  if not Found then
+  begin
+    CloseFile(fil);
+    writeln('[RAYLIB_GIF] ERROR: Key not found: ', kluc);
+    Exit;
+  end;
+
+  { Allocate memory and read data }
+  DataSize := ResHeader.Size;
+  GetMem(data, DataSize);
+
+  Seek(fil, ResHeader.Start);
+  BlockRead(fil, data^, DataSize, BytesRead);
+  CloseFile(fil);
+
+  if BytesRead <> DataSize then
+  begin
+    FreeMem(data);
+    writeln('[RAYLIB_GIF] ERROR: Failed to read complete block');
+    Exit;
+  end;
+
+  { Fix Jx1 signature if needed }
+  raw_data := PByte(data);
+  if (DataSize >= 6) and (raw_data[0] = Ord('J')) and (raw_data[1] = Ord('x')) and (raw_data[2] = Ord('1')) then
+  begin
+    raw_data[0] := Ord('G');
+    raw_data[1] := Ord('I');
+    raw_data[2] := Ord('F');
+    raw_data[3] := Ord('8');
+    raw_data[4] := Ord('9');
+    raw_data[5] := Ord('a');
+    writeln('[RAYLIB_GIF] Fixed Jx1 signature to GIF89a');
+  end;
+
+  { Load image using Raylib }
+  raylib_img := LoadImageFromMemory('.gif', data, DataSize);
+  FreeMem(data);
+
+  if raylib_img.data = nil then
+  begin
+    writeln('[RAYLIB_GIF] ERROR: Failed to load GIF');
+    Exit;
+  end;
+
+  { Convert to RGBA if needed }
+  if raylib_img.format <> PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 then
+    ImageFormat(@raylib_img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+  { Store dimensions }
+  gif_x := raylib_img.width;
+  gif_y := raylib_img.height;
+
+  writeln('[RAYLIB_GIF] Loaded: ', gif_x, 'x', gif_y);
+
+  { Copy pixels to screen_image at specified position }
+  if (bitmap <> nil) and (bitmap^.data <> nil) then
+  begin
+    pixel_ptr := PByte(raylib_img.data);
+
+    for src_y := 0 to raylib_img.height - 1 do
+    begin
+      for src_x := 0 to raylib_img.width - 1 do
+      begin
+        dst_x := fromx + src_x;
+        dst_y := fromy + src_y;
+
+        { Check bounds }
+        if (dst_x >= 0) and (dst_x < bitmap^.width) and (dst_y >= 0) and (dst_y < bitmap^.height) then
+        begin
+          { Read RGBA from Raylib image }
+          r := pixel_ptr^;
+          Inc(pixel_ptr);
+          g := pixel_ptr^;
+          Inc(pixel_ptr);
+          b := pixel_ptr^;
+          Inc(pixel_ptr);
+          a := pixel_ptr^;
+          Inc(pixel_ptr);
+
+          { Apply pink/magenta transparency }
+          if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+            a := 0;
+
+          { Write to screen_image }
+          dst_idx := (dst_y * bitmap^.width + dst_x) * 4;
+          pixel_color := (a shl 24) or (r shl 16) or (g shl 8) or b;
+          PLongWord(bitmap^.data + dst_idx)^ := pixel_color;
+        end
+        else
+        begin
+          { Skip pixel }
+          Inc(pixel_ptr, 4);
+        end;
+      end;
+    end;
+
+    writeln('[RAYLIB_GIF] Copied to screen_image at (', fromx, ',', fromy, ')');
+  end;
+
+  UnloadImage(raylib_img);
+
+  writeln('[RAYLIB_GIF] Loaded successfully');
+  draw_gif_block_raylib := true;
 end;
 
 end.

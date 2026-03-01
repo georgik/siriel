@@ -737,8 +737,9 @@ begin
   clear_bitmap(screen_image);
 
   { Initialize graphical menu at position (200, 40) per original DOS code }
+  { Use dark blue (1) for menu fill instead of black (0) }
   new(menu);
-  init_jxmenu(200, 40, 0, 15, 0, 'Level', menu^);
+  init_jxmenu(200, 40, 0, 15, 1, 'Level', menu^);
 
   { Add levels from levely^ structure if available }
   if (aktiv35.levely <> nil) and (aktiv35.levely^.pocet > 0) then
@@ -1208,7 +1209,7 @@ begin
   { Initialize game }
   InitializeGame(selectedDAT);
 
-  { Main menu loop - ALWAYS show intro menu first (unless --level-select) }
+  { Main menu loop - ALWAYS show intro menu first (unless --level-select or --level-file) }
   if cli_level_select then
   begin
     { Jump directly to level selection for screenshot/debugging }
@@ -1237,6 +1238,18 @@ begin
       RunGameLoop(test_duration_sec)
     else
       writeln('Level selection cancelled');
+    CloseWindow;
+    CleanupGame;
+    Halt(0);
+  end
+  else if cli_level_file <> '' then
+  begin
+    { Jump directly to specified level file }
+    writeln('=== CLI: --level-file mode ===');
+    writeln('Skipping intro menu, loading level file: ', cli_level_file);
+    writeln('');
+    StartNewGame;
+    RunGameLoop(test_duration_sec);
     CloseWindow;
     CleanupGame;
     Halt(0);

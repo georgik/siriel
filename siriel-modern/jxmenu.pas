@@ -82,26 +82,28 @@ var
   avatar_frame_count: word;
   avatar_x, avatar_y: word;  { Current avatar position for rendering }
 
-{ Fill the interior of menu with solid color }
+{ Fill the interior of menu with solid color using VGA palette }
 procedure FillInterior(x, y, width_tiles, height_tiles: word; fill_col: byte);
 var
   start_x, start_y, end_x, end_y, fill_x, fill_y: word;
   dst_idx: longint;
+  color_rgba: longint;
 begin
   start_x := x + TILE_SIZE;
   start_y := y + TILE_SIZE;
   end_x := x + (width_tiles - 1) * TILE_SIZE;
   end_y := y + (height_tiles - 1) * TILE_SIZE;
 
+  { Convert palette index to RGBA using VGA palette }
+  color_rgba := jxgraf.palette_to_rgba(fill_col);
+
   for fill_y := start_y to end_y - 1 do
   begin
     for fill_x := start_x to end_x - 1 do
     begin
       dst_idx := (fill_y * screen_width + fill_x) * 4;
-      PByte(screen_image^.data + dst_idx)^ := fill_col;
-      PByte(screen_image^.data + dst_idx + 1)^ := fill_col;
-      PByte(screen_image^.data + dst_idx + 2)^ := fill_col;
-      PByte(screen_image^.data + dst_idx + 3)^ := 255;
+      { Write RGBA in correct byte order }
+      PLongWord(screen_image^.data + dst_idx)^ := color_rgba;
     end;
   end;
 end;
