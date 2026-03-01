@@ -389,7 +389,15 @@ begin
 
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
-    RenderScreenToWindow();
+
+    { Render map tiles using GPU textures (if available) }
+    load235.RenderMapTiles();
+
+    { Only render screen_image if NOT using GPU tile rendering }
+    { TODO: Eventually need to render UI elements directly with Raylib }
+    if not load235.map_tiles_loaded then
+      RenderScreenToWindow();
+
     EndDrawing();
 
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
@@ -515,7 +523,15 @@ begin
 
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
-    RenderScreenToWindow();
+
+    { Render map tiles using GPU textures (if available) }
+    load235.RenderMapTiles();
+
+    { Only render screen_image if NOT using GPU tile rendering }
+    { TODO: Eventually need to render UI elements directly with Raylib }
+    if not load235.map_tiles_loaded then
+      RenderScreenToWindow();
+
     EndDrawing();
 
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);

@@ -2,7 +2,7 @@ unit load235;
 {$mode objfpc}{$H-}  { Use ShortString for compatibility with original }
 {$J+}  { Allow for-loop variable modifications }
 interface
-uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, jxfont_simple, animing, jxmenu, jxvar, modern_mem, koder;
+uses SysUtils, Dos, aktiv35, geo, blockx, jxgraf, jxfont_simple, animing, jxmenu, jxvar, modern_mem, koder, raylib_helpers;
 
 procedure set_old_pos;  {nastavi priserky na ich zaciatocnu suradnicu}
 procedure pridaj2(var s:string;var l:word; update:boolean);
@@ -22,6 +22,10 @@ procedure zisti_vec;
 procedure load_texture;
 procedure noline2;
 procedure print_texture;
+procedure RenderMapTiles;  { Render map tiles using Raylib GPU textures - called after ClearBackground }
+
+var
+  map_tiles_loaded: boolean;  { True when map tiles are loaded as GPU textures }
 
 function  vrat_nazov(f:byte):string;
 procedure uloz_nazov(var s:string;f:byte);
@@ -165,6 +169,10 @@ const num_anim_def_opt=1;
 			 ('SUB');
 
 implementation
+
+var
+  map_tile_textures: array[0..189] of TRaylibTexture2D;  { 190 map tiles (19x10) }
+  { map_tiles_loaded is declared in interface section }
 
 procedure transfer_to_new_stage(mix:byte;x,y:word;tr:boolean); {bool zabezpecuje typ priechodu}
 begin
@@ -1216,19 +1224,31 @@ skip:
 end;
 
 procedure load_texture;
-var f,ff:word;
+var
+  resolved_name: string;
 begin
-  writeln('load_texture: Starting with textura="', textura, '"');
-  writeln('load_texture: Calling draw_it to load spritesheet...');
-  draw_it(textura,0,0);
-  writeln('load_texture: draw_it complete, extracting tiles...');
- for ff:=0 to 9 do begin
-  writeln('load_texture: Processing row ', ff, ' of 9...');
-  for f:=0 to 18 do begin;
-	getseg(f*resx,ff*resy,resx,resy,f+ff*19,te^);
+  writeln('[MAP_TILES] Loading map tiles as GPU textures...');
+  writeln('[MAP_TILES] Starting with textura="', textura, '"');
+
+  { Resolve variable reference if textura starts with '>' }
+  resolved_name := textura;
+  if (length(textura) > 0) and (textura[1] = '>') then
+  begin
+    resolved_name := out_string(textura);
+    writeln('[MAP_TILES] Resolved textura "', textura, '" to "', resolved_name, '"');
   end;
- end;
-  writeln('load_texture: Complete!');
+
+  { Load tiles as GPU textures using Raylib (same method as GLIST and avatar) }
+  if not blockx.load_map_tiles_textures(zvukovy_subor, resolved_name, 16, 16, 190, map_tile_textures) then
+  begin
+    writeln('[MAP_TILES] ERROR: Failed to load map tiles');
+    map_tiles_loaded := False;
+    exit;
+  end;
+
+  writeln('[MAP_TILES] Successfully loaded 190 map tile textures');
+  map_tiles_loaded := True;
+  writeln('[MAP_TILES] Complete!');
 end;
 
 procedure noline2;
@@ -1240,46 +1260,35 @@ procedure print_texture;
 var pes:integer;
     s:string;
 begin
- { Defensive check - skip if texture array not initialized }
+ { CPU rendering only - GPU rendering happens in RenderMapTiles() called from game loop }
  if te = nil then begin
    writeln('WARNING: print_texture called with nil te array');
    Exit;
  end;
 
- try
-  case st.stav of
-   1,3,5:begin
-    for f:=0 to mie_x do begin
-     clear_key_buffer;
-     for ff:=0 to mie_y do begin
-       if (st.mie[f,ff]<invisible) then
-        putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
-       if bl<>nil then bl^[f,ff]:=true;
-     end;
+ case st.stav of
+  1,3,5:begin
+   for f:=0 to mie_x do begin
+    clear_key_buffer;
+    for ff:=0 to mie_y do begin
+      if (st.mie[f,ff]<invisible) then
+       putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
+      if bl<>nil then bl^[f,ff]:=true;
     end;
-    if (bl<>nil) and (st.stav=3) then st.stav:=2;
-    { writeln('print_texture: Mode ', st.stav, ' complete'); }
    end;
-   2,4:begin
-    { writeln('print_texture: Mode ', st.stav, ' - drawing map...'); }
-    if bl<>nil then begin
-      for f:=0 to mie_x do begin
-       for ff:=0 to mie_y do begin
-        if (bl^[f,ff]) and (st.mie[f,ff]<invisible) then
-          putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
-       end;
+   if (bl<>nil) and (st.stav=3) then st.stav:=2;
+  end;
+  2,4:begin
+   if bl<>nil then begin
+     for f:=0 to mie_x do begin
+      for ff:=0 to mie_y do begin
+       if (bl^[f,ff]) and (st.mie[f,ff]<invisible) then
+         putseg2(f*16,ff*16,resx,resy,st.mie[f,ff],0,te^);
       end;
-    end;
-    { writeln('print_texture: Mode ', st.stav, ' complete'); }
+     end;
    end;
   end;
-  except
-    on E: Exception do begin
-      writeln('ERROR in print_texture map loop: ', E.Message);
-      writeln('  Exception at f=',f,' ff=',ff);
-      raise;
-    end;
-  end;
+ end;
 
  { noline2;}
  if st.meno[1]='>' then begin
@@ -1291,6 +1300,44 @@ begin
  printc(screen,vypisy-9,s,15,0);
  printc(screen,vypisy-27,sprava,60,1);
  draw_lifes;
+end;
+
+{ Render map tiles using Raylib GPU textures
+  This must be called AFTER ClearBackground() in the rendering loop
+  Same approach as RenderMenuFrame() for GLIST tiles
+}
+procedure RenderMapTiles;
+var
+  tile_idx: integer;
+begin
+  if not map_tiles_loaded then
+    exit;
+
+  { Render tiles based on game state }
+  case st.stav of
+    1,3,5:begin
+      for f:=0 to mie_x do begin
+        for ff:=0 to mie_y do begin
+          tile_idx := st.mie[f,ff];
+          if (tile_idx < invisible) and (tile_idx >= 0) and (tile_idx < 190) then
+            DrawTexture(map_tile_textures[tile_idx], f*16, ff*16, $FFFFFFFF);
+          if bl<>nil then bl^[f,ff]:=true;
+        end;
+      end;
+      if (bl<>nil) and (st.stav=3) then st.stav:=2;
+    end;
+    2,4:begin
+      if bl<>nil then begin
+        for f:=0 to mie_x do begin
+          for ff:=0 to mie_y do begin
+            tile_idx := st.mie[f,ff];
+            if (bl^[f,ff]) and (tile_idx < invisible) and (tile_idx >= 0) and (tile_idx < 190) then
+              DrawTexture(map_tile_textures[tile_idx], f*16, ff*16, $FFFFFFFF);
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure set_freez(var vec:predmet);
@@ -1704,7 +1751,9 @@ begin
    { writeln('redraw: Calling stage_image...'); }
    stage_image(aktual);
    { writeln('redraw: Calling print_texture...'); }
-   print_texture;
+   { Skip print_texture when using GPU rendering - tiles rendered by RenderMapTiles() instead }
+   if not map_tiles_loaded then
+     print_texture;
    clear_key_buffer;
   if param then begin
    { writeln('redraw: Calling print_predmet...'); }
@@ -1738,7 +1787,9 @@ begin
 {    if st.obr<>'' then
      draw_gif(screen,st.obr,obrazok_x,obrazok_y,palx);}
    stage_image(aktual);
-   print_texture;
+   { Skip print_texture when using GPU rendering - tiles rendered by RenderMapTiles() instead }
+   if not map_tiles_loaded then
+     print_texture;
    clear_key_buffer;
    print_predmet;
    clear_key_buffer;
@@ -2020,7 +2071,7 @@ end;
 procedure stop_all_sounds;
 begin
 	for f:=0 to num_snd-1 do begin
-		if soundplaying(f) then stopsound(f);
+		if geo.soundplaying(f) then geo.stopsound(f);
 	end;
 end;
 

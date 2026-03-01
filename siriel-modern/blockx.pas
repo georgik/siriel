@@ -51,6 +51,7 @@ function draw_gif_block(bitmap: pimage; file_name, kluc: string; fromx, fromy: w
 function load_gif_spritesheet(file_name, kluc: string; frame_width, frame_height: word; out frames: array of pointer; out frame_count: word): boolean;
 function load_gif_spritesheet_textures(file_name, kluc: string; frame_width, frame_height: word; out textures: array of TRaylibTexture2D; out frame_count: word): boolean;
 function load_gif_tiles_textures(file_name, kluc: string; tile_width, tile_height: word; tile_count: word; out textures: array of TRaylibTexture2D): boolean;
+function load_map_tiles_textures(file_name, kluc: string; tile_width, tile_height: word; tile_count: word; out textures: array of TRaylibTexture2D): boolean;
 function draw_gif_block_raylib(bitmap: pimage; file_name, kluc: string; fromx, fromy: word): boolean;
 procedure Font_Load_block(fmeno, kluc: string; var fx, fy: word);
 procedure load_palette_block(sub, kluc: string; var palx: tpalette);
@@ -1346,6 +1347,181 @@ begin
 
   writeln('[RAYLIB_GIF] Loaded successfully');
   draw_gif_block_raylib := true;
+end;
+
+{ Load map tiles (TEXTURA) as textures using Raylib
+  Similar to load_gif_tiles_textures but for the larger TEXTURA spritesheet
+  TEXTURA is typically 320x48 pixels with 19 columns x 10 rows = 190 tiles of 16x16
+}
+function load_map_tiles_textures(file_name, kluc: string; tile_width, tile_height: word; tile_count: word; out textures: array of TRaylibTexture2D): boolean;
+var
+  NumSounds: Word;
+  ResKey: TKey;
+  ResHeader: TResource;
+  Index: integer;
+  i: integer;
+  Found: boolean;
+  fil: file;
+  data: pointer;
+  DataSize: longint;
+  BytesRead: longint;
+  raylib_img: TRaylibImage;
+  raw_data: PByte;
+  tile_idx: word;
+  src_rec: TRectangle;
+  tile_img: TRaylibImage;
+  pixel_ptr: PByte;
+  x, y: integer;
+  r, g, b, a: byte;
+begin
+  load_map_tiles_textures := false;
+
+  writeln('[MAP_TILES] Loading map tiles: ', kluc, ' from ', file_name);
+
+  { Prepare key }
+  for i := 1 to 8 do
+    if i <= Length(kluc) then
+      ResKey[i] := kluc[i]
+    else
+      ResKey[i] := #0;
+
+  { Open file and find block }
+  AssignFile(fil, file_name);
+  Reset(fil, 1);
+  BlockRead(fil, NumSounds, SizeOf(NumSounds));
+
+  Found := false;
+  Index := 0;
+
+  while not(Found) and (Index < NumSounds) do
+  begin
+    Index := Index + 1;
+    BlockRead(fil, ResHeader, SizeOf(ResHeader));
+
+    if MatchingKeys(ResHeader.Key, ResKey) then
+      Found := true;
+  end;
+
+  if not Found then
+  begin
+    CloseFile(fil);
+    writeln('[MAP_TILES] ERROR: Key not found: ', kluc);
+    Exit;
+  end;
+
+  { Allocate memory and read data }
+  DataSize := ResHeader.Size;
+  GetMem(data, DataSize);
+
+  Seek(fil, ResHeader.Start);
+  BlockRead(fil, data^, DataSize, BytesRead);
+  CloseFile(fil);
+
+  if BytesRead <> DataSize then
+  begin
+    FreeMem(data);
+    writeln('[MAP_TILES] ERROR: Failed to read complete block');
+    Exit;
+  end;
+
+  { Fix Jx1 signature if needed }
+  raw_data := PByte(data);
+  if (DataSize >= 6) and (raw_data[0] = Ord('J')) and (raw_data[1] = Ord('x')) and (raw_data[2] = Ord('1')) then
+  begin
+    raw_data[0] := Ord('G');
+    raw_data[1] := Ord('I');
+    raw_data[2] := Ord('F');
+    raw_data[3] := Ord('8');
+    raw_data[4] := Ord('9');
+    raw_data[5] := Ord('a');
+    writeln('[MAP_TILES] Fixed Jx1 signature to GIF89a');
+  end;
+
+  { Load image using Raylib }
+  raylib_img := LoadImageFromMemory('.gif', data, DataSize);
+  FreeMem(data);
+
+  if raylib_img.data = nil then
+  begin
+    writeln('[MAP_TILES] ERROR: Failed to load GIF');
+    Exit;
+  end;
+
+  { Convert to RGBA if needed }
+  if raylib_img.format <> PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 then
+    ImageFormat(@raylib_img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+  writeln('[MAP_TILES] Loaded: ', raylib_img.width, 'x', raylib_img.height);
+
+  { Check if we have enough tiles }
+  if raylib_img.width div tile_width < tile_count then
+  begin
+    writeln('[MAP_TILES] WARNING: Spritesheet may have fewer tiles than requested');
+  end;
+
+  if tile_count > Length(textures) then
+  begin
+    writeln('[MAP_TILES] ERROR: tile_count > array size');
+    UnloadImage(raylib_img);
+    Exit;
+  end;
+
+  { Extract each tile and create Raylib texture }
+  for tile_idx := 0 to tile_count - 1 do
+  begin
+    { Calculate source rectangle for this tile }
+    src_rec.x := tile_idx * tile_width;
+    src_rec.y := 0;
+    src_rec.width := tile_width;
+    src_rec.height := tile_height;
+
+    { Extract tile from spritesheet }
+    tile_img := ImageFromImage(raylib_img, src_rec);
+
+    if tile_img.data = nil then
+    begin
+      writeln('[MAP_TILES] ERROR: Failed to extract tile ', tile_idx);
+      UnloadImage(raylib_img);
+      Exit;
+    end;
+
+    { Apply transparency filter - convert pink/magenta to transparent }
+    pixel_ptr := PByte(tile_img.data);
+    for y := 0 to tile_height - 1 do
+    begin
+      for x := 0 to tile_width - 1 do
+      begin
+        r := pixel_ptr^;
+        Inc(pixel_ptr);
+        g := pixel_ptr^;
+        Inc(pixel_ptr);
+        b := pixel_ptr^;
+        Inc(pixel_ptr);
+        a := pixel_ptr^;
+        Inc(pixel_ptr);
+
+        { Check for pink/magenta background }
+        if (r >= 250) and (r <= 255) and (g >= 0) and (g <= 100) and (b >= 250) and (b <= 255) then
+        begin
+          Dec(pixel_ptr);
+          pixel_ptr^ := 0;  { Set alpha to 0 }
+          Inc(pixel_ptr);
+        end;
+      end;
+    end;
+
+    { Create texture }
+    textures[tile_idx] := LoadTextureFromImage(tile_img);
+    UnloadImage(tile_img);
+
+    if (tile_idx mod 20 = 0) then
+      writeln('[MAP_TILES] Created texture for tile ', tile_idx);
+  end;
+
+  writeln('[MAP_TILES] Created all ', tile_count, ' map tile textures');
+  UnloadImage(raylib_img);
+
+  load_map_tiles_textures := true;
 end;
 
 end.
