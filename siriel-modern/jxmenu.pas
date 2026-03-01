@@ -49,6 +49,7 @@ procedure vloz_jxmenu_pos(x, y: word; meno: string; var menx: jxmenu_typ; k: wor
 procedure draw_jxmenu(var menx: jxmenu_typ);
 procedure hi_jxmenu(f: byte; var menx: jxmenu_typ);
 procedure normal_jxmenu(f: byte; var menx: jxmenu_typ);
+procedure normal_jxmenu_all(var menx: jxmenu_typ);  { Draw all menu items }
 
 { Missing menu functions (from original JXMENU.PAS) }
 procedure size_jxmenu(sirka, vyska: word; var menx: jxmenu_typ);
@@ -60,6 +61,7 @@ procedure old_frame;
 procedure LoadGlistTiles;
 procedure DrawMenuFrame(x, y, width_tiles, height_tiles: word; fill_col: byte);
 procedure RenderMenuFrame(x, y, width_tiles, height_tiles: word);  { Call every frame in rendering loop }
+procedure RenderMenuFrameBorderOnly(x, y, width_tiles, height_tiles: word);  { Border only, no fill }
 
 { Avatar animation system - using Raylib GPU rendering }
 procedure LoadGzalTiles;
@@ -119,14 +121,83 @@ begin
   FillInterior(x, y, width_tiles, height_tiles, fill_col);
 end;
 
-{ Render GLIST tiles using Raylib textures - called every frame in rendering loop }
-procedure RenderMenuFrame(x, y, width_tiles, height_tiles: word);
+{ Render only the border tiles (no fill) - for drawing on top of text }
+procedure RenderMenuFrameBorderOnly(x, y, width_tiles, height_tiles: word);
 var
   tile_num: word;
   dst_x, dst_y: word;
 begin
   if not glist_loaded then
     exit;
+
+  { Top-left corner (tile 0) }
+  DrawTexture(glist_textures[0], x, y, $FFFFFFFF);
+
+  { Top edge (tile 1, repeated) }
+  for tile_num := 1 to width_tiles - 2 do
+  begin
+    dst_x := x + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[1], dst_x, y, $FFFFFFFF);
+  end;
+
+  { Top-right corner (tile 2) }
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[2], dst_x, y, $FFFFFFFF);
+
+  { Left edge (tile 3, repeated) }
+  for tile_num := 1 to height_tiles - 2 do
+  begin
+    dst_y := y + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[3], x, dst_y, $FFFFFFFF);
+  end;
+
+  { Right edge (tile 4, repeated) }
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
+  for tile_num := 1 to height_tiles - 2 do
+  begin
+    dst_y := y + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[4], dst_x, dst_y, $FFFFFFFF);
+  end;
+
+  { Bottom-left corner (tile 5) }
+  dst_y := y + (height_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[5], x, dst_y, $FFFFFFFF);
+
+  { Bottom edge (tile 6, repeated) }
+  for tile_num := 1 to width_tiles - 2 do
+  begin
+    dst_x := x + tile_num * TILE_SIZE;
+    DrawTexture(glist_textures[6], dst_x, dst_y, $FFFFFFFF);
+  end;
+
+  { Bottom-right corner (tile 7) }
+  dst_x := x + (width_tiles - 1) * TILE_SIZE;
+  DrawTexture(glist_textures[7], dst_x, dst_y, $FFFFFFFF);
+end;
+
+{ Render GLIST tiles using Raylib textures - called every frame in rendering loop }
+procedure RenderMenuFrame(x, y, width_tiles, height_tiles: word);
+var
+  tile_num: word;
+  dst_x, dst_y: word;
+  fill_x, fill_y, fill_width, fill_height: word;
+  fill_color: longword;
+begin
+  if not glist_loaded then
+    exit;
+
+  { Draw filled background rectangle using Raylib }
+  { Interior area: from (x+16, y+16) to (x + width*16 - 16, y + height*16 - 16) }
+  fill_x := x + TILE_SIZE;
+  fill_y := y + TILE_SIZE;
+  fill_width := (width_tiles - 2) * TILE_SIZE;
+  fill_height := (height_tiles - 2) * TILE_SIZE;
+
+  { Get fill color from VGA palette #d0946c at index 128 }
+  { Convert to RGBA: R=52*4=208, G=37*4=148, B=27*4=108, A=255 }
+  { Raylib format: RRGGBBAA }
+  fill_color := $D0946CFF;
+  raylib_helpers.DrawRectangle(fill_x, fill_y, fill_width, fill_height, fill_color);
 
   { Top-left corner (tile 0) }
   DrawTexture(glist_textures[0], x, y, $FFFFFFFF);
@@ -317,6 +388,44 @@ begin
   { Use col2 (white) for normal text }
   print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
               menx.dat[f].meno, menx.col2, 0);
+end;
+
+{ Draw all menu items to screen_image }
+procedure normal_jxmenu_all(var menx: jxmenu_typ);
+var
+  f: word;
+  menu_left, menu_top, menu_right, menu_bottom: longint;
+  pixel_ptr: PByte;
+  x, y: longint;
+  dst_idx: longint;
+begin
+  { Clear menu area to transparent (alpha=0) so decoration shows through }
+  if menx.pocet > 0 then
+  begin
+    menu_left := menx.x;
+    menu_top := menx.y;
+    menu_right := menx.x + menx.x1;
+    menu_bottom := menx.y + menx.y1;
+
+    pixel_ptr := PByte(screen_image^.data);
+    for y := menu_top to menu_bottom - 1 do
+    begin
+      for x := menu_left to menu_right - 1 do
+      begin
+        dst_idx := (y * screen_image^.width + x) * 4;
+        { Set alpha to 0 (transparent) }
+        pixel_ptr[dst_idx + 3] := 0;
+      end;
+    end;
+  end;
+
+  { Draw all menu items }
+  for f := 1 to menx.pocet do
+  begin
+    { Use col2 (white) for all items }
+    print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
+                menx.dat[f].meno, menx.col2, 0);
+  end;
 end;
 
 procedure vloz_medzery(var s: string; len: byte);
@@ -550,16 +659,19 @@ begin
       BeginDrawing();
       ClearBackground(0, 0, 0, 255);
 
-      { Render screen_image (menu text, etc) }
-      RenderScreenToWindow();
-
-      { Render GLIST decoration frame on top using GPU textures }
+      { 1. Draw decoration: fill color first, then all tiles (corners and edges) }
       if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
       begin
         RenderMenuFrame(menx.x, menx.y,
                        (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
                        (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
       end;
+
+      { 2. Write menu text to screen_image (on CPU side) }
+      normal_jxmenu_all(menx);
+
+      { 3. Render screen_image (which now has text on top) to window/GPU }
+      RenderScreenToWindow();
 
       EndDrawing();
 

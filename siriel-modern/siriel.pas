@@ -736,9 +736,13 @@ begin
   clear_bitmap(screen_image);
 
   { Initialize graphical menu at position (200, 40) per original DOS code }
-  { Use dark blue (1) for menu fill instead of black (0) }
+  { Set custom brown/tan color for menu fill: #d0946c }
+  { Convert to 6-bit VGA: R=52, G=37, B=27 }
+  jxgraf.current_palette[128].r := 52;
+  jxgraf.current_palette[128].v := 37;
+  jxgraf.current_palette[128].b := 27;
   new(menu);
-  init_jxmenu(200, 40, 0, 15, 1, 'Level', menu^);
+  init_jxmenu(200, 40, 0, 15, 128, 'Level', menu^);
 
   { Add levels from levely^ structure if available }
   if (aktiv35.levely <> nil) and (aktiv35.levely^.pocet > 0) then
