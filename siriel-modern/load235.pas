@@ -777,7 +777,18 @@ begin
 		    inc(cxa);
 		   until (cxa>maxbuf) or (arr^[cxa]=13) or (arr^[cxa]=10)
 			   or (arr^[cxa]=0);
-			   if (arr^[cxa]=10) then inc(cxa);
+		   { Skip line ending characters (handle both CRLF and LF) }
+		   if (cxa<=maxbuf) and (arr^[cxa]=13) then inc(cxa);  { Skip CR }
+		   if (cxa<=maxbuf) and (arr^[cxa]=10) then inc(cxa);  { Skip LF }
+
+		   { Fix for map data: lines are 40 bytes but we only need 39 }
+		   { The 40th character is margin and causes cumulative shift if included }
+		   if (Length(s) = 40) and (cxa <= maxbuf) then begin
+		     { Check if first character is non-printable (map data) }
+		     if (ord(s[1]) < 32) or (ord(s[1]) > 127) then begin
+		       s := copy(s, 1, 39);  { Truncate to 39 characters }
+		     end;
+		   end;
 	    end;
 
 		get_name_normal(s,sx);
@@ -864,17 +875,17 @@ begin
 				 4:begin
 					  for linex:=0 to mie_y do begin
 					    zx_write := 0;
-					   for znak:=0 to mie_x do begin
-					     if bl then begin
-						  ch:=char(arr^[cxa]);
-						  inc(cxa);
-					     end else
-						read(t,ch);
-					     if (ord(ch)<>10) and (ord(ch)<>13) then begin
-					       st.mie[zx_write,linex]:=ord(ch)-posuv;
-					       if zx_write < mie_x then inc(zx_write);
-					     end;
-					   end;
+					    while zx_write <= mie_x do begin
+					      if bl then begin
+					        ch:=char(arr^[cxa]);
+					        inc(cxa);
+					      end else
+					        read(t,ch);
+					      if (ord(ch)<>10) and (ord(ch)<>13) then begin
+					        st.mie[zx_write,linex]:=ord(ch)-posuv;
+					        inc(zx_write);
+					      end;
+					    end;
 					  end;
 					  save_map(1);
 				 end;
@@ -950,7 +961,7 @@ begin
 				    val(sx,m,m);
 					  for linex:=0 to mie_y do begin
 					    zx_write := 0;
-					   for znak:=0 to mie_x do begin
+					   while zx_write <= mie_x do begin
 					     if bl then begin
 						  ch:=char(arr^[cxa]);
 						  inc(cxa);
@@ -958,7 +969,7 @@ begin
 						read(t,ch);
 					     if (ord(ch)<>10) and (ord(ch)<>13) then begin
 					       st.mie[zx_write,linex]:=ord(ch)-posuv;
-					       if zx_write < mie_x then inc(zx_write);
+					       inc(zx_write);
 					     end;
 					   end;
 					 end;
