@@ -1382,12 +1382,14 @@ var
   BytesRead: longint;
   raylib_img: TRaylibImage;
   raw_data: PByte;
+  cols, rows: word;
   tile_idx: word;
   src_rec: TRectangle;
   tile_img: TRaylibImage;
   pixel_ptr: PByte;
   x, y: integer;
   r, g, b, a: byte;
+  col, row: word;
 begin
   load_map_tiles_textures := false;
 
@@ -1471,8 +1473,14 @@ begin
 
   writeln('[MAP_TILES] Loaded: ', raylib_img.width, 'x', raylib_img.height);
 
+  { Calculate grid dimensions }
+  cols := 19;  { Fixed: 19 columns of actual tiles }
+  rows := raylib_img.height div tile_height;
+
+  writeln('[MAP_TILES] Grid: ', cols, 'x', rows, ' = ', cols * rows, ' tiles available');
+
   { Check if we have enough tiles }
-  if raylib_img.width div tile_width < tile_count then
+  if cols * rows < tile_count then
   begin
     writeln('[MAP_TILES] WARNING: Spritesheet may have fewer tiles than requested');
   end;
@@ -1488,8 +1496,10 @@ begin
   for tile_idx := 0 to tile_count - 1 do
   begin
     { Calculate source rectangle for this tile }
-    src_rec.x := tile_idx * tile_width;
-    src_rec.y := 0;
+    col := tile_idx mod cols;
+    row := tile_idx div cols;
+    src_rec.x := col * tile_width;
+    src_rec.y := row * tile_height;
     src_rec.width := tile_width;
     src_rec.height := tile_height;
 
