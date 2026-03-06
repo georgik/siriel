@@ -324,6 +324,7 @@ end;
 procedure RenderAvatarAt(x, y: word; frame: word);
 var
   tex: TRaylibTexture2D;
+  frame_idx: word;
 begin
   { Load textures on first use (after InitWindow) }
   if not avatar_loaded then
@@ -331,10 +332,15 @@ begin
 
   if not avatar_loaded then
   begin
+    writeln('[RenderAvatarAt] ERROR: Avatar textures not loaded!');
     Exit;
   end;
 
-  tex := avatar_textures[frame mod 36];
+  frame_idx := frame mod 36;
+  tex := avatar_textures[frame_idx];
+
+  { Debug: Log texture rendering every frame }
+  writeln('[RenderAvatarAt] Drawing texture at (', x, ', ', y, ') frame=', frame_idx, ' tex.id=', tex.id, ' tex.width=', tex.width, ' tex.height=', tex.height);
 
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
   DrawTexture(tex, x, y, $FFFFFFFF);

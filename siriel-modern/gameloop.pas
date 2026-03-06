@@ -394,9 +394,12 @@ begin
     load235.RenderMapTiles();
 
     { Render player avatar using GPU textures }
-    { si.x and si.y are the player's coordinates (8-bit tiles, but we use pixel coordinates) }
-    { Convert to pixel coordinates: multiply by 8, then apply 8-bit offset }
-    jxmenu.RenderAvatarAt(si.x * 8 + 8, si.y * 8 + 8, poloha);
+    { si.x and si.y are already in pixel coordinates (not tile coordinates) }
+    { Just apply small offset like in menu (px=4, py=2 in original, converted to pixels) }
+    { Debug: Log avatar rendering every 60 frames }
+    if (frame_count mod 60) = 0 then
+      writeln('arcade: Rendering avatar at (', si.x + 4, ', ', si.y + 2, ') frame=', poloha);
+    jxmenu.RenderAvatarAt(si.x + 4, si.y + 2, poloha);
 
     { Only render screen_image if NOT using GPU tile rendering }
     { TODO: Eventually need to render UI elements directly with Raylib }
@@ -533,9 +536,11 @@ begin
     load235.RenderMapTiles();
 
     { Render player avatar using GPU textures }
-    { si.x and si.y are the player's coordinates (8-bit tiles, but we use pixel coordinates) }
-    { Convert to pixel coordinates: multiply by 8, then apply 8-bit offset }
-    jxmenu.RenderAvatarAt(si.x * 8 + 8, si.y * 8 + 8, poloha);
+    { si.x and si.y are already in pixel coordinates (not tile coordinates) }
+    { Just apply small offset like in menu (px=4, py=2 in original, converted to pixels) }
+    { Debug: Log avatar rendering }
+    writeln('maze: Rendering avatar at (', si.x + 4, ', ', si.y + 2, ') frame=', poloha);
+    jxmenu.RenderAvatarAt(si.x + 4, si.y + 2, poloha);
 
     { Only render screen_image if NOT using GPU tile rendering }
     { TODO: Eventually need to render UI elements directly with Raylib }
