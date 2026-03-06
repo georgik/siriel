@@ -393,6 +393,11 @@ begin
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
 
+    { Render player avatar using GPU textures }
+    { si.x and si.y are the player's coordinates (8-bit tiles, but we use pixel coordinates) }
+    { Convert to pixel coordinates: multiply by 8, then apply 8-bit offset }
+    jxmenu.RenderAvatarAt(si.x * 8 + 8, si.y * 8 + 8, poloha);
+
     { Only render screen_image if NOT using GPU tile rendering }
     { TODO: Eventually need to render UI elements directly with Raylib }
     if not load235.map_tiles_loaded then
@@ -526,6 +531,11 @@ begin
 
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
+
+    { Render player avatar using GPU textures }
+    { si.x and si.y are the player's coordinates (8-bit tiles, but we use pixel coordinates) }
+    { Convert to pixel coordinates: multiply by 8, then apply 8-bit offset }
+    jxmenu.RenderAvatarAt(si.x * 8 + 8, si.y * 8 + 8, poloha);
 
     { Only render screen_image if NOT using GPU tile rendering }
     { TODO: Eventually need to render UI elements directly with Raylib }

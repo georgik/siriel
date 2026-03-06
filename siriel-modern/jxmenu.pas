@@ -67,6 +67,7 @@ procedure RenderMenuFrameBorderOnly(x, y, width_tiles, height_tiles: word);  { B
 procedure LoadGzalTiles;
 procedure UpdateAvatar;
 procedure RenderAvatar;  { Render avatar at current position using Raylib texture }
+procedure RenderAvatarAt(x, y: word; frame: word);  { Render avatar at specific position with specific frame }
 
 { Global GLIST tiles - using Raylib textures for GPU rendering }
 var
@@ -318,6 +319,27 @@ begin
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
   DrawTexture(tex, avatar_x, avatar_y, $FFFFFFFF);
 end;
+
+{ Render avatar at specific position with specific frame using Raylib texture }
+procedure RenderAvatarAt(x, y: word; frame: word);
+var
+  tex: TRaylibTexture2D;
+begin
+  { Load textures on first use (after InitWindow) }
+  if not avatar_loaded then
+    LoadGzalTiles;
+
+  if not avatar_loaded then
+  begin
+    Exit;
+  end;
+
+  tex := avatar_textures[frame mod 36];
+
+  { Draw directly to GPU back buffer - WHITE tint = no color modification }
+  DrawTexture(tex, x, y, $FFFFFFFF);
+end;
+
 
 procedure graphicswindow(x, y, x1, y1, col1, col2: word; napis: string);
 var

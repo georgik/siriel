@@ -1251,6 +1251,19 @@ begin
     writeln('=== CLI: --level-file mode ===');
     writeln('Skipping intro menu, loading level file: ', cli_level_file);
     writeln('');
+
+    { Check if level file exists }
+    if not FileExists(cli_level_file) then
+    begin
+      writeln('ERROR: Level file not found: ', cli_level_file);
+      writeln('');
+      writeln('Please check the file path and try again.');
+      writeln('');
+      CloseWindow;
+      CleanupGame;
+      Halt(1);
+    end;
+
     StartNewGame;  { This calls RunGameLoop internally }
     CloseWindow;
     CleanupGame;
