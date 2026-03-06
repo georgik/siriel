@@ -911,24 +911,36 @@ begin
     if currentLevel = 0 then
       Exit;  { User went back to main menu }
 
-    { Find the Nth .MIE file }
-    levelIndex := 0;
-    if SysUtils.FindFirst('*.MIE', faAnyFile, sr) = 0 then
+    { Check if we should load from DAT file or .MIE file }
+    { If levely is loaded and vybrane is valid, use DAT file }
+    if (levely <> nil) and (aktiv35.vybrane > 0) and (aktiv35.vybrane <= levely^.pocet) then
     begin
-      repeat
-        if (sr.Name <> '.') and (sr.Name <> '..') and
-           (UpperCase(ExtractFileExt(sr.Name)) = '.MIE') then
-        begin
-          inc(levelIndex);
-          if levelIndex = currentLevel then
+      { Load from DAT file using the level name }
+      levelFile := levely^.lev[aktiv35.vybrane].subor;
+      writeln('Loading level ', aktiv35.vybrane, ' from DAT file: ', levelFile);
+    end
+    else
+    begin
+      { Fall back to searching for .MIE files }
+      { Find the Nth .MIE file }
+      levelIndex := 0;
+      if SysUtils.FindFirst('*.MIE', faAnyFile, sr) = 0 then
+      begin
+        repeat
+          if (sr.Name <> '.') and (sr.Name <> '..') and
+             (UpperCase(ExtractFileExt(sr.Name)) = '.MIE') then
           begin
-            levelFile := sr.Name;
-            Break;
+            inc(levelIndex);
+            if levelIndex = currentLevel then
+            begin
+              levelFile := sr.Name;
+              Break;
+            end;
           end;
-        end;
-      until SysUtils.FindNext(sr) <> 0;
+        until SysUtils.FindNext(sr) <> 0;
+      end;
+      SysUtils.FindClose(sr);
     end;
-    SysUtils.FindClose(sr);
   end;
 
   if currentLevel > 0 then

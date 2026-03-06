@@ -12,7 +12,8 @@ interface
 uses
   aktiv35,
   geo,
-  animing;
+  animing,
+  jxvar;  { For poloha variable }
 
 { Main sprite rendering procedure
   Renders all visible sprites with proper transparency and layering

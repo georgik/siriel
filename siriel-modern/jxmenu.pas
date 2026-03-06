@@ -17,7 +17,8 @@ uses
   geo,
   sprite_anim,
   animing,
-  raylib_helpers;
+  raylib_helpers,
+  jxvar;  { For poloha variable }
 
 const
   max_menu = 64;
@@ -80,7 +81,7 @@ implementation
 var
   avatar_sheet: TSpritesheet;
   avatar_loaded: boolean;
-  poloha: byte;  { Animation frame counter (0-35), mirrors original }
+  { poloha is now defined in jxvar.pas to avoid duplication }
   avatar_textures: array[0..63] of TRaylibTexture2D;  { Raylib textures for each frame }
   avatar_frame_count: word;
   avatar_x, avatar_y: word;  { Current avatar position for rendering }
@@ -332,15 +333,11 @@ begin
 
   if not avatar_loaded then
   begin
-    writeln('[RenderAvatarAt] ERROR: Avatar textures not loaded!');
     Exit;
   end;
 
   frame_idx := frame mod 36;
   tex := avatar_textures[frame_idx];
-
-  { Debug: Log texture rendering every frame }
-  writeln('[RenderAvatarAt] Drawing texture at (', x, ', ', y, ') frame=', frame_idx, ' tex.id=', tex.id, ' tex.width=', tex.width, ' tex.height=', tex.height);
 
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
   DrawTexture(tex, x, y, $FFFFFFFF);
@@ -573,7 +570,7 @@ begin
 
   glist_loaded := False;
   avatar_loaded := False;
-  poloha := 0;  { Initialize animation frame counter }
+  { poloha is initialized in jxvar.pas }
 
   { Note: Texture loading deferred until after InitWindow() }
   { LoadGzalTiles will be called on first RenderAvatar }

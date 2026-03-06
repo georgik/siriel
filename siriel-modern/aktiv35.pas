@@ -190,13 +190,15 @@ var
   f, ff: integer;
   si: postava;
   k: word;
-  poloha, krok, oldpol: integer;
+  { poloha is now defined in jxvar.pas to avoid duplication }
+  krok, oldpol: integer;
   ar: ^long_panak;
   te: ^long_vec;
   cl: string[15];
   rollup, klast, rolling: integer;
   rx, ry, rp, pom, mov, stara_miestnost, vstupx, vstupy: integer;
   rolldown, truth, clr, death, talking, sounds_loaded: boolean;
+  animation_frame_counter: word;  { Counter to slow down animation updates for 60 FPS }
   aktivita_snd, animabl: Boolean;
   miestnost: integer;
   ch: char;

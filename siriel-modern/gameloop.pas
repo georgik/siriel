@@ -60,6 +60,7 @@ begin
   same := 0;
   frame_count := 0;
   last_log_time := SysUtils.GetTickCount64;
+  aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
 
   { Track test mode duration }
   start_time := SysUtils.GetTickCount64;
@@ -213,9 +214,12 @@ begin
       end;
     end;
 
+    k := 0;  { Reset k after initial key processing - CRITICAL for movement to stop when key released }
+
+    { Update keyboard state FIRST, then check it }
+    get_keyboard;
     old5 := zmack(75);
     old7 := zmack(77);
-    get_keyboard;
 
     if zmack(75) then
     begin
@@ -347,25 +351,38 @@ begin
         rollup := rolling;
       end;
 
-      if rollup = 0 then
-      begin
-        if k = 0 then
-          inc(pom)
-        else
-          pom := 0;
-        if pom > 3 then
-        begin
-          pom := 0;
-          pl(1);
-        end;
-      end;
-
       if rollup = 1 then
       begin
         pom := 4;
         key_swap(72, false);
       end;
     end;  { End of jump handling block started at line 180 }
+
+    { Idle animation logic - OUTSIDE jump handling, like original DOS code }
+    if rollup = 0 then
+    begin
+      if k = 0 then
+      begin
+        { Slow down animation updates: original DOS was ~4 FPS, we're 60 FPS }
+        { Only increment pom every 15 frames (60/15 = 4 FPS to match original) }
+        inc(aktiv35.animation_frame_counter);
+        if aktiv35.animation_frame_counter >= 15 then
+        begin
+          aktiv35.animation_frame_counter := 0;
+          inc(pom);
+        end;
+      end
+      else
+      begin
+        pom := 0;
+        aktiv35.animation_frame_counter := 0;
+      end;
+      if pom > 3 then
+      begin
+        pom := 0;
+        pl(1);
+      end;
+    end;
 
     { Update game state }
       panak_move;
@@ -421,6 +438,7 @@ var
 begin
   new(bl);
   ds := 0;
+  aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
 
   { Initialize pathfinding array }
   for f := 0 to mie_x do
