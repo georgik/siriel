@@ -116,14 +116,13 @@ begin
     { Handle joystick input }
     sipka_joystick2;
 
+    { ALWAYS update keyboard state - CRITICAL for key detection }
+    get_keyboard;
+
     if keypressed then
     begin
-      k := key;
-      get_keyboard;
+      k := kkey;  { This clears key_buffer after reading - CRITICAL for proper key detection }
       k2 := 0;
-
-      { Log key press for debugging }
-      write('arcade: Frame ', frame_count, ' - Key pressed: $', HexStr(k, 4));
 
       case k of
         $3920:
@@ -173,7 +172,17 @@ begin
 
         $4800, $4b00, $4d00, $5000, $4700, $4900, $5100, $4f00:
           begin
-            writeln(' (Arrow key)');
+            { Show which arrow key was pressed }
+            case k of
+              $4800: writeln(' (Arrow Up)');
+              $4b00: writeln(' (Arrow Left)');
+              $4d00: writeln(' (Arrow Right)');
+              $5000: writeln(' (Arrow Down)');
+              $4700: writeln(' (Home)');
+              $4900: writeln(' (Page Up)');
+              $5100: writeln(' (Page Down)');
+              $4f00: writeln(' (End)');
+            end;
             k2 := k;
           end;
 
@@ -181,10 +190,9 @@ begin
           writeln(' (Unknown)');
       end;
 
-      k := 0;
-
       if joystick_able then
       begin
+        { Use k2 (joystick) if set, otherwise keep k (keyboard) }
         if k2 > 0 then
           k := k2;
         case k of
@@ -214,32 +222,19 @@ begin
       end;
     end;
 
-    k := 0;  { Reset k after initial key processing - CRITICAL for movement to stop when key released }
+    { Use Raylib's native IsKeyDown() for continuous movement detection }
+    { This is simpler and more reliable than the zmack() system }
 
-    { Update keyboard state FIRST, then check it }
-    get_keyboard;
-    old5 := zmack(75);
-    old7 := zmack(77);
-
-    if zmack(75) then
-    begin
+    { Left/Right movement - use continuous state }
+    if IsKeyDown(KEY_LEFT) <> 0 then
       k := $4b00;
-      if old7 then
-        key_swap(77, false);
-    end;
 
-    if zmack(77) then
-    begin
+    if IsKeyDown(KEY_RIGHT) <> 0 then
       k := $4d00;
-      if old5 then
-        key_swap(75, false);
-    end;
 
-    if zmack(80) or zmack(28) or zmack(57) then
-    begin
+    { Down arrow - also use continuous state }
+    if IsKeyDown(KEY_DOWN) <> 0 then
       k := $5000;
-      reset_keyboard;
-    end;
 
     if zmack(60) then
       k := $3c00;

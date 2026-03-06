@@ -214,22 +214,9 @@ begin
   target_time := GetClock + MillisecondsToClock(milliseconds);
   while GetClock < target_time do
   begin
-    { Update keyboard state }
-    if IsKeyDown(KEY_UP) <> 0 then
-      key_buffer := kb_up
-    else if IsKeyDown(KEY_DOWN) <> 0 then
-      key_buffer := kb_down
-    else if IsKeyDown(KEY_LEFT) <> 0 then
-      key_buffer := kb_left
-    else if IsKeyDown(KEY_RIGHT) <> 0 then
-      key_buffer := kb_right
-    else if IsKeyDown(KEY_ESCAPE) <> 0 then
-      key_buffer := kb_esc
-    else if IsKeyDown(KEY_ENTER) <> 0 then
-      key_buffer := kb_enter
-    else if IsKeyDown(KEY_SPACE) <> 0 then
-      key_buffer := kb_space;
-      
+    { Update keyboard state using same state-change logic }
+    get_keyboard;
+
     { Small sleep to avoid CPU spin }
     Sleep(1);
   end;
@@ -319,15 +306,20 @@ begin
     ascii_char := 0;
   end;
 
-  { Update state array }
+  { Set key_buffer to DOS keycode format ONLY when key state changes }
+  { This prevents key repeat from spamming the buffer }
+  if klu > 0 then
+  begin
+    { Check if this key was previously up (before we update klx[]) }
+    if not klx[klu] then
+      key_buffer := (klu shl 8) or ascii_char;
+  end;
+
+  { Update state array AFTER checking for state change }
   if klu >= 128 then
     klx[klu - 128] := False
   else if klu > 0 then
     klx[klu] := True;
-
-  { Set key_buffer to DOS keycode format (scan_code in high byte, ASCII in low byte) }
-  if klu > 0 then
-    key_buffer := (klu shl 8) or ascii_char;
 
   { Special case: arrow keys clear all states }
   if (klu = 203) or (klu = 205) then

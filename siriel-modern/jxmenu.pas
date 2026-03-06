@@ -384,6 +384,7 @@ begin
   if menx.vybrane <> f then
   begin
     prev_choice := menx.vybrane;
+
     if prev_choice > 0 then
     begin
       { Clear previous selection's text }
@@ -394,6 +395,9 @@ begin
     { Draw new selection's text }
     print_normal(screen_image, menx.dat[f].x, menx.dat[f].y - menx.posuv * chardy,
                 menx.dat[f].meno, menx.col1, 0);
+
+    { Update current selection }
+    menx.vybrane := f;
   end;
 
   { Calculate and store avatar position for rendering }
@@ -598,10 +602,12 @@ end;
 
 procedure vyber_jxmenu(var menx: jxmenu_typ; var vyber: word; timeout_ms: uint64);
 var
-  f, k: word;
+  f: word;
   menu_done: boolean;
   menu_start_time: uint64;
   current_time: uint64;
+  last_key_time: uint64;
+  key_repeat_delay: uint64;
 begin
   if menx.pocet > 0 then
   begin
@@ -615,15 +621,15 @@ begin
     { Initialize start time for timeout checking }
     menu_start_time := SysUtils.GetTickCount64;
 
+    { Debouncing for menu navigation }
+    last_key_time := menu_start_time - key_repeat_delay - 1;  { Force first movement immediately }
+    key_repeat_delay := 120;  { ms between menu movements when key held }
+
     repeat
-      { Update avatar animation frame - mirrors original DOS panak procedure }
-      UpdateAvatar;
-
-      { Highlight current selection (draws avatar) }
-      hi_jxmenu(f, menx);
-
-      { Update keyboard }
+      { Update keyboard state for window events }
       get_keyboard;
+
+      current_time := SysUtils.GetTickCount64;
 
       { Check for window close }
       if WindowShouldClose() <> 0 then
@@ -635,7 +641,6 @@ begin
       { Check for timeout }
       if timeout_ms > 0 then
       begin
-        current_time := SysUtils.GetTickCount64;
         if (current_time - menu_start_time) >= timeout_ms then
         begin
           writeln('[JXMENU] Level selector timeout reached, auto-selecting first level');
@@ -644,34 +649,44 @@ begin
         end;
       end;
 
-      { Handle keyboard input }
-      if keypressed then
-      begin
-        k := kkey2;
+      { Handle keyboard input using Raylib's IsKeyDown() directly }
+      { Simple time-based debouncing for smooth menu navigation }
 
-        case k of
-          kb_up:
-            begin
-              normal_jxmenu(f, menx);
-              if f > 1 then
-                dec(f);
-            end;
-          kb_down:
-            begin
-              normal_jxmenu(f, menx);
-              if f < menx.pocet then
-                inc(f);
-            end;
-          kb_enter, kb_space:
-            menu_done := True;
-          kb_esc:
-            begin
-              normal_jxmenu(f, menx);
-              f := menx.pocet;  { Select last item (Back) }
-              menu_done := True;
-            end;
+      if IsKeyDown(KEY_UP) <> 0 then
+      begin
+        if (current_time - last_key_time) >= key_repeat_delay then
+        begin
+          if f > 1 then
+            dec(f);
+          last_key_time := current_time;
         end;
       end;
+
+      if IsKeyDown(KEY_DOWN) <> 0 then
+      begin
+        if (current_time - last_key_time) >= key_repeat_delay then
+        begin
+          if f < menx.pocet then
+            inc(f);
+          last_key_time := current_time;
+        end;
+      end;
+
+      { Enter/Space - select immediately }
+      if (IsKeyDown(KEY_ENTER) <> 0) or (IsKeyDown(KEY_SPACE) <> 0) then
+      begin
+        menu_done := True;
+      end;
+
+      { ESC - go back }
+      if IsKeyDown(KEY_ESCAPE) <> 0 then
+      begin
+        f := menx.pocet;  { Select last item (Back) }
+        menu_done := True;
+      end;
+
+      { Update avatar animation frame }
+      UpdateAvatar;
 
       { Render to window every frame }
       BeginDrawing();
@@ -687,6 +702,10 @@ begin
 
       { 2. Write menu text to screen_image (on CPU side) }
       normal_jxmenu_all(menx);
+
+      { 2.5. Highlight current selection (draws avatar and redraws selected item in correct color) }
+      { MUST be after normal_jxmenu_all so it overwrites the white text with black }
+      hi_jxmenu(f, menx);
 
       { 3. Render screen_image (which now has text on top) to window/GPU }
       RenderScreenToWindow();

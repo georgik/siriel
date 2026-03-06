@@ -497,12 +497,14 @@ var
   f: integer;
   menu: ^jxmenu_typ;
   choice: word;
-  key: word;
   menu_done: boolean;
   background_loaded: boolean;
   font_pal: jxfont_simple.tpalette;
   num_disks: integer;
-  menu_start_time, current_time: uint64;
+  menu_start_time: uint64;
+  current_time: uint64;
+  last_key_time: uint64;
+  key_repeat_delay: uint64;
   time_limit_ms: uint64;
 begin
   Result := 0;
@@ -596,6 +598,11 @@ begin
   RenderScreenToWindow();
   EndDrawing();
 
+  { Initialize debouncing for menu navigation }
+  menu_start_time := SysUtils.GetTickCount64;
+  last_key_time := menu_start_time - 200 - 1;  { Force first movement immediately }
+  key_repeat_delay := 200;  { ms between menu movements (slower than level selector) }
+
   repeat
     { Update avatar animation frame - mirrors original DOS implementation }
     jxmenu.UpdateAvatar;
@@ -603,8 +610,11 @@ begin
     { Redraw highlighted item with updated avatar frame }
     jxmenu.hi_jxmenu(choice, menu^);
 
-    { Update keyboard buffer }
+    { Update keyboard state }
     geo.get_keyboard;
+
+    { Get current time for debouncing }
+    current_time := SysUtils.GetTickCount64;
 
     { Check for timeout in test mode }
     if test_mode and (time_limit_ms > 0) then
@@ -644,43 +654,52 @@ begin
       menu_done := True;
     end;
 
-    { Check for input }
-    if geo.keypressed then
+    { Handle keyboard input using Raylib's IsKeyDown() directly }
+    { Up arrow - with debouncing }
+    if geo.IsKeyDown(geo.KEY_UP) <> 0 then
     begin
-      key := geo.kkey2;
-      case key of
-        geo.kb_up:
-          begin
-            if choice > 1 then
-            begin
-              { Unhighlight current item }
-              jxmenu.normal_jxmenu(choice, menu^);
-              dec(choice);
-              { Highlight new item }
-              jxmenu.hi_jxmenu(choice, menu^);
-            end;
-          end;
-        geo.kb_down:
-          begin
-            if choice < num_disks then
-            begin
-              { Unhighlight current item }
-              jxmenu.normal_jxmenu(choice, menu^);
-              inc(choice);
-              { Highlight new item }
-              jxmenu.hi_jxmenu(choice, menu^);
-            end;
-          end;
-        geo.kb_enter, geo.kb_space:
-          menu_done := True;
-        geo.kb_esc:
-          begin
-            { Unhighlight current selection before exiting }
-            jxmenu.normal_jxmenu(choice, menu^);
-            choice := num_disks;  { Quit }
-            menu_done := True;
-          end;
+      if (current_time - last_key_time) >= key_repeat_delay then
+      begin
+        if choice > 1 then
+        begin
+          { Unhighlight current item }
+          jxmenu.normal_jxmenu(choice, menu^);
+          dec(choice);
+          { Highlight new item }
+          jxmenu.hi_jxmenu(choice, menu^);
+          last_key_time := current_time;
+        end;
       end;
+    end;
+
+    { Down arrow - with debouncing }
+    if geo.IsKeyDown(geo.KEY_DOWN) <> 0 then
+    begin
+      if (current_time - last_key_time) >= key_repeat_delay then
+      begin
+        if choice < num_disks then
+        begin
+          { Unhighlight current item }
+          jxmenu.normal_jxmenu(choice, menu^);
+          inc(choice);
+          { Highlight new item }
+          jxmenu.hi_jxmenu(choice, menu^);
+          last_key_time := current_time;
+        end;
+      end;
+    end;
+
+    { Enter/Space - select immediately }
+    if (geo.IsKeyDown(geo.KEY_ENTER) <> 0) or (geo.IsKeyDown(geo.KEY_SPACE) <> 0) then
+      menu_done := True;
+
+    { ESC - quit }
+    if geo.IsKeyDown(geo.KEY_ESCAPE) <> 0 then
+    begin
+      { Unhighlight current selection before exiting }
+      jxmenu.normal_jxmenu(choice, menu^);
+      choice := num_disks;  { Quit }
+      menu_done := True;
     end;
 
     { Render to window every frame }
@@ -990,6 +1009,12 @@ begin
     writeln('Loading TEXTURA spritesheet from DAT file...');
     load_texture;
     writeln('  TEXTURA loaded successfully');
+
+    { EXACT PORT from SI35.PAS line 751: Set movement boundaries }
+    { Original values: (8,9,612,398,4) for 320x200 game area }
+    { For modern 640x480 screen, we scale proportionally }
+    sipka_limit(8, 9, 612, 398, 4, false, 5, false, false, true, true);
+    writeln('Movement boundaries set: (8, 9) to (612, 398)');
 
     { DEBUG: Verify map data was loaded }
     writeln('');

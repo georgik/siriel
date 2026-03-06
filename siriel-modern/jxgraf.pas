@@ -186,6 +186,9 @@ procedure napis_done;
 
 implementation
 
+uses
+  jxfont_simple;  { For real font rendering }
+
 var
   screen_texture: TRaylibTexture2D; { Raylib texture for display }
   screen_lines: array[0..767] of pointer;
@@ -789,38 +792,19 @@ begin
 end;
 
 procedure print_normal(bitmap: PScreenImage; x, y: word; const text: string; col, back: word);
-var
-  i: integer;
-  px, py: word;
 begin
-  { Simple text rendering - draw each character as 8x8 block }
-  { For now, just draw colored rectangles for each character }
-  px := x;
-  for i := 1 to Length(text) do
-  begin
-    { Draw 8x8 rectangle for each character }
-    if (px + 8 <= screen_width) and (y + 8 <= screen_height) then
-      rectangle2(screen_image, px, y, 8, 8, col);
-    px := px + 8;
-  end;
+  { Use real font rendering from jxfont_simple }
+  { Convert PScreenImage to PImage and call font renderer }
+  if Assigned(bitmap) then
+    jxfont_simple.print_normal(ScreenImageToImage(bitmap), x, y, text, col, back);
 end;
 
-{ PImage version - convert and call through }
+{ PImage version - call real font renderer }
 procedure print_normal(bitmap: PImage; x, y: word; const text: string; col, back: word);
-var
-  i: integer;
-  px, py: word;
 begin
-  { Simple text rendering - draw each character as 8x8 block }
-  { For now, just draw colored rectangles for each character }
-  px := x;
-  for i := 1 to Length(text) do
-  begin
-    { Draw 8x8 rectangle for each character }
-    if Assigned(bitmap) and (px + 8 <= bitmap^.width) and (y + 8 <= bitmap^.height) then
-      rectangle2(bitmap, px, y, 8, 8, col);
-    px := px + 8;
-  end;
+  { Use real font rendering from jxfont_simple }
+  if Assigned(bitmap) then
+    jxfont_simple.print_normal(bitmap, x, y, text, col, back);
 end;
 
 { Scaled text rendering - mimics original DOS printx2 with zoomx/zoomy scaling }
