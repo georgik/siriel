@@ -689,9 +689,20 @@ begin
       end;
     end;
 
-    { Enter/Space - select immediately }
+    { Enter/Space - select but wait for key release to prevent carryover }
     if (geo.IsKeyDown(geo.KEY_ENTER) <> 0) or (geo.IsKeyDown(geo.KEY_SPACE) <> 0) then
+    begin
       menu_done := True;
+      { Stay in loop and wait for key release }
+      repeat
+        BeginDrawing();
+        ClearBackground(0, 0, 0, 255);
+        RenderScreenToWindow();
+        jxmenu.RenderAvatar;
+        EndDrawing();
+        Sleep(16);
+      until (geo.IsKeyDown(geo.KEY_ENTER) = 0) and (geo.IsKeyDown(geo.KEY_SPACE) = 0);
+    end;
 
     { ESC - quit }
     if geo.IsKeyDown(geo.KEY_ESCAPE) <> 0 then
@@ -700,6 +711,15 @@ begin
       jxmenu.normal_jxmenu(choice, menu^);
       choice := num_disks;  { Quit }
       menu_done := True;
+      { Wait for ESC release }
+      repeat
+        BeginDrawing();
+        ClearBackground(0, 0, 0, 255);
+        RenderScreenToWindow();
+        jxmenu.RenderAvatar;
+        EndDrawing();
+        Sleep(16);
+      until geo.IsKeyDown(geo.KEY_ESCAPE) = 0;
     end;
 
     { Render to window every frame }
@@ -712,9 +732,6 @@ begin
     { Small delay to prevent CPU spin }
     Sleep(16);
   until menu_done;
-
-  { Clear keyboard buffer to prevent key carryover to next screen }
-  geo.clear_key_buffer;
 
   { Cleanup }
   dispose(menu);

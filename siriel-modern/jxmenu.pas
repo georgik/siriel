@@ -672,10 +672,25 @@ begin
         end;
       end;
 
-      { Enter/Space - select immediately }
+      { Enter/Space - select but wait for key release to prevent carryover }
       if (IsKeyDown(KEY_ENTER) <> 0) or (IsKeyDown(KEY_SPACE) <> 0) then
       begin
         menu_done := True;
+        { Stay in loop and wait for key release }
+        repeat
+          UpdateAvatar;
+          BeginDrawing();
+          ClearBackground(0, 0, 0, 255);
+          if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+            RenderMenuFrame(menx.x, menx.y,
+                           (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                           (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+          normal_jxmenu_all(menx);
+          hi_jxmenu(f, menx);
+          RenderScreenToWindow();
+          EndDrawing();
+          Sleep(16);
+        until (IsKeyDown(KEY_ENTER) = 0) and (IsKeyDown(KEY_SPACE) = 0);
       end;
 
       { ESC - go back }
@@ -683,6 +698,21 @@ begin
       begin
         f := menx.pocet;  { Select last item (Back) }
         menu_done := True;
+        { Wait for ESC release }
+        repeat
+          UpdateAvatar;
+          BeginDrawing();
+          ClearBackground(0, 0, 0, 255);
+          if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+            RenderMenuFrame(menx.x, menx.y,
+                           (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                           (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+          normal_jxmenu_all(menx);
+          hi_jxmenu(f, menx);
+          RenderScreenToWindow();
+          EndDrawing();
+          Sleep(16);
+        until IsKeyDown(KEY_ESCAPE) = 0;
       end;
 
       { Update avatar animation frame }
