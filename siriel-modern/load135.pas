@@ -98,13 +98,32 @@ procedure pl(stav: integer);
 begin
   inc(poloha);
   case stav of
+    { State 1: IDLE animation - frames 0-3 (first row, first 4 frames) }
     1: if (poloha < 0) or (poloha > 3) then poloha := 0;
-    2: if (poloha < 3) or (poloha > 7) then poloha := 4;
-    3: if (poloha < 7) or (poloha > 11) then poloha := 8;
-    4: if (poloha < 11) or (poloha > 19) then poloha := 12;
-    5: if (poloha < 19) or (poloha > 27) then poloha := 20;
-    6: if (poloha < 27) or (poloha > 35) then poloha := 28;
-    7: if (poloha < 40) or (poloha > 43) then poloha := 40;
+
+    { State 2: LEFT animation - frames 4-7 (first row, next 4 frames) }
+    2: if (poloha < 4) or (poloha > 7) then poloha := 4;
+
+    { State 3: RIGHT animation - frames 8-11 (first row, last 4 frames) }
+    3: if (poloha < 8) or (poloha > 11) then poloha := 8;
+
+    { State 4: JUMP UP animation - frames 12-19 (second row, 8 frames) }
+    4: if (poloha < 12) or (poloha > 19) then poloha := 12;
+
+    { State 5: PARACHUTE animation - frames 20-22 (second row, 3 frames) }
+    { Note: Frame 22 is fully open parachute }
+    5: if (poloha < 20) or (poloha > 22) then poloha := 20;
+
+    { State 6: JUMP UP LEFT animation - frames 23-30 (third row, 8 frames) }
+    6: if (poloha < 23) or (poloha > 30) then poloha := 23;
+
+    { State 7: JUMP UP RIGHT animation - frames 35-42 (fourth row, 8 frames) }
+    { Note: Original code used 28-35, but spritesheet has 35-42 for jump up right }
+    7: if (poloha < 35) or (poloha > 42) then poloha := 35;
+
+    { State 8: MAZE WALK UP animation - frames 31-34 (third row, 4 frames) }
+    { NOTE: Not currently used in arcade mode, only maze mode }
+    8: if (poloha < 31) or (poloha > 34) then poloha := 31;
   end;
 end;
 

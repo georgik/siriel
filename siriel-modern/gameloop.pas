@@ -292,9 +292,11 @@ begin
         end;
 
         if oldkey < 5 then
-          pl(4)
+          pl(4)  { Jump straight up }
+        else if oldkey = 5 then
+          pl(6)  { Jump up left - oldkey 5 = left direction }
         else
-          pl(oldkey);
+          pl(7); { Jump up right - oldkey 6 = right direction }
 
         begin
           if si.x < 3 then
@@ -358,11 +360,25 @@ begin
       end;
     end;  { End of jump handling block started at line 180 }
 
+    { Ground movement animation - handle left/right when not jumping }
+    if rollup = 0 then
+    begin
+      case k of
+        $4b00: pl(2);  { Left arrow - use left animation frames 4-7 }
+        $4d00: pl(3);  { Right arrow - use right animation frames 8-11 }
+      end;
+    end;
+
     { Idle animation logic - OUTSIDE jump handling, like original DOS code }
     if rollup = 0 then
     begin
       if k = 0 then
       begin
+        { No keys pressed - reset to idle animation if needed }
+        { If poloha is not in idle range (0-3), reset it immediately }
+        if poloha > 3 then
+          poloha := 0;
+
         { Slow down animation updates: original DOS was ~4 FPS, we're 60 FPS }
         { Only increment pom every 15 frames (60/15 = 4 FPS to match original) }
         inc(aktiv35.animation_frame_counter);
@@ -374,6 +390,7 @@ begin
       end
       else
       begin
+        { Keys are pressed - reset idle animation counter }
         pom := 0;
         aktiv35.animation_frame_counter := 0;
       end;
