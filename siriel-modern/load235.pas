@@ -537,14 +537,15 @@ begin
 					  vec^[l].mie:=ord(vec^[l].meno[4]);
 					  if vec^[l].meno[4]<'B' then vec^[l].mie:=1;
 							 vec^[l].take:=4;
+					  { Second character determines animation: 'A' = animated, 'N' = not animated }
+					  vec^[l].useanim := (vec^[l].meno[2] = 'A');
 					  vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
-					  writeln('[PARSE] X/Y-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr, ' funk=', vec^[l].funk);
+					  writeln('[PARSE] X/Y-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr, ' funk=', vec^[l].funk, ' useanim=', vec^[l].useanim);
 					  case vec^[l].funk of
-						 0:vec^[l].useanim:=true;
+						 0:; { useanim already set above }
 						 1:begin
 							  mov_num(ciel,vec^[l].inf1,count);
 							  mov_num(ciel,vec^[l].inf2,count);
-							  vec^[l].useanim:=true;
 						 end;
 						 2,3:begin
 							  mov_num(ciel,vec^[l].inf1,count);
@@ -554,7 +555,7 @@ begin
 							  vec^[l].inf4:=0;
 							  vec^[l].inf1:=vec^[l].inf1*8+8;
 							  vec^[l].inf2:=vec^[l].inf2*8+8;
-							  vec^[l].useanim:=false;
+							  { useanim already set based on meno[2] above }
 						 end;
 						 4:begin
 							  mov_num(ciel,vec^[l].inf1,count);
@@ -563,14 +564,14 @@ begin
                                                else vec^[l].smer:=false;
 							  vec^[l].inf5:=vec^[l].x;
 							  vec^[l].inf6:=vec^[l].y;
-							  vec^[l].useanim:=false;
+							  { useanim already set based on meno[2] above }
 						 end;
 						 5:begin
 							  mov_num(ciel,vec^[l].inf1,count);
 							  mov_num(ciel,vec^[l].inf7,count);
 							  vec^[l].inf5:=vec^[l].x;
 							  vec^[l].inf6:=vec^[l].y;
-							  vec^[l].useanim:=false;
+							  { useanim already set based on meno[2] above }
 						 end;
 						 6:begin
 							  mov_num(ciel,vec^[l].inf1,count);
@@ -821,11 +822,12 @@ begin
 		   mov_num(sx,vec^[l].take,count);
 		   mov_num(sx,vec^[l].inf1,count);
 		   vec^[l].funk:=0;
-		   vec^[l].useanim:=true;
+		   { Second character determines animation: 'A' = animated, 'N' = not animated }
+		   vec^[l].useanim := (vec^[l].meno[2] = 'A');
 		   vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
 					  vec^[l].ox:=vec^[l].x;
 					  vec^[l].oy:=vec^[l].y;
-		   writeln('[PARSE] Z-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr);
+		   writeln('[PARSE] Z-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr, ' useanim=', vec^[l].useanim);
 		end else
 		if ((sx[1]='X') or (sx[1]='Y')) and (not defined(sx))then begin
 
@@ -849,14 +851,15 @@ begin
 		   vec^[l].x:=vec^[l].x*8+8;
 		   vec^[l].y:=vec^[l].y*8+8;
 		   vec^[l].funk:=0;
-		   vec^[l].useanim:=true;
+		   { Second character determines animation: 'A' = animated, 'N' = not animated }
+		   vec^[l].useanim := (vec^[l].meno[2] = 'A');
 		   vec^[l].ox:=vec^[l].x;
 		   vec^[l].oy:=vec^[l].y;
 		   vec^[l].mie:=ord(vec^[l].meno[4]);
 		   if vec^[l].meno[4]<'B' then vec^[l].mie:=1;
 		   vec^[l].take:=4;
 		   vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
-		   writeln('[PARSE] V-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr);
+		   writeln('[PARSE] V-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr, ' useanim=', vec^[l].useanim);
 		end else
             FOR fm:=1 to num_opt do begin
 		     if sc=option[fm] then begin
@@ -1401,13 +1404,13 @@ var
   sprite_idx: word;
   texture: TRaylibTexture2D;
   anim_frame: byte;
-  src_rect: TRectangle;
+  final_sprite_idx: word;
   dest_x, dest_y: single;
 begin
   { Debug: Log all objects on frame 60 (once at startup) }
   if (frame_counter = 60) then
     writeln('[OBJECT] idx=', idx, ' visible=', vec^[idx].visible, ' mie=', vec^[idx].mie,
-            ' current_room=', miestnost, ' obr=', vec^[idx].obr);
+            ' current_room=', miestnost, ' obr=', vec^[idx].obr, ' useanim=', vec^[idx].useanim);
 
   { Skip invisible objects }
   if not vec^[idx].visible then
@@ -1417,8 +1420,17 @@ begin
   if vec^[idx].mie <> miestnost then
     exit;
 
-  { Get texture index }
+  { Get base texture index }
   sprite_idx := vec^[idx].obr;
+
+  { Calculate animation frame }
+  if vec^[idx].useanim then
+    anim_frame := (frame_counter div 3) mod 4  { 3 = speed divisor, cycle 0-3 }
+  else
+    anim_frame := 0;
+
+  { Calculate final sprite index: base sprite + animation frame }
+  final_sprite_idx := sprite_idx + anim_frame;
 
   { Validate sprite index }
   if (sprite_idx >= 190) or (not object_textures_loaded) then
@@ -1429,17 +1441,16 @@ begin
     exit;
   end;
 
-  texture := object_textures[sprite_idx];
+  { Check if animation frame is available }
+  if (final_sprite_idx >= 190) then
+  begin
+    { Animation frames not available, use base sprite }
+    final_sprite_idx := sprite_idx;
+    if (frame_counter = 60) then
+      writeln('[OBJECT] idx=', idx, ' Animation frame ', anim_frame, ' not available, using base sprite ', sprite_idx);
+  end;
 
-  { Calculate animation frame }
-  if vec^[idx].useanim then
-    anim_frame := (frame_counter div 3) mod 4  { 3 = speed divisor, cycle 0-3 }
-  else
-    anim_frame := 0;
-
-  { For static objects (not animated), we just use frame 0 }
-  { The object spritesheet may have multiple animation frames }
-  { For now, we'll use the entire texture (16x16) }
+  texture := object_textures[final_sprite_idx];
 
   { Destination position - vec^.x and vec^.y are already in pixel coordinates }
   dest_x := vec^[idx].x;
@@ -1448,7 +1459,7 @@ begin
   { Debug log when actually drawing }
   if (frame_counter = 60) then
     writeln('[OBJECT] Drawing idx=', idx, ' at (', trunc(dest_x), ', ', trunc(dest_y),
-            ') sprite=', sprite_idx);
+            ') base_sprite=', sprite_idx, ' anim_frame=', anim_frame, ' final_sprite=', final_sprite_idx);
 
   { Draw using Raylib - use entire texture (16x16) }
   DrawTexture(texture, trunc(dest_x), trunc(dest_y), $FFFFFFFF);
