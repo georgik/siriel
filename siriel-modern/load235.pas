@@ -1345,13 +1345,14 @@ begin
     exit;
 
   { Render tiles based on game state }
+  { Original DOS game had 8px horizontal offset for CRT border compensation }
   case st.stav of
     1,3,5:begin
       for f:=0 to mie_x do begin
         for ff:=0 to mie_y do begin
           tile_idx := st.mie[f,ff];
           if (tile_idx < invisible) and (tile_idx >= 0) and (tile_idx < 190) then
-            DrawTexture(map_tile_textures[tile_idx], f*16, ff*16, $FFFFFFFF);
+            DrawTexture(map_tile_textures[tile_idx], f*16 + 8, ff*16, $FFFFFFFF);
           if bl<>nil then bl^[f,ff]:=true;
         end;
       end;
@@ -1363,7 +1364,7 @@ begin
           for ff:=0 to mie_y do begin
             tile_idx := st.mie[f,ff];
             if (bl^[f,ff]) and (tile_idx < invisible) and (tile_idx >= 0) and (tile_idx < 190) then
-              DrawTexture(map_tile_textures[tile_idx], f*16, ff*16, $FFFFFFFF);
+              DrawTexture(map_tile_textures[tile_idx], f*16 + 8, ff*16, $FFFFFFFF);
           end;
         end;
       end;
