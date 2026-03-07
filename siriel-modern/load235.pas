@@ -30,7 +30,10 @@ procedure DrawAllObjects(frame_counter: longint);  { Draw all objects in current
 var
   map_tiles_loaded: boolean;  { True when map tiles are loaded as GPU textures }
   object_textures_loaded: boolean;  { True when object textures are loaded }
-  object_textures: array[0..189] of TRaylibTexture2D;  { GPU textures for 190 object types }
+  static_object_textures_loaded: boolean;  { True when static object textures are loaded }
+  animated_object_textures_loaded: boolean;  { True when animated object textures are loaded }
+  object_textures: array[0..189] of TRaylibTexture2D;  { GPU textures for 190 object types (static from GVECI) }
+  animated_object_textures: array[0..189] of TRaylibTexture2D;  { GPU textures for animated objects (from GANIM) }
 
 function  vrat_nazov(f:byte):string;
 procedure uloz_nazov(var s:string;f:byte);
@@ -1377,26 +1380,45 @@ var
   success: boolean;
   frame_count: word;
 begin
-  writeln('[OBJECT] Loading object textures from GVECI resource...');
+  writeln('[OBJECT] Loading object textures...');
 
   { Initialize all textures to invalid state }
   object_textures_loaded := false;
+  static_object_textures_loaded := false;
+  animated_object_textures_loaded := false;
 
-  { Load object spritesheet using existing function }
-  { GVECI contains object sprites (16x16 each) }
-  { Use the same DAT file as the game (zvukovy_subor) }
+  { Load static object spritesheet from GVECI }
+  writeln('[OBJECT] Loading static objects from GVECI resource...');
   success := load_gif_spritesheet_textures(zvukovy_subor, 'GVECI', 16, 16,
                                            object_textures, frame_count);
 
   if success then
   begin
-    object_textures_loaded := true;
-    writeln('[OBJECT] Successfully loaded ', frame_count, ' object textures');
+    static_object_textures_loaded := true;
+    writeln('[OBJECT] Successfully loaded ', frame_count, ' static object textures from GVECI');
   end
   else
   begin
-    writeln('[OBJECT] WARNING: Failed to load object textures from VECI');
+    writeln('[OBJECT] WARNING: Failed to load static object textures from GVECI');
   end;
+
+  { Load animated object spritesheet from GANIM }
+  writeln('[OBJECT] Loading animated objects from GANIM resource...');
+  success := load_gif_spritesheet_textures(zvukovy_subor, 'GANIM', 16, 16,
+                                           animated_object_textures, frame_count);
+
+  if success then
+  begin
+    animated_object_textures_loaded := true;
+    writeln('[OBJECT] Successfully loaded ', frame_count, ' animated object textures from GANIM');
+  end
+  else
+  begin
+    writeln('[OBJECT] WARNING: Failed to load animated object textures from GANIM');
+  end;
+
+  { Set overall loaded flag if at least one type loaded }
+  object_textures_loaded := static_object_textures_loaded or animated_object_textures_loaded;
 end;
 
 procedure DrawObject(idx: word; frame_counter: longint);
@@ -1406,6 +1428,7 @@ var
   anim_frame: byte;
   final_sprite_idx: word;
   dest_x, dest_y: single;
+  use_animated_textures: boolean;
 begin
   { Debug: Log all objects on frame 60 (once at startup) }
   if (frame_counter = 60) then
@@ -1420,17 +1443,35 @@ begin
   if vec^[idx].mie <> miestnost then
     exit;
 
-  { Get base texture index }
+  { Get base texture index (object ID) }
   sprite_idx := vec^[idx].obr;
 
-  { Calculate animation frame }
-  if vec^[idx].useanim then
-    anim_frame := (frame_counter div 3) mod 4  { 3 = speed divisor, cycle 0-3 }
-  else
-    anim_frame := 0;
+  { Determine which texture array to use }
+  use_animated_textures := vec^[idx].useanim and animated_object_textures_loaded;
 
-  { Calculate final sprite index: base sprite + animation frame }
-  final_sprite_idx := sprite_idx + anim_frame;
+  { Calculate animation frame }
+  if vec^[idx].useanim and animated_object_textures_loaded then
+  begin
+    { Animation cycles through 4 frames: (sprite_idx * 4) to (sprite_idx * 4 + 3) }
+    { Example: object ID 6 → frames 24, 25, 26, 27 }
+    anim_frame := (frame_counter div 6) mod 4;  { Slower: div 6 instead of div 3 }
+    final_sprite_idx := (sprite_idx * 4) + anim_frame;
+
+    { Check if animation frame is available }
+    if (final_sprite_idx >= 190) then
+    begin
+      { Animation frames not available, fall back to static }
+      final_sprite_idx := sprite_idx;
+      use_animated_textures := false;
+      if (frame_counter = 60) then
+        writeln('[OBJECT] idx=', idx, ' Animation frame ', anim_frame, ' (sprite_idx*4+', anim_frame, ' = ', final_sprite_idx, ') not available, using static texture');
+    end;
+  end
+  else
+  begin
+    anim_frame := 0;
+    final_sprite_idx := sprite_idx;
+  end;
 
   { Validate sprite index }
   if (sprite_idx >= 190) or (not object_textures_loaded) then
@@ -1441,16 +1482,17 @@ begin
     exit;
   end;
 
-  { Check if animation frame is available }
-  if (final_sprite_idx >= 190) then
+  { Get texture from appropriate array }
+  if use_animated_textures then
+    texture := animated_object_textures[final_sprite_idx]
+  else if static_object_textures_loaded then
+    texture := object_textures[final_sprite_idx]
+  else
   begin
-    { Animation frames not available, use base sprite }
-    final_sprite_idx := sprite_idx;
     if (frame_counter = 60) then
-      writeln('[OBJECT] idx=', idx, ' Animation frame ', anim_frame, ' not available, using base sprite ', sprite_idx);
+      writeln('[OBJECT] Skipping idx=', idx, ' no textures loaded');
+    exit;
   end;
-
-  texture := object_textures[final_sprite_idx];
 
   { Destination position - vec^.x and vec^.y are already in pixel coordinates }
   dest_x := vec^[idx].x;
@@ -1458,8 +1500,15 @@ begin
 
   { Debug log when actually drawing }
   if (frame_counter = 60) then
-    writeln('[OBJECT] Drawing idx=', idx, ' at (', trunc(dest_x), ', ', trunc(dest_y),
-            ') base_sprite=', sprite_idx, ' anim_frame=', anim_frame, ' final_sprite=', final_sprite_idx);
+  begin
+    write('[OBJECT] Drawing idx=', idx, ' at (', trunc(dest_x), ', ', trunc(dest_y),
+            ') sprite_idx=', sprite_idx, ' anim_frame=', anim_frame, ' final_sprite=', final_sprite_idx,
+            ' texture_type=');
+    if use_animated_textures then
+      writeln('ANIMATED (sprite_idx*4+', anim_frame, ')')
+    else
+      writeln('STATIC');
+  end;
 
   { Draw using Raylib - use entire texture (16x16) }
   DrawTexture(texture, trunc(dest_x), trunc(dest_y), $FFFFFFFF);
