@@ -127,8 +127,14 @@ begin
       case k of
         $3920:
           begin
-            writeln(' (SPACE - Menu)');
-            if ((not truth) or (not rolldown)) then
+            writeln(' (SPACE - Action)');
+            { Check for object interaction first }
+            if mov > 0 then
+            begin
+              writeln('arcade: Interacting with object ', mov);
+              use_vec(mov);
+            end
+            else if ((not truth) or (not rolldown)) then
             begin
               { TODO: menu; }
               { sace flag will cause loop exit in until condition }
@@ -405,7 +411,8 @@ begin
       si.oldy := si.y;
       oldpol := poloha;
 
-      { TODO: zisti_vec; }
+      { Check for object collision }
+      zisti_vec;
 
     { Increment frame counter }
     inc(frame_count);
@@ -421,6 +428,9 @@ begin
 
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
+
+    { Render objects using GPU textures }
+    load235.DrawAllObjects(frame_count);
 
     { Render player avatar using GPU textures }
     { si.x and si.y are already in pixel coordinates (not tile coordinates) }
@@ -532,8 +542,17 @@ begin
           restart := ano_nie2('Really quit?');
         $1c0d, $3920:
           begin
-            { TODO: menu; }
-            { sace flag will cause loop exit in until condition }
+            { Check for object interaction first }
+            if mov > 0 then
+            begin
+              writeln('maze: Interacting with object ', mov);
+              use_vec(mov);
+            end
+            else
+            begin
+              { TODO: menu; }
+              { sace flag will cause loop exit in until condition }
+            end;
           end;
         $3f00, 3062:
           briefing_in_game;
@@ -557,13 +576,17 @@ begin
     si.oldy := si.y;
     oldpol := poloha;
 
-    { TODO: zisti_vec; }
+    { Check for object collision }
+    zisti_vec;
 
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
 
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
+
+    { Render objects using GPU textures }
+    load235.DrawAllObjects(0);  { Use 0 for maze mode - objects not animated }
 
     { Render player avatar using GPU textures }
     { si.x and si.y are already in pixel coordinates (not tile coordinates) }

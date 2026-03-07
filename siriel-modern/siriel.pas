@@ -1068,6 +1068,11 @@ begin
         end;
     end;
 
+    { Set object visibility based on game mode }
+    writeln('Calling check_visible to set object visibility...');
+    check_visible(false);
+    writeln('Object visibility check complete');
+
     { Set movement variables based on mode }
     case st.stav of
       2, 3:

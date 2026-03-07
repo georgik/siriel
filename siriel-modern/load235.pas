@@ -23,9 +23,14 @@ procedure load_texture;
 procedure noline2;
 procedure print_texture;
 procedure RenderMapTiles;  { Render map tiles using Raylib GPU textures - called after ClearBackground }
+procedure LoadObjectTextures;  { Load object sprites from VECI resource }
+procedure DrawObject(idx: word; frame_counter: longint);  { Draw single object }
+procedure DrawAllObjects(frame_counter: longint);  { Draw all objects in current room }
 
 var
   map_tiles_loaded: boolean;  { True when map tiles are loaded as GPU textures }
+  object_textures_loaded: boolean;  { True when object textures are loaded }
+  object_textures: array[0..189] of TRaylibTexture2D;  { GPU textures for 190 object types }
 
 function  vrat_nazov(f:byte):string;
 procedure uloz_nazov(var s:string;f:byte);
@@ -532,6 +537,8 @@ begin
 					  vec^[l].mie:=ord(vec^[l].meno[4]);
 					  if vec^[l].meno[4]<'B' then vec^[l].mie:=1;
 							 vec^[l].take:=4;
+					  vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
+					  writeln('[PARSE] X/Y-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr, ' funk=', vec^[l].funk);
 					  case vec^[l].funk of
 						 0:vec^[l].useanim:=true;
 						 1:begin
@@ -815,8 +822,10 @@ begin
 		   mov_num(sx,vec^[l].inf1,count);
 		   vec^[l].funk:=0;
 		   vec^[l].useanim:=true;
+		   vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
 					  vec^[l].ox:=vec^[l].x;
 					  vec^[l].oy:=vec^[l].y;
+		   writeln('[PARSE] Z-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr);
 		end else
 		if ((sx[1]='X') or (sx[1]='Y')) and (not defined(sx))then begin
 
@@ -846,6 +855,8 @@ begin
 		   vec^[l].mie:=ord(vec^[l].meno[4]);
 		   if vec^[l].meno[4]<'B' then vec^[l].mie:=1;
 		   vec^[l].take:=4;
+		   vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
+		   writeln('[PARSE] V-type object ', l, ': meno=', vec^[l].meno, ' x=', vec^[l].x, ' y=', vec^[l].y, ' mie=', vec^[l].mie, ' obr=', vec^[l].obr);
 		end else
             FOR fm:=1 to num_opt do begin
 		     if sc=option[fm] then begin
@@ -1260,6 +1271,9 @@ begin
   writeln('[MAP_TILES] Successfully loaded 190 map tile textures');
   map_tiles_loaded := True;
   writeln('[MAP_TILES] Complete!');
+
+  { Load object textures after map tiles }
+  LoadObjectTextures;
 end;
 
 procedure noline2;
@@ -1348,6 +1362,114 @@ begin
         end;
       end;
     end;
+  end;
+end;
+
+{ ========================================
+   OBJECT TEXTURE LOADING AND RENDERING
+   ======================================== }
+
+procedure LoadObjectTextures;
+var
+  success: boolean;
+  frame_count: word;
+begin
+  writeln('[OBJECT] Loading object textures from GVECI resource...');
+
+  { Initialize all textures to invalid state }
+  object_textures_loaded := false;
+
+  { Load object spritesheet using existing function }
+  { GVECI contains object sprites (16x16 each) }
+  { Use the same DAT file as the game (zvukovy_subor) }
+  success := load_gif_spritesheet_textures(zvukovy_subor, 'GVECI', 16, 16,
+                                           object_textures, frame_count);
+
+  if success then
+  begin
+    object_textures_loaded := true;
+    writeln('[OBJECT] Successfully loaded ', frame_count, ' object textures');
+  end
+  else
+  begin
+    writeln('[OBJECT] WARNING: Failed to load object textures from VECI');
+  end;
+end;
+
+procedure DrawObject(idx: word; frame_counter: longint);
+var
+  sprite_idx: word;
+  texture: TRaylibTexture2D;
+  anim_frame: byte;
+  src_rect: TRectangle;
+  dest_x, dest_y: single;
+begin
+  { Debug: Log all objects on frame 60 (once at startup) }
+  if (frame_counter = 60) then
+    writeln('[OBJECT] idx=', idx, ' visible=', vec^[idx].visible, ' mie=', vec^[idx].mie,
+            ' current_room=', miestnost, ' obr=', vec^[idx].obr);
+
+  { Skip invisible objects }
+  if not vec^[idx].visible then
+    exit;
+
+  { Check room - only show objects in current room }
+  if vec^[idx].mie <> miestnost then
+    exit;
+
+  { Get texture index }
+  sprite_idx := vec^[idx].obr;
+
+  { Validate sprite index }
+  if (sprite_idx >= 190) or (not object_textures_loaded) then
+  begin
+    if (frame_counter = 60) then
+      writeln('[OBJECT] Skipping idx=', idx, ' invalid sprite_idx=', sprite_idx,
+              ' textures_loaded=', object_textures_loaded);
+    exit;
+  end;
+
+  texture := object_textures[sprite_idx];
+
+  { Calculate animation frame }
+  if vec^[idx].useanim then
+    anim_frame := (frame_counter div 3) mod 4  { 3 = speed divisor, cycle 0-3 }
+  else
+    anim_frame := 0;
+
+  { For static objects (not animated), we just use frame 0 }
+  { The object spritesheet may have multiple animation frames }
+  { For now, we'll use the entire texture (16x16) }
+
+  { Destination position - vec^.x and vec^.y are already in pixel coordinates }
+  dest_x := vec^[idx].x;
+  dest_y := vec^[idx].y;
+
+  { Debug log when actually drawing }
+  if (frame_counter = 60) then
+    writeln('[OBJECT] Drawing idx=', idx, ' at (', trunc(dest_x), ', ', trunc(dest_y),
+            ') sprite=', sprite_idx);
+
+  { Draw using Raylib - use entire texture (16x16) }
+  DrawTexture(texture, trunc(dest_x), trunc(dest_y), $FFFFFFFF);
+end;
+
+procedure DrawAllObjects(frame_counter: longint);
+var
+  i: word;
+begin
+  if not object_textures_loaded then
+  begin
+    { Debug: Log once per second (every 60 frames) }
+    if (frame_counter mod 60) = 0 then
+      writeln('[OBJECT] Textures not loaded, skipping object render');
+    exit;
+  end;
+
+  { Draw all loaded objects }
+  for i := 1 to nahrane_veci do
+  begin
+    DrawObject(i, frame_counter);
   end;
 end;
 
@@ -1617,6 +1739,7 @@ procedure check_visible(get_back:boolean);
 var f:word;
 begin
  {skontroluje, ci je dany predmet vidiet}
+ writeln('[CHECK_VISIBLE] Starting visibility check for ', nahrane_veci, ' objects, st.stav=', st.stav);
  case st.stav of
 { if (st[1].stav=2) and (bl<>nil) then}
 	2,4:begin
@@ -1636,6 +1759,17 @@ begin
 			   vec^[f].visible:=false;
 			  end;
 	    end;
+	    writeln('[CHECK_VISIBLE] Maze mode: Processed visibility for ', nahrane_veci, ' objects');
+	end;
+	1,3,5:begin
+	    { Platformer mode - make all objects in current room visible }
+	    for f:=1 to nahrane_veci do begin
+		    if vec^[f].mie = miestnost then begin
+			    vec^[f].visible := true;
+			    writeln('[CHECK_VISIBLE] Platformer mode: Object ', f, ' (', vec^[f].meno, ') in room ', miestnost, ' set to VISIBLE');
+		    end;
+	    end;
+	    writeln('[CHECK_VISIBLE] Platformer mode: Made objects in room ', miestnost, ' visible');
 	end;
  end;
 end;
