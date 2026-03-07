@@ -13,6 +13,7 @@ uses
   SysUtils,
   aktiv35,
   geo,
+  collision,
   jxvar,
   animing,
   dos;
@@ -152,6 +153,152 @@ begin
 end;
 
 { ========================================
+   CREATURE TYPE 4 & 5 - Gravity-Based Moving Platform
+   ======================================== }
+
+procedure update_creature_type4(var vec_item: predmet);
+var
+  old_x, old_y: word;
+  target_x, target_y: integer;
+begin
+  { Only move if not frozen }
+  if freez_time > 0 then
+    exit;
+
+  { Only process if visible and in current room }
+  if not vec_item.visible then
+    exit;
+  if vec_item.mie <> miestnost then
+    exit;
+
+  { Debug logging }
+  if (anim_count = 0) and (vec_item.visible) then
+    writeln('[PLATFORM] Type=4 x=', vec_item.x, ' y=', vec_item.y, ' inf5=', vec_item.inf5, ' inf6=', vec_item.inf6, ' smer=', vec_item.smer);
+
+  { Safety check: ensure coordinates are valid }
+  if (vec_item.x < 1) or (vec_item.x > 620) or (vec_item.y < 1) or (vec_item.y > 470) then
+  begin
+    { Coordinates out of bounds, respawn }
+    if (anim_count = 0) then
+      writeln('[PLATFORM] Type=4 out of bounds, respawning');
+    vec_item.x := vec_item.inf5;
+    vec_item.y := vec_item.inf6;
+    exit;
+  end;
+
+  { Save current position }
+  old_x := vec_item.x;
+  old_y := vec_item.y;
+
+  { Try to move horizontally in current direction }
+  if vec_item.smer then
+  { Moving left }
+    target_x := vec_item.x - 1
+  else
+  { Moving right }
+    target_x := vec_item.x + 1;
+
+  target_y := vec_item.y;
+
+  { Simple boundary check - don't move if would go out of bounds }
+  if (target_x >= 1) and (target_x <= 620) then
+  begin
+    { Position is valid, move there }
+    vec_item.x := target_x;
+    vec_item.y := target_y;
+  end
+  else
+  begin
+    { Can't move - respawn to original position }
+    if (anim_count = 0) then
+      writeln('[PLATFORM] Type=4 respawn: x=', vec_item.x, ' y=', vec_item.y, ' -> inf5=', vec_item.inf5, ' inf6=', vec_item.inf6);
+    vec_item.x := vec_item.inf5;
+    vec_item.y := vec_item.inf6;
+    exit;
+  end;
+
+  { Apply gravity - simply move down if not at bottom }
+  if (vec_item.y < 470) then
+  begin
+    { Apply gravity based on inf1 }
+    inc(vec_item.y, vec_item.inf1);
+  end;
+end;
+
+procedure update_creature_type5(var vec_item: predmet);
+var
+  target_x, target_y: integer;
+begin
+  { Only move if not frozen }
+  if freez_time > 0 then
+    exit;
+
+  { Only process if visible and in current room }
+  if not vec_item.visible then
+    exit;
+  if vec_item.mie <> miestnost then
+    exit;
+
+  { Debug logging }
+  if (anim_count = 0) and (vec_item.visible) then
+    writeln('[PLATFORM] Type=5 START x=', vec_item.x, ' y=', vec_item.y, ' inf5=', vec_item.inf5, ' inf6=', vec_item.inf6, ' smer=', vec_item.smer);
+
+  { Safety check: ensure coordinates are valid }
+  if (vec_item.x < 1) or (vec_item.x > 620) or (vec_item.y < 1) or (vec_item.y > 470) then
+  begin
+    { Coordinates out of bounds, respawn }
+    if (anim_count = 0) then
+      writeln('[PLATFORM] Type=5 out of bounds, respawning');
+    vec_item.x := vec_item.inf5;
+    vec_item.y := vec_item.inf6;
+    exit;
+  end;
+
+  { Determine direction based on SIMPLE boundary checking (no po3 collision detection) }
+  { If near left edge of map, go right. If near right edge, go left. }
+  if vec_item.x < 20 then
+    vec_item.smer := false   { Near left edge, go right }
+  else if vec_item.x > 620 then
+    vec_item.smer := true;  { Near right edge, go left }
+
+  { Try to move in current direction }
+  if vec_item.smer then
+  { Moving left }
+    target_x := vec_item.x - 1
+  else
+  { Moving right }
+    target_x := vec_item.x + 1;
+
+  target_y := vec_item.y;
+
+  { Simple boundary check - don't move if would go out of bounds }
+  if (target_x >= 1) and (target_x <= 620) then
+  begin
+    { Position is valid, move there }
+    vec_item.x := target_x;
+    vec_item.y := target_y;
+  end
+  else
+  begin
+    { Can't move - respawn to original position }
+    if (anim_count = 0) then
+      writeln('[PLATFORM] Type=5 respawn: x=', vec_item.x, ' y=', vec_item.y, ' -> inf5=', vec_item.inf5, ' inf6=', vec_item.inf6);
+    vec_item.x := vec_item.inf5;
+    vec_item.y := vec_item.inf6;
+    exit;
+  end;
+
+  { Apply gravity - simply move down if not at bottom }
+  if (vec_item.y < 470) then
+  begin
+    { Apply gravity based on inf1 }
+    if (anim_count = 0) then
+      writeln('[PLATFORM] Type=5 applying gravity: inf1=', vec_item.inf1);
+    inc(vec_item.y, vec_item.inf1);
+  end;
+end;
+
+{ ========================================
    FIREBALL MOVEMENT - Funk 15 and 18
    ======================================== }
 
@@ -186,6 +333,98 @@ begin
         movement(idx, vec_item.y, vec_item.ooy);
     end;
   end;
+end;
+
+{ ========================================
+   CREATURE TYPE 2 & 3 - Horizontal/Vertical Patrol
+   ======================================== }
+
+procedure update_creature_type2(var vec_item: predmet);
+begin
+  { Only move if not frozen }
+  if freez_time > 0 then
+    exit;
+
+  { Debug logging (once per second when anim_count=0) }
+  if (anim_count = 0) and (vec_item.visible) then
+    writeln('[PATROL] Type=2 (horizontal) x=', vec_item.x, ' inf1=', vec_item.inf1, ' inf2=', vec_item.inf2, ' speed=', vec_item.inf3, ' smer=', vec_item.smer);
+
+  { Horizontal patrol between inf1 and inf2 }
+  { Move right if going right (smer=false), left if going left (smer=true) }
+  if not vec_item.smer then
+  begin
+    { Moving right }
+    if vec_item.x < vec_item.inf2 then
+      inc(vec_item.x, vec_item.inf3)
+    else
+    begin
+      { Hit right boundary, reverse direction }
+      vec_item.smer := true;
+      dec(vec_item.x, vec_item.inf3);
+      if (anim_count = 0) then
+        writeln('[PATROL] Type=2 reverse at x=', vec_item.x, ' (hit right boundary ', vec_item.inf2, ')');
+    end;
+  end
+  else
+  begin
+    { Moving left }
+    if vec_item.x > vec_item.inf1 then
+      dec(vec_item.x, vec_item.inf3)
+    else
+    begin
+      { Hit left boundary, reverse direction }
+      vec_item.smer := false;
+      inc(vec_item.x, vec_item.inf3);
+      if (anim_count = 0) then
+        writeln('[PATROL] Type=2 reverse at x=', vec_item.x, ' (hit left boundary ', vec_item.inf1, ')');
+    end;
+  end;
+
+  { Update animation frame based on direction }
+  if vec_item.smer then
+    vec_item.z1 := 1  { Facing left }
+  else
+    vec_item.z1 := 0;  { Facing right }
+end;
+
+procedure update_creature_type3(var vec_item: predmet);
+begin
+  { Only move if not frozen }
+  if freez_time > 0 then
+    exit;
+
+  { Vertical patrol between inf1 and inf2 }
+  { Move down if going down, up if going up }
+  if not vec_item.smer then
+  begin
+    { Moving down }
+    if vec_item.y < vec_item.inf2 then
+      inc(vec_item.y, vec_item.inf3)
+    else
+    begin
+      { Hit bottom boundary, reverse direction }
+      vec_item.smer := true;
+      dec(vec_item.y, vec_item.inf3);
+    end;
+  end
+  else
+  begin
+    { Moving up }
+    if vec_item.y > vec_item.inf1 then
+      dec(vec_item.y, vec_item.inf3)
+    else
+    begin
+      { Hit top boundary, reverse direction }
+      vec_item.smer := false;
+      inc(vec_item.y, vec_item.inf3);
+    end;
+  end;
+
+  { Update animation frame based on direction }
+  if vec_item.smer then
+    vec_item.z1 := 3  { Facing up }
+  else
+    vec_item.z1 := 2;  { Facing down }
 end;
 
 { ========================================
@@ -327,7 +566,31 @@ begin
            (((vec^[f].meno[1] <> 'W') and (vec^[f].meno[1] <> 'V')) and
             (vec^[f].funk > 0)) then
         begin
+          { Debug logging - only log occasionally to reduce spam }
+          if (anim_count = 0) then
+            writeln('[CREATURE] Processing object ', f, ' meno=', vec^[f].meno, ' funk=', vec^[f].funk, ' x=', vec^[f].x, ' y=', vec^[f].y);
+
           case vec^[f].funk of
+            2: begin
+              { Horizontal patrol }
+              update_creature_type2(vec^[f]);
+            end;
+
+            3: begin
+              { Vertical patrol }
+              update_creature_type3(vec^[f]);
+            end;
+
+            4: begin
+              { Gravity-based moving platform }
+              update_creature_type4(vec^[f]);
+            end;
+
+            5: begin
+              { Gravity-based moving platform (smart direction) }
+              update_creature_type5(vec^[f]);
+            end;
+
             12: begin
               { Random movement creature }
               update_creature_type12(vec^[f]);
@@ -342,6 +605,12 @@ begin
             // 16: { Chase behavior }
             // 17: { Sound generator }
             // etc.
+            else
+            begin
+              { Unimplemented creature type - just log it }
+              if (anim_count = 0) then
+                writeln('[CREATURE] Unimplemented funk type ', vec^[f].funk, ' for object ', f);
+            end;
           end;
         end;
       end;

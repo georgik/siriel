@@ -559,22 +559,27 @@ begin
 							  vec^[l].inf1:=vec^[l].inf1*8+8;
 							  vec^[l].inf2:=vec^[l].inf2*8+8;
 							  { useanim already set based on meno[2] above }
+							  writeln('[PARSE] funk=', vec^[l].funk, ' patrol: inf1=', vec^[l].inf1, ' inf2=', vec^[l].inf2, ' inf3(speed)=', vec^[l].inf3, ' inf7=', vec^[l].inf7);
 						 end;
 						 4:begin
 							  mov_num(ciel,vec^[l].inf1,count);
 							  mov_num(ciel,vec^[l].inf7,count);
-                                            if vec^[l].inf7=0 then vec^[l].smer:=true
-                                               else vec^[l].smer:=false;
+							  if vec^[l].inf7=0 then vec^[l].smer:=true
+							     else vec^[l].smer:=false;
 							  vec^[l].inf5:=vec^[l].x;
 							  vec^[l].inf6:=vec^[l].y;
 							  { useanim already set based on meno[2] above }
+							  writeln('[PARSE] funk=4 gravity platform: inf1=', vec^[l].inf1, ' inf7=', vec^[l].inf7, ' smer=', vec^[l].smer, ' respawn_x=', vec^[l].inf5, ' respawn_y=', vec^[l].inf6);
 						 end;
 						 5:begin
 							  mov_num(ciel,vec^[l].inf1,count);
 							  mov_num(ciel,vec^[l].inf7,count);
+							  if vec^[l].inf7=0 then vec^[l].smer:=true
+							    else vec^[l].smer:=false;
 							  vec^[l].inf5:=vec^[l].x;
 							  vec^[l].inf6:=vec^[l].y;
 							  { useanim already set based on meno[2] above }
+							  writeln('[PARSE] funk=5 smart gravity platform: inf1=', vec^[l].inf1, ' inf7=', vec^[l].inf7, ' smer=', vec^[l].smer, ' respawn_x=', vec^[l].inf5, ' respawn_y=', vec^[l].inf6);
 						 end;
 						 6:begin
 							  mov_num(ciel,vec^[l].inf1,count);
