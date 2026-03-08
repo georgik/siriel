@@ -75,6 +75,9 @@ begin
   game_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('arcade: Render texture created successfully');
 
+  { Set target FPS to 60 for consistent game speed }
+  SetTargetFPS(60);
+
   { Track test mode duration }
   start_time := SysUtils.GetTickCount64;
 
@@ -84,9 +87,6 @@ begin
   repeat
     { Start Raylib rendering frame }
     BeginDrawing();
-
-    { Set target FPS to 60 for consistent game speed }
-    SetTargetFPS(60);
 
     { Check for window close event - respond immediately }
     if WindowShouldClose() <> 0 then
@@ -547,10 +547,13 @@ begin
   frame_count := 0;
   aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
 
-  { Create render texture at game resolution (640x480) }
+  { Create render texture at game resolution (GAME_WIDTHxGAME_HEIGHT) }
   writeln('maze: Creating render texture for scaling...');
-  game_render := LoadRenderTexture(640, 480);
+  game_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('maze: Render texture created successfully');
+
+  { Set target FPS to 60 for consistent game speed }
+  SetTargetFPS(60);
 
   { Initialize pathfinding array }
   for f := 0 to mie_x do
