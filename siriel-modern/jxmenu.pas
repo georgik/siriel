@@ -24,6 +24,8 @@ const
   max_menu = 64;
   TILE_SIZE = 16;
   GLIST_TILE_COUNT = 8;
+  GAME_WIDTH = 640;    { Original game resolution width }
+  GAME_HEIGHT = 480;   { Original game resolution height }
 
 type
   { RGBA tile buffer (still used for other purposes) }
@@ -618,8 +620,8 @@ begin
     if not menx.draw_menu then
       draw_jxmenu(menx);
 
-    { Create render texture at game resolution (640x480) }
-    menu_render := LoadRenderTexture(640, 480);
+    { Create render texture at game resolution (GAME_WIDTHxGAME_HEIGHT) }
+    menu_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
 
     f := menx.first;
     menu_done := False;
@@ -709,14 +711,14 @@ begin
           else
             screen_scale_x := screen_scale_y;
 
-          scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-          scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-          scale_rect.width := Trunc(640 * screen_scale_x);
-          scale_rect.height := Trunc(480 * screen_scale_y);
+          scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+          scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+          scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+          scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
           { Draw scaled texture (flipped) }
           DrawTexturePro(menu_render.texture,
-                         RectangleCreate(0, 0, 640, -480),
+                         RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),
                          scale_rect,
                          Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
@@ -757,14 +759,14 @@ begin
           else
             screen_scale_x := screen_scale_y;
 
-          scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-          scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-          scale_rect.width := Trunc(640 * screen_scale_x);
-          scale_rect.height := Trunc(480 * screen_scale_y);
+          scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+          scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+          scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+          scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
           { Draw scaled texture (flipped) }
           DrawTexturePro(menu_render.texture,
-                         RectangleCreate(0, 0, 640, -480),
+                         RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),
                          scale_rect,
                          Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
@@ -804,8 +806,8 @@ begin
       EndTextureMode();
 
       { Calculate scaled rectangle to fit window while maintaining aspect ratio }
-      screen_scale_x := GetScreenWidth() / 640.0;
-      screen_scale_y := GetScreenHeight() / 480.0;
+      screen_scale_x := GetScreenWidth() / GAME_WIDTH;
+      screen_scale_y := GetScreenHeight() / GAME_HEIGHT;
 
       { Use the smaller scale to fit entirely within the window }
       if screen_scale_x < screen_scale_y then
@@ -821,7 +823,7 @@ begin
 
       { Draw the scaled texture (flipped vertically) }
       DrawTexturePro(menu_render.texture,
-                     RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                     RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),  { Negative height to flip }
                      scale_rect,
                      Vector2Create(0, 0), 0.0, $FFFFFFFF);
 

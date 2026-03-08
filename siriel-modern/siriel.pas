@@ -42,6 +42,8 @@ const
   PROGRAM_VERSION = '1.0';
   SCREEN_WIDTH = 640;
   SCREEN_HEIGHT = 480;
+  GAME_WIDTH = 640;    { Original game resolution width }
+  GAME_HEIGHT = 480;   { Original game resolution height }
 
 type
   TDATFileList = array[1..10] of string;
@@ -551,9 +553,9 @@ begin
     clear_bitmap(screen_image);
   end;
 
-  { Create render texture at game resolution (640x480) }
+  { Create render texture at game resolution (GAME_WIDTHxGAME_HEIGHT) }
   writeln('[Menu] Creating render texture for scaling...');
-  menu_render := LoadRenderTexture(640, 480);
+  menu_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('[Menu] Render texture created successfully');
 
   { Load GLOGO (logo) - from MAIN.DAT (shared assets across all datadisks) }
@@ -605,22 +607,22 @@ begin
   EndTextureMode();
 
   { Calculate scaled rectangle }
-  screen_scale_x := GetScreenWidth() / 640.0;
-  screen_scale_y := GetScreenHeight() / 480.0;
+  screen_scale_x := GetScreenWidth() / GAME_WIDTH;
+  screen_scale_y := GetScreenHeight() / GAME_HEIGHT;
 
   if screen_scale_x < screen_scale_y then
     screen_scale_y := screen_scale_x
   else
     screen_scale_x := screen_scale_y;
 
-  scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-  scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-  scale_rect.width := Trunc(640 * screen_scale_x);
-  scale_rect.height := Trunc(480 * screen_scale_y);
+  scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+  scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+  scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+  scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
   { Draw the scaled texture (flipped vertically because render textures are upside down) }
   DrawTexturePro(menu_render.texture,
-                 RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                 RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),  { Negative height to flip }
                  scale_rect,
                  Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
@@ -662,22 +664,22 @@ begin
   EndTextureMode();
 
   { Calculate scaled rectangle }
-  screen_scale_x := GetScreenWidth() / 640.0;
-  screen_scale_y := GetScreenHeight() / 480.0;
+  screen_scale_x := GetScreenWidth() / GAME_WIDTH;
+  screen_scale_y := GetScreenHeight() / GAME_HEIGHT;
 
   if screen_scale_x < screen_scale_y then
     screen_scale_y := screen_scale_x
   else
     screen_scale_x := screen_scale_y;
 
-  scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-  scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-  scale_rect.width := Trunc(640 * screen_scale_x);
-  scale_rect.height := Trunc(480 * screen_scale_y);
+  scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+  scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+  scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+  scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
   { Draw the scaled texture (flipped vertically because render textures are upside down) }
   DrawTexturePro(menu_render.texture,
-                 RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                 RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),  { Negative height to flip }
                  scale_rect,
                  Vector2Create(0, 0), 0.0, $FFFFFFFF);
 

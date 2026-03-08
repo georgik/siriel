@@ -46,6 +46,10 @@ uses
   raylib_helpers,
   load135;
 
+const
+  GAME_WIDTH = 640;    { Original game resolution width }
+  GAME_HEIGHT = 480;   { Original game resolution height }
+
 { ========================================
    EXACT PORT from GAME.INC lines 78-222
    ======================================== }
@@ -66,9 +70,9 @@ begin
   last_log_time := SysUtils.GetTickCount64;
   aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
 
-  { Create render texture at game resolution (640x480) }
+  { Create render texture at game resolution (GAME_WIDTHxGAME_HEIGHT) }
   writeln('arcade: Creating render texture for scaling...');
-  game_render := LoadRenderTexture(640, 480);
+  game_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('arcade: Render texture created successfully');
 
   { Track test mode duration }
@@ -487,8 +491,8 @@ begin
 
     { Calculate scaled rectangle to fit window while maintaining aspect ratio }
     { Get current window size }
-    screen_scale_x := GetScreenWidth() / 640.0;
-    screen_scale_y := GetScreenHeight() / 480.0;
+    screen_scale_x := GetScreenWidth() / GAME_WIDTH;
+    screen_scale_y := GetScreenHeight() / GAME_HEIGHT;
 
     { Use the smaller scale to fit entirely within the window }
     if screen_scale_x < screen_scale_y then
@@ -497,10 +501,10 @@ begin
       screen_scale_x := screen_scale_y;
 
     { Calculate centered position }
-    scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-    scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-    scale_rect.width := Trunc(640 * screen_scale_x);
-    scale_rect.height := Trunc(480 * screen_scale_y);
+    scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+    scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+    scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+    scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
     { Debug: Log window size and scale every 60 frames (1 second) }
     if (frame_count mod 60) = 0 then
@@ -513,7 +517,7 @@ begin
     { Draw the scaled texture (pixelated filtering) }
     { Source rectangle (entire texture) - negative height to flip render texture }
     DrawTexturePro(game_render.texture,
-                   RectangleCreate(0, 0, 640, -480),  { Negative height to flip upside-down render texture }
+                   RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),  { Negative height to flip upside-down render texture }
                    scale_rect,
                    Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
@@ -718,8 +722,8 @@ begin
 
     { Calculate scaled rectangle to fit window while maintaining aspect ratio }
     { Get current window size }
-    screen_scale_x := GetScreenWidth() / 640.0;
-    screen_scale_y := GetScreenHeight() / 480.0;
+    screen_scale_x := GetScreenWidth() / GAME_WIDTH;
+    screen_scale_y := GetScreenHeight() / GAME_HEIGHT;
 
     { Debug: Log window size every 60 frames (1 second) }
     if (frame_count mod 60) = 0 then
@@ -732,15 +736,15 @@ begin
       screen_scale_x := screen_scale_y;
 
     { Calculate centered position }
-    scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
-    scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
-    scale_rect.width := Trunc(640 * screen_scale_x);
-    scale_rect.height := Trunc(480 * screen_scale_y);
+    scale_rect.x := (GetScreenWidth() - Trunc(GAME_WIDTH * screen_scale_x)) div 2;
+    scale_rect.y := (GetScreenHeight() - Trunc(GAME_HEIGHT * screen_scale_y)) div 2;
+    scale_rect.width := Trunc(GAME_WIDTH * screen_scale_x);
+    scale_rect.height := Trunc(GAME_HEIGHT * screen_scale_y);
 
     { Draw the scaled texture (pixelated filtering) }
     { Source rectangle (entire texture) - negative height to flip render texture }
     DrawTexturePro(game_render.texture,
-                   RectangleCreate(0, 0, 640, -480),  { Negative height to flip upside-down render texture }
+                   RectangleCreate(0, 0, GAME_WIDTH, -GAME_HEIGHT),  { Negative height to flip upside-down render texture }
                    scale_rect,
                    Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
