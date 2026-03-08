@@ -1139,22 +1139,31 @@ var vecicka		: boolean;
     xx,yy         : word;
 label skip;
 begin
+  writeln('[ZISTI_VEC] Starting, nahrane_veci=', nahrane_veci, ' si.x=', si.x, ' si.y=', si.y);
    najdene:=true;
    vecicka:=false;
    if si.y+py>14 then yy:=si.y+py-14 else yy:=0;
    if si.x+px>14 then xx:=si.x+px-14 else xx:=0;
+   writeln('[ZISTI_VEC] xx=', xx, ' yy=', yy);
    for f:=1 to nahrane_veci do begin
+     writeln('[ZISTI_VEC] Checking object ', f, ' mie=', vec^[f].mie, ' visible=', vec^[f].visible, ' x=', vec^[f].x, ' y=', vec^[f].y);
 	 if (vec^[f].mie=miestnost) and (si.x+px16 >= vec^[f].x) and (xx <= vec^[f].x)
 	    and (yy <= vec^[f].y) and (si.y+py16 >= vec^[f].y) then begin
+	    writeln('[ZISTI_VEC] COLLISION with object ', f, ' - setting vecicka=true');
 	    vecicka:=true;
+	    writeln('[ZISTI_VEC] vecicka set, now setting clr=true');
 	    clr:=true;
+	    writeln('[ZISTI_VEC] clr set, now setting mov=', f);
 	    mov:=f;
+	    writeln('[ZISTI_VEC] mov set, about to goto skip');
 	    goto skip;
 	 end
 	 else mov:=0;
    end;
+   writeln('[ZISTI_VEC] Loop complete, mov=', mov);
 
 skip:
+   writeln('[ZISTI_VEC] After skip, mov=', mov, ' vecicka=', vecicka);
    if (not vecicka) and (clr) then begin
     {  noline;}
 	clr:=false;
@@ -1167,12 +1176,23 @@ skip:
 
 {zistuje ci sa tam nachadza zobratelna vec}
    if (vec^[mov].meno[1]='Y') then begin
+	 writeln('[ZISTI_VEC] Y-type object detected, calling use_vec');
 	 use_vec(mov);
+   end;
+
+   {For Z-type objects (pickups), skip all character animation code}
+   if (mov > 0) and (vec^[mov].meno[1]='Z') then begin
+     writeln('[ZISTI_VEC] Z-type object detected, skipping all animation code');
+     exit;
    end;
 
    if (vec^[mov].take=3) and (not the_koniec) then
    begin
-   vypni_charakter(si.x+px,si.y+py,si.buf,ar^);
+   { Only call vypni_charakter if ar is allocated }
+   if ar <> nil then
+     vypni_charakter(si.x+px,si.y+py,si.buf,ar^)
+   else
+     writeln('[USE_VEC] WARNING: ar is nil, skipping vypni_charakter call');
 
    for ff:=1 to nahrane_veci do begin
 	 if (ff<>mov)and(vec^[ff].meno[2]='A') and (vec^[ff].visible) and (vec^[ff].mie=miestnost)
@@ -1215,7 +1235,11 @@ skip:
 		 end;
 	  end;
 	end;
- init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^);
+ { Only call init_charakter if ar is allocated }
+ if ar <> nil then
+   init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^)
+ else
+   writeln('[ZISTI_VEC] WARNING: ar is nil, skipping init_charakter call');
 
    if  najdene and not ok then
 	begin accomplish;
@@ -1556,6 +1580,18 @@ end;
 procedure use_vec(mov:word);    {pouzije vec}
 begin
   case vec^[mov].funk of
+    0:begin 		{PICKUP ITEM - Add score and remove object}
+      writeln('[USE_VEC] funk=0 pickup: idx=', mov, ' meno=', vec^[mov].meno, ' adding score');
+      { Mark object as taken - move it to room 2 (not visible) }
+      vec^[mov].mie := 2;
+      vec^[mov].visible := false;
+      { Add score based on object type (meno[4]) }
+      { Use meno[4] as score value: 'A'=10, 'B'=20, etc. }
+      inc(score, (ord(vec^[mov].meno[4]) - ord('A') + 1) * 10);
+      writeln('[USE_VEC] Score increased to: ', score);
+      { Play pickup sound if available }
+      { In full game: pust(4); for now, skip }
+     end;
     1:begin 		{TELEPORT}
 	  vypni_charakter(si.oldx+px,si.oldy+py,si.buf,ar^);
 	  PUST(2);

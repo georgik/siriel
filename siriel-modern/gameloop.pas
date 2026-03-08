@@ -404,6 +404,7 @@ begin
 
     { Update game state }
       panak_move;
+      writeln('[DEBUG] After panak_move');
       { TODO: padak_check; }
 
       { Update animation }
@@ -411,9 +412,19 @@ begin
       si.oldy := si.y;
       oldpol := poloha;
 
+      writeln('[DEBUG] Before zisti_vec');
       { Check for object collision }
       zisti_vec;
 
+      writeln('[DEBUG] After zisti_vec, mov=', mov);
+      { Auto-pickup for funk=0 items (pickup items) }
+      if (mov > 0) and (vec^[mov].funk = 0) then
+      begin
+        writeln('arcade: Auto-picking up object ', mov);
+        use_vec(mov);
+      end;
+
+      writeln('[DEBUG] After auto-pickup check');
     { Increment frame counter }
     inc(frame_count);
 
@@ -578,6 +589,13 @@ begin
 
     { Check for object collision }
     zisti_vec;
+
+    { Auto-pickup for funk=0 items (pickup items) }
+    if (mov > 0) and (vec^[mov].funk = 0) then
+    begin
+      writeln('maze: Auto-picking up object ', mov);
+      use_vec(mov);
+    end;
 
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);

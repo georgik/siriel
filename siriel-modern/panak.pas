@@ -570,7 +570,14 @@ begin
           if (anim_count = 0) then
             writeln('[CREATURE] Processing object ', f, ' meno=', vec^[f].meno, ' funk=', vec^[f].funk, ' x=', vec^[f].x, ' y=', vec^[f].y);
 
+          if (anim_count = 0) then
+            writeln('[CREATURE] About to enter case for object ', f);
+
           case vec^[f].funk of
+            0: begin
+              { Pickable item - no movement, just static }
+              { Movement handled by collision detection in use_vec }
+            end;
             2: begin
               { Horizontal patrol }
               update_creature_type2(vec^[f]);
