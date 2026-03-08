@@ -43,6 +43,7 @@ implementation
 uses
   jxgraf,
   jxmenu,
+  raylib_helpers,
   load135;
 
 { ========================================
@@ -71,6 +72,9 @@ begin
   repeat
     { Start Raylib rendering frame }
     BeginDrawing();
+
+    { Set target FPS to 60 for consistent game speed }
+    SetTargetFPS(60);
 
     { Check for window close event - respond immediately }
     if WindowShouldClose() <> 0 then
@@ -168,6 +172,18 @@ begin
           begin
             writeln(' (ESC - Quit)');
             restart := ano_nie2('Really quit?');
+          end;
+
+        $5848, $5868:
+          begin
+            writeln(' (F11 - Toggle Fullscreen)');
+            ToggleFullscreen;
+          end;
+
+        $4400:
+          begin
+            writeln(' (F10 - Toggle Fullscreen)');
+            ToggleFullscreen;
           end;
 
         $3f00, 3062:
@@ -404,7 +420,6 @@ begin
 
     { Update game state }
       panak_move;
-      writeln('[DEBUG] After panak_move');
       { TODO: padak_check; }
 
       { Update animation }
@@ -412,19 +427,15 @@ begin
       si.oldy := si.y;
       oldpol := poloha;
 
-      writeln('[DEBUG] Before zisti_vec');
       { Check for object collision }
       zisti_vec;
 
-      writeln('[DEBUG] After zisti_vec, mov=', mov);
       { Auto-pickup for funk=0 items (pickup items) }
       if (mov > 0) and (vec^[mov].funk = 0) then
       begin
-        writeln('arcade: Auto-picking up object ', mov);
         use_vec(mov);
       end;
 
-      writeln('[DEBUG] After auto-pickup check');
     { Increment frame counter }
     inc(frame_count);
 
@@ -551,6 +562,18 @@ begin
           pauza;
         $011b:
           restart := ano_nie2('Really quit?');
+        $5848, $5868:
+          begin
+            writeln(' (F11 - Toggle Fullscreen)');
+            ToggleFullscreen;
+          end;
+
+        $4400:
+          begin
+            writeln(' (F10 - Toggle Fullscreen)');
+            ToggleFullscreen;
+          end;
+
         $1c0d, $3920:
           begin
             { Check for object interaction first }

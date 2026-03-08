@@ -105,7 +105,10 @@ const
 procedure InitWindow(width: cint; height: cint; title: PChar); cdecl; external 'raylib';
 procedure CloseWindow(); cdecl; external 'raylib';
 procedure SetTraceLogLevel(logLevel: cint); cdecl; external 'raylib';
+procedure SetConfigFlags(flags: cuint); cdecl; external 'raylib';
 function WindowShouldClose(): cint; cdecl; external 'raylib';
+function IsWindowFullscreen(): cbool; cdecl; external 'raylib';
+procedure ToggleFullscreen(); cdecl; external 'raylib';
 procedure BeginDrawing(); cdecl; external 'raylib';
 procedure EndDrawing(); cdecl; external 'raylib';
 procedure ClearBackground(r: cuchar; g: cuchar; b: cuchar; a: cuchar); cdecl; external 'raylib';

@@ -406,6 +406,11 @@ begin
   { Initialize screen }
   writeln('[1/6] Initializing screen...');
   init_screen(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+  { Configure window for proper fullscreen support on macOS }
+  { FLAG_WINDOW_RESIZABLE enables the green fullscreen button on macOS }
+  SetConfigFlags(4);  { FLAG_WINDOW_RESIZABLE = 0x00000004 }
+
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, PChar(PROGRAM_NAME + ' - ' + datFile));
   SetTargetFPS(60);
   writeln('  OK - Screen: ', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);

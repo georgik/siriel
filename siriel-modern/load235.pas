@@ -829,7 +829,7 @@ begin
 		   if vec^[l].meno[4]<'A' then vec^[l].mie:=1;
 		   mov_num(sx,vec^[l].take,count);
 		   mov_num(sx,vec^[l].inf1,count);
-		   vec^[l].funk:=0;
+		   vec^[l].funk:=0; { Z-type objects are pickup items }
 		   { Second character determines animation: 'A' = animated, 'N' = not animated }
 		   vec^[l].useanim := (vec^[l].meno[2] = 'A');
 		   vec^[l].visible:=false; { Initialize as invisible, will be set by check_visible }
@@ -1135,58 +1135,46 @@ procedure zisti_vec;
 var vecicka		: boolean;
     counx		: integer;
     sco,nux,ff	: word;
-    najdene,use_lift : boolean;
+    najdene,use_lift, ok : boolean;
     xx,yy         : word;
-label skip;
 begin
-  writeln('[ZISTI_VEC] Starting, nahrane_veci=', nahrane_veci, ' si.x=', si.x, ' si.y=', si.y);
+   ok := false;  { CRITICAL: Initialize local boolean variable }
    najdene:=true;
    vecicka:=false;
    if si.y+py>14 then yy:=si.y+py-14 else yy:=0;
    if si.x+px>14 then xx:=si.x+px-14 else xx:=0;
-   writeln('[ZISTI_VEC] xx=', xx, ' yy=', yy);
+   {Check for collision with objects}
    for f:=1 to nahrane_veci do begin
-     writeln('[ZISTI_VEC] Checking object ', f, ' mie=', vec^[f].mie, ' visible=', vec^[f].visible, ' x=', vec^[f].x, ' y=', vec^[f].y);
 	 if (vec^[f].mie=miestnost) and (si.x+px16 >= vec^[f].x) and (xx <= vec^[f].x)
 	    and (yy <= vec^[f].y) and (si.y+py16 >= vec^[f].y) then begin
-	    writeln('[ZISTI_VEC] COLLISION with object ', f, ' - setting vecicka=true');
 	    vecicka:=true;
-	    writeln('[ZISTI_VEC] vecicka set, now setting clr=true');
 	    clr:=true;
-	    writeln('[ZISTI_VEC] clr set, now setting mov=', f);
 	    mov:=f;
-	    writeln('[ZISTI_VEC] mov set, about to goto skip');
-	    goto skip;
+	    break;  { Exit loop on first collision }
 	 end
 	 else mov:=0;
    end;
-   writeln('[ZISTI_VEC] Loop complete, mov=', mov);
 
-skip:
-   writeln('[ZISTI_VEC] After skip, mov=', mov, ' vecicka=', vecicka);
+   {Handle collision state changes}
    if (not vecicka) and (clr) then begin
-    {  noline;}
 	clr:=false;
 	mov:=0; oldmov:=0;
    end;
-	    if (oldmov<>mov) and (clr)then begin
-		 oldmov:=mov;
-		clr:=false;
-	    end;
+   if (oldmov<>mov) and (clr)then begin
+	 oldmov:=mov;
+	 clr:=false;
+   end;
 
 {zistuje ci sa tam nachadza zobratelna vec}
-   if (vec^[mov].meno[1]='Y') then begin
-	 writeln('[ZISTI_VEC] Y-type object detected, calling use_vec');
+   if (mov > 0) and (vec^[mov].meno[1]='Y') then begin
 	 use_vec(mov);
    end;
 
-   {For Z-type objects (pickups), skip all character animation code}
+   {For Z-type objects (pickups), skip character animation}
    if (mov > 0) and (vec^[mov].meno[1]='Z') then begin
-     writeln('[ZISTI_VEC] Z-type object detected, skipping all animation code');
-     exit;
-   end;
-
-   if (vec^[mov].take=3) and (not the_koniec) then
+     {Skip to completion check}
+   end
+   else if (mov > 0) and (vec^[mov].take=3) and (not the_koniec) then
    begin
    { Only call vypni_charakter if ar is allocated }
    if ar <> nil then
@@ -1218,6 +1206,9 @@ skip:
 	  vypis_skore;
 	  vec^[mov].mie:=2;
 	  mov:=0;
+   end; {End of take=3 character animation block}
+
+	{Check completion status}
 	if not ok then begin
 	  case completer of
 		 0:najdene:=false;
@@ -1242,14 +1233,15 @@ skip:
    writeln('[ZISTI_VEC] WARNING: ar is nil, skipping init_charakter call');
 
    if  najdene and not ok then
-	begin accomplish;
-		ok:=true;
+	begin
+	writeln('[COMPLETION] All objects collected! Showing exit door');
+	accomplish;
+	ok:=true;
 	end
    else
-   pust(1);
- end;
+	   pust(1);
 
-
+ {Check for room transitions/doors}
  for f:=1 to pocet_priechodov do begin {kontorluje priechody}
      if (priechody^[f].mie1=aktual) and (priechody^[f].used) then begin
 	  if (priechody^[f].x1<si.x) and (priechody^[f].x2>si.x) and
@@ -1755,12 +1747,17 @@ end;
 
 procedure accomplish;                 {zobrazi ukoncovac, ak uz su vyzbierane predmety}
 begin
+     writeln('[ACCOMPLISH] All objects collected, showing exit door');
      reload_sound(3,zvukovy_subor,snd_acces);
      for f:=1 to nahrane_veci do
+	 begin
+		 { Exit doors are marked with meno[4]='~' }
 		 if vec^[f].meno[4]='~' then begin
-		    vec^[f].mie:=1;
-		    zobraz_vec(vec^[f]);
-		     end;
+		    writeln('[ACCOMPLISH] Exit door found: idx=', f, ' meno=', vec^[f].meno, ' setting mie=', miestnost, ' visible=TRUE');
+		    vec^[f].mie:=miestnost;  { Make exit door visible in current room }
+		    vec^[f].visible:=true;   { Mark as visible }
+		 end;
+	 end;
      pust(3);
      rewait;
 end;
@@ -2186,12 +2183,22 @@ end;
 
 procedure zobraz_vec(var pr:predmet);
 begin
-   vypni_charakter(si.oldx+px,si.oldy+py,si.buf,ar^);
-    getseg(pr.x,pr.y,16,16,0,pr.zas);
-    putseg2xms(handles[4],pr.x,pr.y,16,16,pr.obr,13);
-   si.oldx:=si.x;
-   si.oldy:=si.y;
-   init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^);
+   writeln('[ZOBRAZ_VEC] Showing object at (', pr.x, ',', pr.y, ')');
+   { Skip character animation in modern port - Raylib handles rendering }
+   { Only mark object as visible, rendering happens automatically }
+   pr.visible:=true;
+   pr.mie:=miestnost;
+   {
+   if ar <> nil then begin
+     vypni_charakter(si.oldx+px,si.oldy+py,si.buf,ar^);
+     getseg(pr.x,pr.y,16,16,0,pr.zas);
+     putseg2xms(handles[4],pr.x,pr.y,16,16,pr.obr,13);
+     si.oldx:=si.x;
+     si.oldy:=si.y;
+     init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^);
+   end else
+     writeln('[ZOBRAZ_VEC] WARNING: ar is nil, skipping character animation');
+   }
 end;
 
 procedure redraw_score;
