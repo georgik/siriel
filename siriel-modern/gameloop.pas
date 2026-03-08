@@ -57,11 +57,19 @@ var
   frame_count: longint;  { For debugging - count rendered frames }
   last_log_time: longint;
   start_time, current_time: longint;
+  game_render: TRaylibRenderTexture2D;  { Render texture for scaling }
+  screen_scale_x, screen_scale_y: single;
+  scale_rect: TRectangle;
 begin
   same := 0;
   frame_count := 0;
   last_log_time := SysUtils.GetTickCount64;
   aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
+
+  { Create render texture at game resolution (640x480) }
+  writeln('arcade: Creating render texture for scaling...');
+  game_render := LoadRenderTexture(640, 480);
+  writeln('arcade: Render texture created successfully');
 
   { Track test mode duration }
   start_time := SysUtils.GetTickCount64;
@@ -183,7 +191,9 @@ begin
         $4400:
           begin
             writeln(' (F10 - Toggle Fullscreen)');
+            writeln(' Before: ', GetScreenWidth(), 'x', GetScreenHeight());
             ToggleFullscreen;
+            writeln(' After: ', GetScreenWidth(), 'x', GetScreenHeight());
           end;
 
         $3f00, 3062:
@@ -448,6 +458,12 @@ begin
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
 
+    { Render game to texture first (for scaling) }
+    BeginTextureMode(game_render);
+
+    { Clear background of render texture }
+    raylib_helpers.ClearBackground(0, 0, 0, 255);
+
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
 
@@ -467,9 +483,47 @@ begin
     if not load235.map_tiles_loaded then
       RenderScreenToWindow();
 
+    EndTextureMode();
+
+    { Calculate scaled rectangle to fit window while maintaining aspect ratio }
+    { Get current window size }
+    screen_scale_x := GetScreenWidth() / 640.0;
+    screen_scale_y := GetScreenHeight() / 480.0;
+
+    { Use the smaller scale to fit entirely within the window }
+    if screen_scale_x < screen_scale_y then
+      screen_scale_y := screen_scale_x
+    else
+      screen_scale_x := screen_scale_y;
+
+    { Calculate centered position }
+    scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+    scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+    scale_rect.width := Trunc(640 * screen_scale_x);
+    scale_rect.height := Trunc(480 * screen_scale_y);
+
+    { Debug: Log window size and scale every 60 frames (1 second) }
+    if (frame_count mod 60) = 0 then
+    begin
+      writeln('arcade: Window size: ', GetScreenWidth(), 'x', GetScreenHeight());
+      writeln('arcade: Scale factors: x=', screen_scale_x:0:2, ' y=', screen_scale_y:0:2);
+      writeln('arcade: Dest rect: x=', scale_rect.x:0:0, ' y=', scale_rect.y:0:0, ' w=', scale_rect.width:0:0, ' h=', scale_rect.height:0:0);
+    end;
+
+    { Draw the scaled texture (pixelated filtering) }
+    { Source rectangle (entire texture) - negative height to flip render texture }
+    DrawTexturePro(game_render.texture,
+                   RectangleCreate(0, 0, 640, -480),  { Negative height to flip upside-down render texture }
+                   scale_rect,
+                   Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
     EndDrawing();
 
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
+
+  { Cleanup render texture }
+  UnloadRenderTexture(game_render);
+  writeln('arcade: Render texture unloaded');
 end;
 
 { ========================================
@@ -479,10 +533,20 @@ end;
 procedure maze;
 var
   movx, movy, mova, mavb: word;
+  game_render: TRaylibRenderTexture2D;  { Render texture for scaling }
+  screen_scale_x, screen_scale_y: single;
+  scale_rect: TRectangle;
+  frame_count: longint;  { For debugging }
 begin
   new(bl);
   ds := 0;
+  frame_count := 0;
   aktiv35.animation_frame_counter := 0;  { Initialize animation slowdown counter }
+
+  { Create render texture at game resolution (640x480) }
+  writeln('maze: Creating render texture for scaling...');
+  game_render := LoadRenderTexture(640, 480);
+  writeln('maze: Render texture created successfully');
 
   { Initialize pathfinding array }
   for f := 0 to mie_x do
@@ -495,6 +559,7 @@ begin
   repeat
     { Start Raylib rendering frame }
     BeginDrawing();
+    inc(frame_count);
 
     { Check for window close event - respond immediately }
     if WindowShouldClose() <> 0 then
@@ -571,7 +636,9 @@ begin
         $4400:
           begin
             writeln(' (F10 - Toggle Fullscreen)');
+            writeln(' Before: ', GetScreenWidth(), 'x', GetScreenHeight());
             ToggleFullscreen;
+            writeln(' After: ', GetScreenWidth(), 'x', GetScreenHeight());
           end;
 
         $1c0d, $3920:
@@ -623,6 +690,12 @@ begin
     { Render to screen - Raylib requires this }
     ClearBackground(0, 0, 0, 255);
 
+    { Render game to texture first (for scaling) }
+    BeginTextureMode(game_render);
+
+    { Clear background of render texture }
+    raylib_helpers.ClearBackground(0, 0, 0, 255);
+
     { Render map tiles using GPU textures (if available) }
     load235.RenderMapTiles();
 
@@ -641,9 +714,43 @@ begin
     if not load235.map_tiles_loaded then
       RenderScreenToWindow();
 
+    EndTextureMode();
+
+    { Calculate scaled rectangle to fit window while maintaining aspect ratio }
+    { Get current window size }
+    screen_scale_x := GetScreenWidth() / 640.0;
+    screen_scale_y := GetScreenHeight() / 480.0;
+
+    { Debug: Log window size every 60 frames (1 second) }
+    if (frame_count mod 60) = 0 then
+      writeln('maze: Window size: ', GetScreenWidth(), 'x', GetScreenHeight(), ' scale: ', screen_scale_x:0:2, 'x', screen_scale_y:0:2);
+
+    { Use the smaller scale to fit entirely within the window }
+    if screen_scale_x < screen_scale_y then
+      screen_scale_y := screen_scale_x
+    else
+      screen_scale_x := screen_scale_y;
+
+    { Calculate centered position }
+    scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+    scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+    scale_rect.width := Trunc(640 * screen_scale_x);
+    scale_rect.height := Trunc(480 * screen_scale_y);
+
+    { Draw the scaled texture (pixelated filtering) }
+    { Source rectangle (entire texture) - negative height to flip render texture }
+    DrawTexturePro(game_render.texture,
+                   RectangleCreate(0, 0, 640, -480),  { Negative height to flip upside-down render texture }
+                   scale_rect,
+                   Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
     EndDrawing();
 
   until (the_koniec) or (restart) or (sace) or (WindowShouldClose() <> 0);
+
+  { Cleanup render texture }
+  UnloadRenderTexture(game_render);
+  writeln('maze: Render texture unloaded');
 
   dispose(bl);
   bl := nil;

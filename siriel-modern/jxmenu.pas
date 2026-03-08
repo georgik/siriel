@@ -608,12 +608,18 @@ var
   current_time: uint64;
   last_key_time: uint64;
   key_repeat_delay: uint64;
+  menu_render: TRaylibRenderTexture2D;  { Render texture for scaling }
+  screen_scale_x, screen_scale_y: single;
+  scale_rect: TRectangle;
 begin
   if menx.pocet > 0 then
   begin
     { Draw menu if not already drawn }
     if not menx.draw_menu then
       draw_jxmenu(menx);
+
+    { Create render texture at game resolution (640x480) }
+    menu_render := LoadRenderTexture(640, 480);
 
     f := menx.first;
     menu_done := False;
@@ -681,13 +687,39 @@ begin
           UpdateAvatar;
           BeginDrawing();
           ClearBackground(0, 0, 0, 255);
-          if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
-            RenderMenuFrame(menx.x, menx.y,
-                           (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
-                           (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
-          normal_jxmenu_all(menx);
-          hi_jxmenu(f, menx);
-          RenderScreenToWindow();
+
+          { Render to texture for scaling }
+          BeginTextureMode(menu_render);
+            raylib_helpers.ClearBackground(0, 0, 0, 255);
+            if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+              RenderMenuFrame(menx.x, menx.y,
+                             (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                             (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+            normal_jxmenu_all(menx);
+            hi_jxmenu(f, menx);
+            RenderScreenToWindow();
+          EndTextureMode();
+
+          { Calculate scaled rectangle }
+          screen_scale_x := GetScreenWidth() / 640.0;
+          screen_scale_y := GetScreenHeight() / 480.0;
+
+          if screen_scale_x < screen_scale_y then
+            screen_scale_y := screen_scale_x
+          else
+            screen_scale_x := screen_scale_y;
+
+          scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+          scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+          scale_rect.width := Trunc(640 * screen_scale_x);
+          scale_rect.height := Trunc(480 * screen_scale_y);
+
+          { Draw scaled texture (flipped) }
+          DrawTexturePro(menu_render.texture,
+                         RectangleCreate(0, 0, 640, -480),
+                         scale_rect,
+                         Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
           EndDrawing();
           Sleep(16);
         until (IsKeyDown(KEY_ENTER) = 0) and (IsKeyDown(KEY_SPACE) = 0);
@@ -703,13 +735,39 @@ begin
           UpdateAvatar;
           BeginDrawing();
           ClearBackground(0, 0, 0, 255);
-          if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
-            RenderMenuFrame(menx.x, menx.y,
-                           (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
-                           (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
-          normal_jxmenu_all(menx);
-          hi_jxmenu(f, menx);
-          RenderScreenToWindow();
+
+          { Render to texture for scaling }
+          BeginTextureMode(menu_render);
+            raylib_helpers.ClearBackground(0, 0, 0, 255);
+            if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+              RenderMenuFrame(menx.x, menx.y,
+                             (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                             (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+            normal_jxmenu_all(menx);
+            hi_jxmenu(f, menx);
+            RenderScreenToWindow();
+          EndTextureMode();
+
+          { Calculate scaled rectangle }
+          screen_scale_x := GetScreenWidth() / 640.0;
+          screen_scale_y := GetScreenHeight() / 480.0;
+
+          if screen_scale_x < screen_scale_y then
+            screen_scale_y := screen_scale_x
+          else
+            screen_scale_x := screen_scale_y;
+
+          scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+          scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+          scale_rect.width := Trunc(640 * screen_scale_x);
+          scale_rect.height := Trunc(480 * screen_scale_y);
+
+          { Draw scaled texture (flipped) }
+          DrawTexturePro(menu_render.texture,
+                         RectangleCreate(0, 0, 640, -480),
+                         scale_rect,
+                         Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
           EndDrawing();
           Sleep(16);
         until IsKeyDown(KEY_ESCAPE) = 0;
@@ -722,23 +780,50 @@ begin
       BeginDrawing();
       ClearBackground(0, 0, 0, 255);
 
-      { 1. Draw decoration: fill color first, then all tiles (corners and edges) }
-      if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
-      begin
-        RenderMenuFrame(menx.x, menx.y,
-                       (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
-                       (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
-      end;
+      { Render menu to texture first (for scaling) }
+      BeginTextureMode(menu_render);
+        raylib_helpers.ClearBackground(0, 0, 0, 255);
 
-      { 2. Write menu text to screen_image (on CPU side) }
-      normal_jxmenu_all(menx);
+        { 1. Draw decoration: fill color first, then all tiles (corners and edges) }
+        if glist_loaded and (menx.x1 > 0) and (menx.y1 > 0) then
+        begin
+          RenderMenuFrame(menx.x, menx.y,
+                         (menx.x1 + TILE_SIZE - 1) div TILE_SIZE,
+                         (menx.y1 + TILE_SIZE - 1) div TILE_SIZE);
+        end;
 
-      { 2.5. Highlight current selection (draws avatar and redraws selected item in correct color) }
-      { MUST be after normal_jxmenu_all so it overwrites the white text with black }
-      hi_jxmenu(f, menx);
+        { 2. Write menu text to screen_image (on CPU side) }
+        normal_jxmenu_all(menx);
 
-      { 3. Render screen_image (which now has text on top) to window/GPU }
-      RenderScreenToWindow();
+        { 2.5. Highlight current selection (draws avatar and redraws selected item in correct color) }
+        { MUST be after normal_jxmenu_all so it overwrites the white text with black }
+        hi_jxmenu(f, menx);
+
+        { 3. Render screen_image (which now has text on top) to window/GPU }
+        RenderScreenToWindow();
+      EndTextureMode();
+
+      { Calculate scaled rectangle to fit window while maintaining aspect ratio }
+      screen_scale_x := GetScreenWidth() / 640.0;
+      screen_scale_y := GetScreenHeight() / 480.0;
+
+      { Use the smaller scale to fit entirely within the window }
+      if screen_scale_x < screen_scale_y then
+        screen_scale_y := screen_scale_x
+      else
+        screen_scale_x := screen_scale_y;
+
+      { Calculate centered position }
+      scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+      scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+      scale_rect.width := Trunc(640 * screen_scale_x);
+      scale_rect.height := Trunc(480 * screen_scale_y);
+
+      { Draw the scaled texture (flipped vertically) }
+      DrawTexturePro(menu_render.texture,
+                     RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                     scale_rect,
+                     Vector2Create(0, 0), 0.0, $FFFFFFFF);
 
       EndDrawing();
 
@@ -748,6 +833,9 @@ begin
     vyber := f;
     menx.vybrane := f;
     menx.draw_menu := False;
+
+    { Cleanup render texture }
+    UnloadRenderTexture(menu_render);
   end
   else
     vyber := 0;

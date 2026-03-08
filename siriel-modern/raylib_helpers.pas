@@ -30,6 +30,13 @@ type
     format: cint;
   end;
 
+  PRaylibRenderTexture2D = ^TRaylibRenderTexture2D;
+  TRaylibRenderTexture2D = record
+    id: cuint;
+    texture: TRaylibTexture2D;
+    depth: TRaylibTexture2D;
+  end;
+
   TRectangle = record
     x: cfloat;
     y: cfloat;
@@ -107,6 +114,8 @@ procedure CloseWindow(); cdecl; external 'raylib';
 procedure SetTraceLogLevel(logLevel: cint); cdecl; external 'raylib';
 procedure SetConfigFlags(flags: cuint); cdecl; external 'raylib';
 function WindowShouldClose(): cint; cdecl; external 'raylib';
+function GetScreenWidth(): cint; cdecl; external 'raylib';
+function GetScreenHeight(): cint; cdecl; external 'raylib';
 function IsWindowFullscreen(): cbool; cdecl; external 'raylib';
 procedure ToggleFullscreen(); cdecl; external 'raylib';
 procedure BeginDrawing(); cdecl; external 'raylib';
@@ -137,8 +146,18 @@ procedure ImageDrawCircle(img: PRaylibImage; x: cint; y: cint; radius: cint; col
 { Texture functions }
 function LoadTextureFromImage(image: TRaylibImage): TRaylibTexture2D; cdecl; external 'raylib';
 procedure UnloadTexture(texture: TRaylibTexture2D); cdecl; external 'raylib';
-procedure DrawTexture(texture: TRaylibTexture2D; x: cint; y: cint; tint: cuint); cdecl; external 'raylib';
-procedure DrawTextureRec(texture: TRaylibTexture2D; srcRec: TRectangle; pos: TVector2; tint: cuint); cdecl; external 'raylib';
+
+{ Render texture functions }
+function LoadRenderTexture(width: cint; height: cint): TRaylibRenderTexture2D; cdecl; external 'raylib';
+procedure UnloadRenderTexture(target: TRaylibRenderTexture2D); cdecl; external 'raylib';
+procedure BeginTextureMode(target: TRaylibRenderTexture2D); cdecl; external 'raylib';
+procedure EndTextureMode(); cdecl; external 'raylib';
+
+{ Texture drawing functions }
+procedure DrawTexture(texture: TRaylibTexture2D; x: cint; y: cint; color: cuint); cdecl; external 'raylib';
+procedure DrawTextureRec(texture: TRaylibTexture2D; source: TRectangle; position: TVector2; color: cuint); cdecl; external 'raylib';
+procedure DrawTexturePro(texture: TRaylibTexture2D; source: TRectangle; dest: TRectangle; origin: TVector2; rotation: cfloat; color: cuint); cdecl; external 'raylib';
+procedure DrawTextureVRec(texture: TRaylibTexture2D; source: TRectangle; dest: TRectangle; color: cuint); cdecl; external 'raylib';
 
 { Image data manipulation }
 function LoadImagePro(data: pointer; width: cint; height: cint; format: cint): TRaylibImage; cdecl; external 'raylib';
@@ -169,6 +188,25 @@ function IsSoundPlaying(sound: TRaylibSound): cint; cdecl; external 'raylib';
 procedure SetSoundVolume(sound: TRaylibSound; volume: cfloat); cdecl; external 'raylib';
 procedure SetSoundPitch(sound: TRaylibSound; pitch: cfloat); cdecl; external 'raylib';
 
+{ Helper functions for creating Raylib structures }
+function Vector2Create(x: cfloat; y: cfloat): TVector2; inline;
+function RectangleCreate(x: cfloat; y: cfloat; width: cfloat; height: cfloat): TRectangle; inline;
+
 implementation
+
+{ Helper functions for creating Raylib structures }
+function Vector2Create(x: cfloat; y: cfloat): TVector2;
+begin
+  Vector2Create.x := x;
+  Vector2Create.y := y;
+end;
+
+function RectangleCreate(x: cfloat; y: cfloat; width: cfloat; height: cfloat): TRectangle;
+begin
+  RectangleCreate.x := x;
+  RectangleCreate.y := y;
+  RectangleCreate.width := width;
+  RectangleCreate.height := height;
+end;
 
 end.

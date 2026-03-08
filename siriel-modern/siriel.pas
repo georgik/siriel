@@ -51,6 +51,7 @@ var
   selectedDAT: string;
   cli_level_file: string;  { Level file specified via --level-file }
   cli_level_select: boolean;  { Jump directly to level selection }
+  fullscreen_mode: boolean;  { Start in fullscreen mode }
   currentLevel: integer;
   gameRunning: boolean;
   test_mode: boolean;
@@ -147,6 +148,7 @@ begin
   writeln('  --level-file FILE.MIE    Load specific level file');
   writeln('  --level-select           Jump directly to level selection menu');
   writeln('  --dat FILE.DAT           Use specific DAT file');
+  writeln('  --fullscreen             Start in fullscreen mode');
   writeln('');
   writeln('Test Mode Options:');
   writeln('  --duration SECONDS       Run in test mode for N seconds');
@@ -158,6 +160,7 @@ begin
   writeln('');
   writeln('Examples:');
   writeln('  ', ParamStr(0), ' --level-file 1.MIE');
+  writeln('  ', ParamStr(0), ' --fullscreen --duration 60 --level-file 2.MIE');
   writeln('  ', ParamStr(0), ' --duration 10 --screenshot test.png');
   writeln('  ', ParamStr(0), ' --duration 5 --level-file 2.MIE --screenshot demo.png');
   writeln('  ', ParamStr(0), ' --dat MAIN.DAT --level-file 1.MIE --duration 15');
@@ -186,6 +189,7 @@ begin
   has_duration := False;
   has_level_file := False;
   cli_level_select := False;
+  fullscreen_mode := False;
 
   i := 1;
   while i <= ParamCount do
@@ -299,6 +303,12 @@ begin
           Halt(1);
         end;
       end;
+    end
+    { Handle --fullscreen }
+    else if param = '--fullscreen' then
+    begin
+      fullscreen_mode := True;
+      writeln('CLI: Fullscreen mode enabled');
     end
     { Handle --level-select }
     else if param = '--level-select' then
@@ -415,6 +425,16 @@ begin
   SetTargetFPS(60);
   writeln('  OK - Screen: ', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);
 
+  { Enable fullscreen mode if requested via CLI }
+  if fullscreen_mode then
+  begin
+    writeln('  Enabling fullscreen mode...');
+    writeln('  Before: Window size = ', GetScreenWidth(), 'x', GetScreenHeight());
+    ToggleFullscreen();
+    writeln('  After: Window size = ', GetScreenWidth(), 'x', GetScreenHeight());
+    writeln('  OK - Fullscreen enabled');
+  end;
+
   { Initialize VGA palette - CRITICAL for correct colors }
   writeln('[1/6] Initializing VGA palette...');
   jxgraf.fill_palette_default;
@@ -511,6 +531,9 @@ var
   last_key_time: uint64;
   key_repeat_delay: uint64;
   time_limit_ms: uint64;
+  menu_render: TRaylibRenderTexture2D;  { Render texture for scaling }
+  screen_scale_x, screen_scale_y: single;
+  scale_rect: TRectangle;
 begin
   Result := 0;
 
@@ -527,6 +550,11 @@ begin
     writeln('[Menu] WARNING - GTREEP not found, using black background');
     clear_bitmap(screen_image);
   end;
+
+  { Create render texture at game resolution (640x480) }
+  writeln('[Menu] Creating render texture for scaling...');
+  menu_render := LoadRenderTexture(640, 480);
+  writeln('[Menu] Render texture created successfully');
 
   { Load GLOGO (logo) - from MAIN.DAT (shared assets across all datadisks) }
   writeln('[Menu] Loading GLOGO (Siriel 3.5 logo) from MAIN.DAT...');
@@ -569,7 +597,33 @@ begin
   { Render background to window first }
   BeginDrawing();
   ClearBackground(0, 0, 0, 255);
-  RenderScreenToWindow();
+
+  { Render to texture for scaling }
+  BeginTextureMode(menu_render);
+    raylib_helpers.ClearBackground(0, 0, 0, 255);
+    RenderScreenToWindow();
+  EndTextureMode();
+
+  { Calculate scaled rectangle }
+  screen_scale_x := GetScreenWidth() / 640.0;
+  screen_scale_y := GetScreenHeight() / 480.0;
+
+  if screen_scale_x < screen_scale_y then
+    screen_scale_y := screen_scale_x
+  else
+    screen_scale_x := screen_scale_y;
+
+  scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+  scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+  scale_rect.width := Trunc(640 * screen_scale_x);
+  scale_rect.height := Trunc(480 * screen_scale_y);
+
+  { Draw the scaled texture (flipped vertically because render textures are upside down) }
+  DrawTexturePro(menu_render.texture,
+                 RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                 scale_rect,
+                 Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
   EndDrawing();
 
   { Draw menu decorations OVER the background - using original frame size }
@@ -600,7 +654,33 @@ begin
   { Render to window with initial highlight }
   BeginDrawing();
   ClearBackground(0, 0, 0, 255);
-  RenderScreenToWindow();
+
+  { Render to texture for scaling }
+  BeginTextureMode(menu_render);
+    raylib_helpers.ClearBackground(0, 0, 0, 255);
+    RenderScreenToWindow();
+  EndTextureMode();
+
+  { Calculate scaled rectangle }
+  screen_scale_x := GetScreenWidth() / 640.0;
+  screen_scale_y := GetScreenHeight() / 480.0;
+
+  if screen_scale_x < screen_scale_y then
+    screen_scale_y := screen_scale_x
+  else
+    screen_scale_x := screen_scale_y;
+
+  scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+  scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+  scale_rect.width := Trunc(640 * screen_scale_x);
+  scale_rect.height := Trunc(480 * screen_scale_y);
+
+  { Draw the scaled texture (flipped vertically because render textures are upside down) }
+  DrawTexturePro(menu_render.texture,
+                 RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                 scale_rect,
+                 Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
   EndDrawing();
 
   { Initialize debouncing for menu navigation }
@@ -636,7 +716,33 @@ begin
           { Render final frame }
           BeginDrawing();
           ClearBackground(0, 0, 0, 255);
-          RenderScreenToWindow();
+
+          { Render to texture for scaling }
+          BeginTextureMode(menu_render);
+            raylib_helpers.ClearBackground(0, 0, 0, 255);
+            RenderScreenToWindow();
+          EndTextureMode();
+
+          { Calculate scaled rectangle }
+          screen_scale_x := GetScreenWidth() / 640.0;
+          screen_scale_y := GetScreenHeight() / 480.0;
+
+          if screen_scale_x < screen_scale_y then
+            screen_scale_y := screen_scale_x
+          else
+            screen_scale_x := screen_scale_y;
+
+          scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+          scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+          scale_rect.width := Trunc(640 * screen_scale_x);
+          scale_rect.height := Trunc(480 * screen_scale_y);
+
+          { Draw the scaled texture (flipped) }
+          DrawTexturePro(menu_render.texture,
+                         RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                         scale_rect,
+                         Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
           EndDrawing();
           { Take screenshot }
           TakeScreenshot(PChar(screenshot_file));
@@ -702,8 +808,34 @@ begin
       repeat
         BeginDrawing();
         ClearBackground(0, 0, 0, 255);
-        RenderScreenToWindow();
-        jxmenu.RenderAvatar;
+
+        { Render to texture for scaling }
+        BeginTextureMode(menu_render);
+          raylib_helpers.ClearBackground(0, 0, 0, 255);
+          RenderScreenToWindow();
+          jxmenu.RenderAvatar;
+        EndTextureMode();
+
+        { Calculate scaled rectangle }
+        screen_scale_x := GetScreenWidth() / 640.0;
+        screen_scale_y := GetScreenHeight() / 480.0;
+
+        if screen_scale_x < screen_scale_y then
+          screen_scale_y := screen_scale_x
+        else
+          screen_scale_x := screen_scale_y;
+
+        scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+        scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+        scale_rect.width := Trunc(640 * screen_scale_x);
+        scale_rect.height := Trunc(480 * screen_scale_y);
+
+        { Draw the scaled texture (flipped) }
+        DrawTexturePro(menu_render.texture,
+                       RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                       scale_rect,
+                       Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
         EndDrawing();
         Sleep(16);
       until (geo.IsKeyDown(geo.KEY_ENTER) = 0) and (geo.IsKeyDown(geo.KEY_SPACE) = 0);
@@ -720,8 +852,34 @@ begin
       repeat
         BeginDrawing();
         ClearBackground(0, 0, 0, 255);
-        RenderScreenToWindow();
-        jxmenu.RenderAvatar;
+
+        { Render to texture for scaling }
+        BeginTextureMode(menu_render);
+          raylib_helpers.ClearBackground(0, 0, 0, 255);
+          RenderScreenToWindow();
+          jxmenu.RenderAvatar;
+        EndTextureMode();
+
+        { Calculate scaled rectangle }
+        screen_scale_x := GetScreenWidth() / 640.0;
+        screen_scale_y := GetScreenHeight() / 480.0;
+
+        if screen_scale_x < screen_scale_y then
+          screen_scale_y := screen_scale_x
+        else
+          screen_scale_x := screen_scale_y;
+
+        scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+        scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+        scale_rect.width := Trunc(640 * screen_scale_x);
+        scale_rect.height := Trunc(480 * screen_scale_y);
+
+        { Draw the scaled texture (flipped) }
+        DrawTexturePro(menu_render.texture,
+                       RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                       scale_rect,
+                       Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
         EndDrawing();
         Sleep(16);
       until geo.IsKeyDown(geo.KEY_ESCAPE) = 0;
@@ -730,8 +888,36 @@ begin
     { Render to window every frame }
     BeginDrawing();
     ClearBackground(0, 0, 0, 255);
-    RenderScreenToWindow();
-    jxmenu.RenderAvatar;  { Draw avatar on GPU after menu }
+
+    { Render menu to texture first (for scaling) }
+    BeginTextureMode(menu_render);
+      raylib_helpers.ClearBackground(0, 0, 0, 255);
+      RenderScreenToWindow();
+      jxmenu.RenderAvatar;  { Draw avatar on GPU after menu }
+    EndTextureMode();
+
+    { Calculate scaled rectangle to fit window while maintaining aspect ratio }
+    screen_scale_x := GetScreenWidth() / 640.0;
+    screen_scale_y := GetScreenHeight() / 480.0;
+
+    { Use the smaller scale to fit entirely within the window }
+    if screen_scale_x < screen_scale_y then
+      screen_scale_y := screen_scale_x
+    else
+      screen_scale_x := screen_scale_y;
+
+    { Calculate centered position }
+    scale_rect.x := (GetScreenWidth() - Trunc(640 * screen_scale_x)) div 2;
+    scale_rect.y := (GetScreenHeight() - Trunc(480 * screen_scale_y)) div 2;
+    scale_rect.width := Trunc(640 * screen_scale_x);
+    scale_rect.height := Trunc(480 * screen_scale_y);
+
+    { Draw the scaled texture (flipped) }
+    DrawTexturePro(menu_render.texture,
+                   RectangleCreate(0, 0, 640, -480),  { Negative height to flip }
+                   scale_rect,
+                   Vector2Create(0, 0), 0.0, $FFFFFFFF);
+
     EndDrawing();
 
     { Small delay to prevent CPU spin }
@@ -739,6 +925,8 @@ begin
   until menu_done;
 
   { Cleanup }
+  UnloadRenderTexture(menu_render);
+  writeln('[Menu] Render texture unloaded');
   dispose(menu);
 
   { Map choice to return value }
