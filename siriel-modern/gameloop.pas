@@ -51,6 +51,67 @@ const
   GAME_HEIGHT = 480;   { Original game resolution height }
 
 { ========================================
+   PARACHUTE - EXACT PORT from GAME.INC lines 18-53
+   ======================================== }
+
+procedure padak_init;
+{ Initialize parachute sprite above avatar }
+begin
+  { Frames 36-39 are parachute animation frames }
+  { Position: si.x+2, si.y-14 (above avatar) }
+  { In Raylib version, this will be handled in rendering }
+  writeln('[PARACHUTE] Initializing parachute at pos ', si.x + 2, ', ', si.y - 14);
+end;
+
+procedure padak_done;
+{ Hide parachute when avatar stops falling }
+begin
+  writeln('[PARACHUTE] Hiding parachute');
+  { Reset to standing animation }
+  { In Raylib version, this will be handled in rendering }
+end;
+
+procedure padak(num: word);
+{ Animate parachute - num is frame offset (1 or 2) }
+begin
+  { Displays parachute frame 36+num (37 or 38) }
+  { In Raylib version, this will be handled in rendering }
+  { writeln('[PARACHUTE] Showing parachute frame ', 36 + num); }
+end;
+
+procedure padak_check;
+{ Check if avatar is falling and show/hide parachute }
+begin
+  if si.y > si.oldy then
+  begin
+    { Avatar is falling }
+    if pad_pol < 20 then
+    begin
+      inc(pad_pol);
+      case pad_pol of
+        19: padak_init;
+        20: padak(1);
+      end;
+    end
+    else
+    begin
+      { After 20 frames of falling, show full parachute }
+      padak(2);
+    end;
+  end
+  else
+  begin
+    { Avatar is not falling }
+    if pad_pol > 0 then
+    begin
+      if pad_pol > 18 then
+        padak_done;
+      pad_pol := 0;
+    end;
+  end;
+end;
+
+{ ========================================
    EXACT PORT from GAME.INC lines 78-222
    ======================================== }
 
@@ -210,16 +271,27 @@ begin
           begin
             { Show which arrow key was pressed }
             case k of
-              $4800: writeln(' (Arrow Up)');
+              $4800:
+                if st.stav = 1 then
+                  writeln(' (Arrow Up - JUMP in arcade mode)')
+                else
+                  writeln(' (Arrow Up - move up in maze mode)');
               $4b00: writeln(' (Arrow Left)');
               $4d00: writeln(' (Arrow Right)');
-              $5000: writeln(' (Arrow Down)');
+              $5000:
+                if st.stav = 1 then
+                  writeln(' (Arrow Down - ignored in arcade mode, gravity handles falling)')
+                else
+                  writeln(' (Arrow Down - move down in maze mode)');
               $4700: writeln(' (Home)');
               $4900: writeln(' (Page Up)');
               $5100: writeln(' (Page Down)');
               $4f00: writeln(' (End)');
             end;
-            k2 := k;
+            { In arcade mode, don't pass DOWN arrow to movement logic }
+            { In maze mode, all arrow keys work normally }
+            if (st.stav <> 1) or (k <> $5000) then
+              k2 := k;
           end;
 
         else
@@ -261,16 +333,30 @@ begin
     { Use Raylib's native IsKeyDown() for continuous movement detection }
     { This is simpler and more reliable than the zmack() system }
 
-    { Left/Right movement - use continuous state }
+    { Left/Right movement - use continuous state (both modes) }
     if IsKeyDown(KEY_LEFT) <> 0 then
       k := $4b00;
 
     if IsKeyDown(KEY_RIGHT) <> 0 then
       k := $4d00;
 
-    { Down arrow - also use continuous state }
-    if IsKeyDown(KEY_DOWN) <> 0 then
-      k := $5000;
+    { UP/DOWN handling - DIFFERENT for arcade vs maze mode }
+    if st.stav = 1 then
+    begin
+      { ARCADE MODE (platformer): UP = jump, DOWN = ignored }
+      { UP arrow is handled by jump logic below }
+      { DOWN arrow is ignored - gravity handles falling }
+      { No additional key processing needed here }
+    end
+    else
+    begin
+      { MAZE MODE (top-down): UP/DOWN move in those directions }
+      if IsKeyDown(KEY_UP) <> 0 then
+        k := $4800;
+
+      if IsKeyDown(KEY_DOWN) <> 0 then
+        k := $5000;
+    end;
 
     if zmack(60) then
       k := $3c00;
@@ -278,10 +364,23 @@ begin
     if zmack(61) then
       k := $3d00;
 
-    if k > 0 then
-      sipka_fake(k, si.x, si.y);
+    { Process movement keys - DIFFERENT for arcade vs maze mode }
+    if st.stav = 1 then
+    begin
+      { ARCADE MODE: Only LEFT/RIGHT movement }
+      { UP triggers jump (handled below), DOWN is ignored }
+      if (k = $4b00) or (k = $4d00) then
+        sipka_fake(k, si.x, si.y);
+    end
+    else
+    begin
+      { MAZE MODE: All 4 directions work }
+      if (k = $4800) or (k = $4b00) or (k = $4d00) or (k = $5000) then
+        sipka_fake(k, si.x, si.y);
+    end;
 
-    if (zmack(72)) and (rollup = 0) and (not rolldown) then
+    { Jump handling - ONLY for arcade mode }
+    if (st.stav = 1) and ((zmack(72)) or (IsKeyDown(KEY_UP) <> 0)) and (rollup = 0) and (not rolldown) then
     begin
       rollup := rolling;
 
@@ -345,25 +444,7 @@ begin
       else
         same := 0;
 
-      { Gravity check }
-      if (po(si.x, si.y)) then
-        truth := true
-      else
-        truth := false;
-
-      if (truth) and (rollup < gravity - 5) and (not lifting) then
-      begin
-        sipka_fake($5000, si.x, si.y);
-      end;
-
-      if (po(si.x, si.y)) then
-        rolldown := true
-      else
-        rolldown := false;
-
-      if (not rolldown) then
-        sipka_fake($4800, si.x, si.y);
-
+      { Diagonal jumping - if jumping and no key pressed, continue diagonal }
       if (rollup > 0) and (k = 0) then
         case oldkey of
           5:
@@ -372,12 +453,14 @@ begin
             sipka_fake($4d00, si.x, si.y);
         end;
 
+      { Collision detection above - push away from walls }
       if (not po3(si.x - 5, si.y - 12)) then
         sipka_fake($4d00, si.x, si.y);
 
       if (not po3(si.x + 6, si.y - 12)) then
         sipka_fake($4b00, si.x, si.y);
 
+      { Auto-jump when walking off platforms }
       if (rollup = 0) and ((not truth) or (not rolldown))
         and ((k = $4800) or (k = $4b34) or (k = $4d36)) then
       begin
@@ -389,7 +472,38 @@ begin
         pom := 4;
         key_swap(72, false);
       end;
-    end;  { End of jump handling block started at line 180 }
+    end;  { End of jump handling block started at line 284 }
+
+    { ========================================
+       GRAVITY - EXACT PORT from GAME.INC lines 178-189
+       This must be OUTSIDE the jump handling block!
+       ======================================== }
+
+    { Check if avatar is on solid ground }
+    if (po(si.x, si.y)) then
+      truth := true
+    else
+      truth := false;
+
+    { If not on ground and not jumping high enough, fall down }
+    if (truth) and (rollup < gravity - 5) and (not lifting) then
+    begin
+      sipka_fake($5000, si.x, si.y);
+    end;
+
+    { Update rolldown flag }
+    if (po(si.x, si.y)) then
+      rolldown := true
+    else
+      rolldown := false;
+
+    { If not falling down, move up (hover/jump) }
+    if (not rolldown) then
+      sipka_fake($4800, si.x, si.y);
+
+    { ========================================
+       END GRAVITY SECTION
+       ======================================== }
 
     { Ground movement animation - handle left/right when not jumping }
     if rollup = 0 then
@@ -434,7 +548,7 @@ begin
 
     { Update game state }
       panak_move;
-      { TODO: padak_check; }
+      padak_check;  { Check if parachute should be shown }
 
       { Update animation }
       si.oldx := si.x;

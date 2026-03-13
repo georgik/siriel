@@ -24,6 +24,7 @@ procedure noline2;
 procedure print_texture;
 procedure RenderMapTiles;  { Render map tiles using Raylib GPU textures - called after ClearBackground }
 procedure LoadObjectTextures;  { Load object sprites from VECI resource }
+procedure LoadCollisionTilesWithName(tile_name: string);  { Load GZAL tiles into CPU array for collision detection }
 procedure DrawObject(idx: word; frame_counter: longint);  { Draw single object }
 procedure DrawAllObjects(frame_counter: longint);  { Draw all objects in current room }
 
@@ -1272,9 +1273,90 @@ begin
  end;
 end;
 
+{ ========================================
+   LOAD GZAL TILES INTO CPU ARRAY FOR COLLISION DETECTION
+   This loads the GZAL spritesheet and extracts each 16x16 tile
+   into the te array for pixel-perfect collision detection
+   ======================================== }
+procedure LoadCollisionTilesWithName(tile_name: string);
+var
+  temp_palette: tpalette;
+  tile_x, tile_y: word;
+  tile_idx: word;
+  src_x, src_y: integer;
+  dest_idx: word;
+  x, y: word;
+  pixel_val: dword;
+begin
+  writeln('[COLLISION] Loading GZAL tiles into CPU array for collision detection...');
+  writeln('[COLLISION] Loading ', tile_name, ' from ', zvukovy_subor, '...');
+
+  if te = nil then
+  begin
+    writeln('[COLLISION] Allocating te array...');
+    new(te);
+  end;
+
+  { Initialize palette }
+  for tile_idx := 0 to 255 do
+  begin
+    temp_palette[tile_idx].r := tile_idx;
+    temp_palette[tile_idx].v := tile_idx;
+    temp_palette[tile_idx].b := tile_idx;
+  end;
+
+  { Load GZAL GIF into screen_image temporarily }
+  if not blockx.draw_gif_block(screen_image, zvukovy_subor, tile_name, 0, 0, temp_palette) then
+  begin
+    writeln('[COLLISION] ERROR: Failed to load ', tile_name);
+    exit;
+  end;
+
+  writeln('[COLLISION] GZAL loaded: ', screen_image^.width, 'x', screen_image^.height);
+
+  { Extract 16x16 tiles and store in te array }
+  { GZAL format: 19 columns x 10 rows = 190 tiles }
+  for tile_idx := 0 to 189 do
+  begin
+    tile_x := (tile_idx mod 19) * 16;
+    tile_y := (tile_idx div 19) * 16;
+
+    { Copy 16x16 tile to te array }
+    dest_idx := tile_idx * 256;  { Each tile is 256 bytes (16x16) }
+
+    for y := 0 to 15 do
+    begin
+      for x := 0 to 15 do
+      begin
+        { Read pixel from screen_image }
+        src_x := tile_x + x;
+        src_y := tile_y + y;
+
+        { Get pixel value from screen_image data }
+        { screen_image uses RGBA format (4 bytes per pixel) }
+        if (src_x < screen_image^.width) and (src_y < screen_image^.height) then
+        begin
+          pixel_val := PDWord(screen_image^.data)[src_y * screen_image^.width + src_x];
+          { Extract color index from RGBA value }
+          { The loaded GIF should have palette indices in the red channel }
+          te^[dest_idx + y * 16 + x] := byte(pixel_val and $FF);
+        end
+        else
+          te^[dest_idx + y * 16 + x] := 13;  { Default to transparent pink }
+      end;
+    end;
+  end;
+
+  writeln('[COLLISION] Successfully loaded 190 tiles into te array');
+
+  { Don't clear screen_image - it will be reused }
+  { The GIF data will be overwritten when the game renders }
+end;
+
 procedure load_texture;
 var
   resolved_name: string;
+  collision_name: string;
 begin
   writeln('[MAP_TILES] Loading map tiles as GPU textures...');
   writeln('[MAP_TILES] Starting with textura="', textura, '"');
@@ -1287,6 +1369,9 @@ begin
     writeln('[MAP_TILES] Resolved textura "', textura, '" to "', resolved_name, '"');
   end;
 
+  { Save the resolved name for collision detection BEFORE out_string modifies it }
+  collision_name := resolved_name;
+
   { Load tiles as GPU textures using Raylib (same method as GLIST and avatar) }
   if not blockx.load_map_tiles_textures(zvukovy_subor, resolved_name, 16, 16, 190, map_tile_textures) then
   begin
@@ -1297,6 +1382,11 @@ begin
 
   writeln('[MAP_TILES] Successfully loaded 190 map tile textures');
   map_tiles_loaded := True;
+
+  { Load GZAL tiles into CPU-accessible te array for collision detection }
+  { Pass the saved name to avoid corruption from out_string() }
+  LoadCollisionTilesWithName(collision_name);
+
   writeln('[MAP_TILES] Complete!');
 
   { Load object textures after map tiles }

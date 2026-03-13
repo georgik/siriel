@@ -1228,6 +1228,17 @@ begin
     sipka_limit(8, 9, 612, 398, 4, false, 5, false, false, true, true);
     writeln('Movement boundaries set: (8, 9) to (612, 398)');
 
+    { Set default gravity if not configured in level file }
+    { Original formula: gravity := (m div 3) + 7, where m is from level file type 8 }
+    { Default to 15 if not set (similar to m=24 which gives gravity=15) }
+    if gravity = 0 then
+    begin
+      gravity := 15;
+      writeln('  INFO: No gravity value in level file, using default gravity=15');
+    end
+    else
+      writeln('  Gravity from level file: ', gravity);
+
     { DEBUG: Verify map data was loaded }
     writeln('');
     writeln('=== Level Load Debug ===');
