@@ -383,7 +383,7 @@ begin
        JUMP INITIALIZATION - GAME.INC lines 147-156
        Triggered when UP key is pressed and avatar is on ground
        ======================================== }
-    if (st.stav = 1) and ((zmack(72)) or (IsKeyDown(KEY_UP) <> 0)) and (rollup = 0) and (not rolldown) then
+    if (st.stav = 1) and (IsKeyDown(KEY_UP) <> 0) and (rollup = 0) and (not rolldown) then
     begin
       rollup := rolling;
 
