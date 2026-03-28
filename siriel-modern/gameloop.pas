@@ -136,14 +136,14 @@ begin
   game_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('arcade: Render texture created successfully');
 
-  { Set target FPS to 60 for consistent game speed }
-  SetTargetFPS(60);
+  { Set target FPS to 21 FPS }
+  { Raylib will handle frame timing and yield CPU automatically }
+  SetTargetFPS(21);
 
   { Track test mode duration }
   start_time := SysUtils.GetTickCount64;
 
-  writeln('arcade: Starting game loop...');
-  { TODO: rewait; }
+  writeln('arcade: Starting game loop at 20 FPS...');
 
   repeat
     { Start Raylib rendering frame }
@@ -658,8 +658,9 @@ begin
   game_render := LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
   writeln('maze: Render texture created successfully');
 
-  { Set target FPS to 60 for consistent game speed }
-  SetTargetFPS(60);
+  { Set target FPS to 20 FPS (slightly faster than DOS 18.2 FPS) }
+  { Raylib will handle frame timing and yield CPU automatically }
+  SetTargetFPS(20);
 
   { Initialize pathfinding array }
   for f := 0 to mie_x do
@@ -667,7 +668,6 @@ begin
       bl^[f, ff] := false;
 
   aktivuj_texturu;
-  { TODO: rewait; }
 
   repeat
     { Start Raylib rendering frame }
