@@ -1228,13 +1228,15 @@ begin
     sipka_limit(8, 9, 612, 398, 4, false, 5, false, false, true, true);
     writeln('Movement boundaries set: (8, 9) to (612, 398)');
 
-    { Set default gravity if not configured in level file }
-    { Original formula: gravity := (m div 3) + 7, where m is from level file type 8 }
-    { Default to 15 if not set (similar to m=24 which gives gravity=15) }
+    { Set default gravity and ROLLING if not configured in level file }
+    { Original formulas: gravity := (m div 3) + 7, ROLLING := m }
+    { where m is from level file type 8 }
+    { Default values: m=30 gives gravity=17, ROLLING=30 (good for platformer) }
     if gravity = 0 then
     begin
-      gravity := 15;
-      writeln('  INFO: No gravity value in level file, using default gravity=15');
+      gravity := 17;  { (30 div 3) + 7 }
+      rolling := 30;  { Default jump height }
+      writeln('  INFO: No gravity/rolling in level file, using defaults gravity=17, rolling=30');
     end
     else
       writeln('  Gravity from level file: ', gravity);

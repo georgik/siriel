@@ -110,19 +110,21 @@ begin
     { State 4: JUMP UP animation - frames 12-19 (second row, 8 frames) }
     4: if (poloha < 12) or (poloha > 19) then poloha := 12;
 
-    { State 5: PARACHUTE animation - frames 20-22 (second row, 3 frames) }
-    { Note: Frame 22 is fully open parachute }
-    5: if (poloha < 20) or (poloha > 22) then poloha := 20;
+    { State 5: JUMP UP LEFT animation - frames 23-30 (third row, 8 frames) }
+    { Matches original DOS state 5 for jumping left (oldkey=5) }
+    5: if (poloha < 23) or (poloha > 30) then poloha := 23;
 
-    { State 6: JUMP UP LEFT animation - frames 23-30 (third row, 8 frames) }
-    6: if (poloha < 23) or (poloha > 30) then poloha := 23;
+    { State 6: JUMP UP RIGHT animation - frames 35-42 (fourth row, 8 frames) }
+    { Matches original DOS state 6 for jumping right (oldkey=6) }
+    6: if (poloha < 35) or (poloha > 42) then poloha := 35;
 
-    { State 7: JUMP UP RIGHT animation - frames 35-42 (fourth row, 8 frames) }
-    { Note: Original code used 28-35, but spritesheet has 35-42 for jump up right }
-    7: if (poloha < 35) or (poloha > 42) then poloha := 35;
+    { State 7: PARACHUTE animation - frames 20-22 (second row, 3 frames) }
+    { Note: Parachute is rendered separately via padak() functions }
+    { This state is kept for compatibility but not used in jump logic }
+    7: if (poloha < 20) or (poloha > 22) then poloha := 20;
 
     { State 8: MAZE WALK UP animation - frames 31-34 (third row, 4 frames) }
-    { NOTE: Not currently used in arcade mode, only maze mode }
+    { NOTE: Used in maze mode for walking up }
     8: if (poloha < 31) or (poloha > 34) then poloha := 31;
   end;
 end;

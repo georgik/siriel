@@ -421,12 +421,13 @@ begin
           end;
         end;
 
+        { ========================================
+           JUMP ANIMATION - EXACT PORT from GAME.INC line 168-169
+           ======================================== }
         if oldkey < 5 then
-          pl(4)  { Jump straight up }
-        else if oldkey = 5 then
-          pl(6)  { Jump up left - oldkey 5 = left direction }
+          pl(4)    { Jump straight up }
         else
-          pl(7); { Jump up right - oldkey 6 = right direction }
+          pl(oldkey);  { oldkey=5 → pl(5) jump up left, oldkey=6 → pl(6) jump up right }
 
         begin
           if si.x < 3 then
