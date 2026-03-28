@@ -379,101 +379,92 @@ begin
         sipka_fake(k, si.x, si.y);
     end;
 
-    { Jump handling - ONLY for arcade mode }
+    { ========================================
+       JUMP INITIALIZATION - GAME.INC lines 147-156
+       Triggered when UP key is pressed and avatar is on ground
+       ======================================== }
     if (st.stav = 1) and ((zmack(72)) or (IsKeyDown(KEY_UP) <> 0)) and (rollup = 0) and (not rolldown) then
     begin
       rollup := rolling;
 
       case k of
         $4b00:
-          begin
-            if rollup = 0 then
-              pl(2)
-            else
-              oldkey := 5;
-          end;
+          oldkey := 5;
         $4d00:
-          begin
-            if rollup = 0 then
-              pl(3)
-            else
-              oldkey := 6;
-          end;
+          oldkey := 6;
         $4b34:
           oldkey := 5;
         $7d36:
           oldkey := 6;
       end;
+    end;
 
-      if (rollup > 0) then
+    { ========================================
+       JUMP EXECUTION - GAME.INC lines 158-176
+       Executes EVERY FRAME while rollup > 0
+       ======================================== }
+    if (rollup > 0) then
+    begin
+      dec(rollup);
+      if rollup > gravity then
+        sipka_fake($4800, si.x, si.y);
+
+      if (smart_jump) and ((rollup < gravity) and (si.y <= si.oldy)) then
       begin
-        dec(rollup);
-        if rollup > gravity then
-          sipka_fake($4800, si.x, si.y);
-
-        if (smart_jump) and ((rollup < gravity) and (si.y <= si.oldy)) then
+        inc(same);
+        if same = 1 then
         begin
-          inc(same);
-          if same = 1 then
-          begin
-            rollup := 0;
-            same := 0;
-          end;
+          rollup := 0;
+          same := 0;
         end;
+      end;
 
-        { ========================================
-           JUMP ANIMATION - EXACT PORT from GAME.INC line 168-169
-           ======================================== }
-        if oldkey < 5 then
-          pl(4)    { Jump straight up }
-        else
-          pl(oldkey);  { oldkey=5 → pl(5) jump up left, oldkey=6 → pl(6) jump up right }
-
-        begin
-          if si.x < 3 then
-            b := 1
-          else
-            b := si.x - 2;
-          if si.y < 15 then
-            c := 3
-          else
-            c := si.y - 14;
-          if ((not po3(b, c)) or (not po3(si.x + 3, c))) then
-            rollup := 0;
-        end;
-      end
+      { ========================================
+         JUMP ANIMATION - EXACT PORT from GAME.INC line 168-169
+         ======================================== }
+      if oldkey < 5 then
+        pl(4)    { Jump straight up }
       else
-        same := 0;
+        pl(oldkey);  { oldkey=5 → pl(5) jump up left, oldkey=6 → pl(6) jump up right }
 
-      { Diagonal jumping - if jumping and no key pressed, continue diagonal }
-      if (rollup > 0) and (k = 0) then
-        case oldkey of
-          5:
-            sipka_fake($4b00, si.x, si.y);
-          6:
-            sipka_fake($4d00, si.x, si.y);
-        end;
-
-      { Collision detection above - push away from walls }
-      if (not po3(si.x - 5, si.y - 12)) then
-        sipka_fake($4d00, si.x, si.y);
-
-      if (not po3(si.x + 6, si.y - 12)) then
-        sipka_fake($4b00, si.x, si.y);
-
-      { Auto-jump when walking off platforms }
-      if (rollup = 0) and ((not truth) or (not rolldown))
-        and ((k = $4800) or (k = $4b34) or (k = $4d36)) then
       begin
-        rollup := rolling;
+        if si.x < 3 then
+          b := 1
+        else
+          b := si.x - 2;
+        if si.y < 15 then
+          c := 3
+        else
+          c := si.y - 14;
+        if ((not po3(b, c)) or (not po3(si.x + 3, c))) then
+          rollup := 0;
+      end;
+    end
+    else
+      same := 0;
+
+    { Diagonal jumping - GAME.INC lines 190-194 }
+    if (rollup > 0) and (k = 0) then
+      case oldkey of
+        5:
+          sipka_fake($4b00, si.x, si.y);
+        6:
+          sipka_fake($4d00, si.x, si.y);
       end;
 
-      if rollup = 1 then
-      begin
-        pom := 4;
-        key_swap(72, false);
-      end;
-    end;  { End of jump handling block started at line 284 }
+    { Collision detection above - push away from walls - GAME.INC lines 195-196 }
+    if (not po3(si.x - 5, si.y - 12)) then
+      sipka_fake($4d00, si.x, si.y);
+
+    if (not po3(si.x + 6, si.y - 12)) then
+      sipka_fake($4b00, si.x, si.y);
+
+    { Auto-jump when walking off platforms - GAME.INC lines 198-201 }
+    if (rollup = 0) and ((not truth) or (not rolldown))
+      and ((k = $4800) or (k = $4b34) or (k = $4d36)) then
+    begin
+      rollup := rolling;
+    end;
 
     { ========================================
        GRAVITY - EXACT PORT from GAME.INC lines 178-189

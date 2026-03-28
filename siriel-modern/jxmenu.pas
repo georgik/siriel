@@ -278,8 +278,17 @@ begin
   if avatar_loaded then
     exit;
 
-  { Load and create textures using Raylib - all in GPU memory! }
-  if not blockx.load_gif_spritesheet_textures('data/MAIN.DAT', 'GZAL', 16, 16, avatar_textures, avatar_frame_count) then
+  { Load GZAL with custom row-based parsing to handle variable row widths }
+  { Row 0: 12 frames (idle 0-3, left 4-7, right 8-11) }
+  { Row 1: 11 frames (jump up 12-19, parachute 20-22) }
+  { Row 2: 12 frames (jump left 23-30, maze up 31-34) }
+  { Row 3: 8 frames (jump right 35-42) }
+  if not blockx.load_gif_spritesheet_textures_variable_rows(
+         'data/MAIN.DAT', 'GZAL', 16, 16,
+         avatar_textures, avatar_frame_count,
+         4,  { 4 rows }
+         [12, 11, 12, 8])  { frames per row }
+  then
   begin
     writeln('[JXMENU] Failed to load GZAL spritesheet textures');
     Exit;
@@ -296,8 +305,8 @@ begin
   { Increment animation frame counter }
   inc(poloha);
 
-  { Cycle through frames 0-35 like original }
-  if poloha > 35 then
+  { Cycle through available frames }
+  if poloha >= avatar_frame_count then
     poloha := 0;
 end;
 
@@ -316,7 +325,8 @@ begin
     Exit;
   end;
 
-  frame_num := poloha mod 36;
+  { Use actual frame count instead of hardcoded 36 }
+  frame_num := poloha mod avatar_frame_count;
   tex := avatar_textures[frame_num];
 
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
@@ -338,7 +348,8 @@ begin
     Exit;
   end;
 
-  frame_idx := frame mod 36;
+  { Use actual frame count instead of hardcoded 36 }
+  frame_idx := frame mod avatar_frame_count;
   tex := avatar_textures[frame_idx];
 
   { Draw directly to GPU back buffer - WHITE tint = no color modification }
