@@ -1231,12 +1231,12 @@ begin
     { Set default gravity and ROLLING if not configured in level file }
     { Original formulas: gravity := (m div 3) + 7, ROLLING := m }
     { where m is from level file type 8 }
-    { Default values: m=30 gives gravity=17, ROLLING=30 (good for platformer) }
+    { Default values: m=20 gives gravity=13, ROLLING=20 (balanced jump length) }
     if gravity = 0 then
     begin
-      gravity := 17;  { (30 div 3) + 7 }
-      rolling := 30;  { Default jump height }
-      writeln('  INFO: No gravity/rolling in level file, using defaults gravity=17, rolling=30');
+      gravity := 13;  { (20 div 3) + 7 = 6 + 7 }
+      rolling := 20;  { Default jump height - between 15 and 30 }
+      writeln('  INFO: No gravity/rolling in level file, using defaults gravity=13, rolling=20');
     end
     else
       writeln('  Gravity from level file: ', gravity);

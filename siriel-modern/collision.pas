@@ -121,6 +121,11 @@ begin
   inc(a1, 3);
   b1 := a1 div 16;
   b2 := (a2 + 16) div 16;
+
+  { Array bounds checking to prevent crashes }
+  if (b1 >= mie_x) or (b2 >= mie_y) then
+    exit;
+
   if (st.mie[b1, b2] > inusable)
     and (getcol(a1, a2, st.mie[b1, b2], te^) <> 13) then
     po := false;

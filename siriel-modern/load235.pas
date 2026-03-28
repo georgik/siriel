@@ -1349,6 +1349,13 @@ begin
 
   writeln('[COLLISION] Successfully loaded 190 tiles into te array');
 
+  { Initialize sprite size globals for getcol() function }
+  { GZAL tiles are 16x16, so we set sizex and sizey accordingly }
+  { This prevents division by zero in getcol() when used for collision detection }
+  sizex := 16;
+  sizey := 16;
+  writeln('[COLLISION] Initialized sprite size: ', sizex, 'x', sizey);
+
   { Don't clear screen_image - it will be reused }
   { The GIF data will be overwritten when the game renders }
 end;
