@@ -1,0 +1,27 @@
+// Siriel Macroquad - Core Constants
+
+#![allow(dead_code)]
+
+// Screen dimensions
+pub const SCREEN_WIDTH: i32 = 1280;
+pub const SCREEN_HEIGHT: i32 = 960;
+
+// Game area (actual play field)
+pub const GAME_WIDTH: i32 = 640;
+pub const GAME_HEIGHT: i32 = 480;
+
+// Tile/sprite sizes
+pub const TILE_SIZE: i32 = 8; // Map tiles (8px)
+pub const SPRITE_SIZE: i32 = 16; // Spritesheet tiles (16px)
+
+// Physics constants (from original DOS)
+pub const GRAVITY: f32 = 0.5;
+pub const MOVE_SPEED: f32 = 1.0;
+pub const JUMP_FORCE: f32 = -6.0;
+
+// Frame rate
+pub const TARGET_FPS: i32 = 60;
+
+// Map dimensions
+pub const MAP_WIDTH: usize = 42;
+pub const MAP_HEIGHT: usize = 26;
