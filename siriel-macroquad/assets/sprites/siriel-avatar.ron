@@ -1,0 +1,73 @@
+(
+    tile_size: 16,
+    columns: 8,
+    rows: 15,
+    animations: [
+        (
+            name: "idle",
+            row: 0,
+            frame_count: 4,
+            fps: 2,
+        ),
+        (
+            name: "walk_left",
+            row: 1,
+            frame_count: 4,
+            fps: 2,
+        ),
+        (
+            name: "walk_right",
+            row: 2,
+            frame_count: 4,
+            fps: 2,
+        ),
+        (
+            name: "walk_up",
+            row: 3,
+            frame_count: 4,
+            fps: 2,
+        ),
+        (
+            name: "jump_up",
+            row: 4,
+            frame_count: 8,
+            fps: 2,
+        ),
+        (
+            name: "jump_left",
+            row: 5,
+            frame_count: 8,
+            fps: 2,
+        ),
+        (
+            name: "jump_right",
+            row: 6,
+            frame_count: 8,
+            fps: 2,
+        ),
+        (
+            name: "parachute",
+            row: 7,
+            frame_count: 3,
+            fps: 2,
+        ),
+        (
+            name: "back",
+            row: 8,
+            frame_count: 1,
+            fps: 1,
+        ),
+        (
+            name: "empty",
+            row: 9,
+            frame_count: 1,
+            fps: 1,
+        ),
+        (
+            name: "stars",
+            row: 10,
+            frame_count: 4,
+            fps: 2,
+        ),
+    ],
+)
