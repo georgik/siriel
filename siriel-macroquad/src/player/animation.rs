@@ -1,8 +1,8 @@
 // Siriel Macroquad - Character Animation State Machine
-// Phase 12: Enhanced animation system
 
 #![allow(dead_code)]
 
+use crate::core::anim;
 use crate::core::{Animation, LoopMode};
 use macroquad::prelude::*;
 
@@ -13,7 +13,6 @@ pub enum AnimStateType {
     Walking,
     Jumping,
     Falling,
-    Landing,
 }
 
 /// Direction for directional animations
@@ -23,14 +22,10 @@ pub enum Direction {
     Down,
     Left,
     Right,
-    UpLeft,
-    UpRight,
-    DownLeft,
-    DownRight,
 }
 
 impl Direction {
-    /// From velocity vector
+    /// From velocity vector - simplified to 4 directions
     pub fn from_velocity(vx: f32, vy: f32) -> Self {
         let threshold = 0.1;
 
@@ -38,18 +33,10 @@ impl Direction {
             Self::Up
         } else if vx.abs() < threshold && vy > threshold {
             Self::Down
-        } else if vx < -threshold && vy.abs() < threshold {
+        } else if vx < -threshold {
             Self::Left
-        } else if vx > threshold && vy.abs() < threshold {
+        } else if vx > threshold {
             Self::Right
-        } else if vx < -threshold && vy < -threshold {
-            Self::UpLeft
-        } else if vx > threshold && vy < -threshold {
-            Self::UpRight
-        } else if vx < -threshold && vy > threshold {
-            Self::DownLeft
-        } else if vx > threshold && vy > threshold {
-            Self::DownRight
         } else {
             Self::Down // Default
         }
@@ -57,12 +44,12 @@ impl Direction {
 
     /// Check if facing left
     pub fn is_facing_left(self) -> bool {
-        matches!(self, Self::Left | Self::UpLeft | Self::DownLeft)
+        matches!(self, Self::Left)
     }
 
     /// Check if facing right
     pub fn is_facing_right(self) -> bool {
-        matches!(self, Self::Right | Self::UpRight | Self::DownRight)
+        matches!(self, Self::Right)
     }
 }
 
@@ -81,10 +68,6 @@ pub struct CharacterAnimation {
     timer: f32,
     /// Is animation playing
     playing: bool,
-    /// Previous state (for transitions)
-    prev_state: Option<AnimStateType>,
-    /// Transition timer
-    transition_timer: f32,
 }
 
 impl CharacterAnimation {
@@ -93,12 +76,10 @@ impl CharacterAnimation {
         Self {
             state: AnimStateType::Idle,
             direction: Direction::Down,
-            current_anim: "idle_down".to_string(),
+            current_anim: anim::IDLE.to_string(),
             frame: 0,
             timer: 0.0,
             playing: true,
-            prev_state: None,
-            transition_timer: 0.0,
         }
     }
 
@@ -147,10 +128,8 @@ impl CharacterAnimation {
 
         // Update if state or direction changed
         if new_state != self.state || new_direction != self.direction {
-            self.prev_state = Some(self.state);
             self.state = new_state;
             self.direction = new_direction;
-            self.transition_timer = 0.1; // Short transition
             self.update_animation_name();
         }
     }
@@ -159,11 +138,6 @@ impl CharacterAnimation {
     pub fn update(&mut self, animations: &[Animation], dt: f32) {
         if !self.playing {
             return;
-        }
-
-        // Update transition timer
-        if self.transition_timer > 0.0 {
-            self.transition_timer -= dt;
         }
 
         // Find current animation
@@ -189,16 +163,10 @@ impl CharacterAnimation {
                     if self.frame < anim.frame_count - 1 {
                         self.frame += 1;
                     } else {
-                        // Once animation done, switch to idle
-                        if matches!(self.state, AnimStateType::Landing) {
-                            self.state = AnimStateType::Idle;
-                            self.update_animation_name();
-                        }
                         self.playing = false;
                     }
                 }
                 LoopMode::PingPong => {
-                    // TODO: Implement ping-pong
                     self.frame = (self.frame + 1) % anim.frame_count;
                 }
             }
@@ -208,40 +176,26 @@ impl CharacterAnimation {
     /// Update animation name based on state and direction
     fn update_animation_name(&mut self) {
         self.current_anim = match self.state {
-            AnimStateType::Idle => match self.direction {
-                Direction::Up => "idle_up",
-                Direction::Down => "idle_down",
-                Direction::Left | Direction::UpLeft | Direction::DownLeft => "idle_left",
-                Direction::Right | Direction::UpRight | Direction::DownRight => "idle_right",
-            },
+            AnimStateType::Idle => anim::IDLE.to_string(),
             AnimStateType::Walking => match self.direction {
-                Direction::Up => "walk_up",
-                Direction::Down => "walk_down",
-                Direction::Left | Direction::UpLeft | Direction::DownLeft => "walk_left",
-                Direction::Right | Direction::UpRight | Direction::DownRight => "walk_right",
+                Direction::Left => anim::WALK_LEFT.to_string(),
+                Direction::Right => anim::WALK_RIGHT.to_string(),
+                Direction::Up => anim::WALK_UP.to_string(),
+                Direction::Down => anim::WALK_LEFT.to_string(), // Use walk_left for down (side view)
             },
             AnimStateType::Jumping => match self.direction {
-                Direction::Up => "jump_up",
-                Direction::Left => "jump_left",
-                Direction::Right => "jump_right",
-                _ => "jump_up",
+                Direction::Up => anim::JUMP_UP.to_string(),
+                Direction::Left => anim::JUMP_LEFT.to_string(),
+                Direction::Right => anim::JUMP_RIGHT.to_string(),
+                Direction::Down => anim::JUMP_UP.to_string(),
             },
-            AnimStateType::Falling => "parachute",
-            AnimStateType::Landing => "landing",
-        }
-        .to_string();
+            AnimStateType::Falling => anim::PARACHUTE.to_string(),
+        };
 
         // Reset animation state
         self.frame = 0;
         self.timer = 0.0;
         self.playing = true;
-    }
-
-    /// Trigger landing animation
-    pub fn trigger_landing(&mut self) {
-        self.prev_state = Some(self.state);
-        self.state = AnimStateType::Landing;
-        self.update_animation_name();
     }
 
     /// Force set animation (for special cases)
@@ -261,54 +215,6 @@ impl Default for CharacterAnimation {
     }
 }
 
-/// Animation controller with frame timing
-#[derive(Clone, Debug)]
-pub struct AnimationController {
-    /// Frame rate (frames per second)
-    frame_rate: f32,
-    /// Frame time accumulator
-    frame_accum: f32,
-}
-
-impl AnimationController {
-    /// Create new controller with target FPS
-    pub fn new(fps: f32) -> Self {
-        Self {
-            frame_rate: fps,
-            frame_accum: 0.0,
-        }
-    }
-
-    /// Create controller with default 15 FPS
-    pub fn default() -> Self {
-        Self::new(15.0)
-    }
-
-    /// Update and return true if frame should advance
-    pub fn update(&mut self, dt: f32) -> bool {
-        self.frame_accum += dt;
-
-        let frame_time = 1.0 / self.frame_rate;
-
-        if self.frame_accum >= frame_time {
-            self.frame_accum -= frame_time;
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Set frame rate
-    pub fn set_frame_rate(&mut self, fps: f32) {
-        self.frame_rate = fps;
-    }
-
-    /// Reset accumulator
-    pub fn reset(&mut self) {
-        self.frame_accum = 0.0;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -319,10 +225,6 @@ mod tests {
         assert_eq!(Direction::from_velocity(0.0, 1.0), Direction::Down);
         assert_eq!(Direction::from_velocity(-1.0, 0.0), Direction::Left);
         assert_eq!(Direction::from_velocity(1.0, 0.0), Direction::Right);
-        assert_eq!(Direction::from_velocity(-0.5, -0.5), Direction::UpLeft);
-        assert_eq!(Direction::from_velocity(0.5, -0.5), Direction::UpRight);
-        assert_eq!(Direction::from_velocity(-0.5, 0.5), Direction::DownLeft);
-        assert_eq!(Direction::from_velocity(0.5, 0.5), Direction::DownRight);
     }
 
     #[test]
@@ -330,7 +232,7 @@ mod tests {
         let anim = CharacterAnimation::new();
         assert_eq!(anim.state(), AnimStateType::Idle);
         assert_eq!(anim.direction(), Direction::Down);
-        assert_eq!(anim.current_anim(), "idle_down");
+        assert_eq!(anim.current_anim(), anim::IDLE);
     }
 
     #[test]
@@ -341,35 +243,11 @@ mod tests {
         anim.update_from_physics(1.0, 0.0, true);
         assert_eq!(anim.state(), AnimStateType::Walking);
         assert_eq!(anim.direction(), Direction::Right);
-        assert_eq!(anim.current_anim(), "walk_right");
+        assert_eq!(anim.current_anim(), anim::WALK_RIGHT);
 
         // Jumping
         anim.update_from_physics(0.0, -1.0, false);
         assert_eq!(anim.state(), AnimStateType::Jumping);
         assert_eq!(anim.direction(), Direction::Up);
-    }
-
-    #[test]
-    fn test_animation_controller() {
-        let mut controller = AnimationController::new(10.0);
-
-        // 10 FPS = 0.1s per frame
-        assert!(!controller.update(0.05)); // Not enough time
-        assert!(controller.update(0.05)); // Frame advances
-        assert!(!controller.update(0.05)); // Reset
-        assert!(controller.update(0.1)); // Exactly one frame time
-    }
-
-    #[test]
-    fn test_direction_is_facing() {
-        assert!(Direction::Left.is_facing_left());
-        assert!(Direction::UpLeft.is_facing_left());
-        assert!(Direction::DownLeft.is_facing_left());
-        assert!(!Direction::Right.is_facing_left());
-
-        assert!(Direction::Right.is_facing_right());
-        assert!(Direction::UpRight.is_facing_right());
-        assert!(Direction::DownRight.is_facing_right());
-        assert!(!Direction::Left.is_facing_right());
     }
 }

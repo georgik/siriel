@@ -1,5 +1,6 @@
 // Siriel Macroquad - Player Physics
 
+use crate::core::anim;
 use crate::core::{GRAVITY, JUMP_FORCE, MOVE_SPEED, TILE_SIZE};
 use macroquad::prelude::*;
 
@@ -149,20 +150,20 @@ impl PhysicsState {
     pub fn get_animation(&self) -> &str {
         if !self.on_ground {
             if self.vy < 0.0 {
-                return "jump_up";
+                return anim::JUMP_UP;
             } else {
-                return "parachute";
+                return anim::PARACHUTE;
             }
         }
 
         if self.vx != 0.0 {
             if self.facing_left {
-                return "left";
+                return anim::WALK_LEFT;
             } else {
-                return "right";
+                return anim::WALK_RIGHT;
             }
         }
 
-        "idle_down"
+        anim::IDLE
     }
 }

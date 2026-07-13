@@ -75,6 +75,34 @@ pub struct GridPos {
     pub y: i32,
 }
 
+/// Localized message with support for multiple languages
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalizedMessage {
+    #[serde(default = "default_en")]
+    pub en: String,
+    #[serde(default)]
+    pub sk: Option<String>,
+    #[serde(default)]
+    pub de: Option<String>,
+    #[serde(default)]
+    pub fr: Option<String>,
+}
+
+fn default_en() -> String {
+    String::new()
+}
+
+impl LocalizedMessage {
+    pub fn get(&self, lang: &str) -> &str {
+        match lang {
+            "sk" if self.sk.is_some() => self.sk.as_ref().unwrap(),
+            "de" if self.de.is_some() => self.de.as_ref().unwrap(),
+            "fr" if self.fr.is_some() => self.fr.as_ref().unwrap(),
+            _ => &self.en,
+        }
+    }
+}
+
 /// Level entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LevelEntity {
@@ -118,7 +146,7 @@ impl MapData {
 
     pub fn is_solid(&self, x: usize, y: usize) -> bool {
         let tile = self.get_tile(x, y);
-        tile >= 24  // Tiles 24+ are solid
+        tile >= 24 // Tiles 24+ are solid
     }
 }
 
@@ -160,7 +188,7 @@ pub struct LevelData {
     #[serde(default)]
     pub entities: Vec<LevelEntity>,
     #[serde(default)]
-    pub messages: Vec<String>,
+    pub messages: Vec<LocalizedMessage>,
     #[serde(default)]
     pub transitions: Vec<Transition>,
 }
@@ -243,6 +271,9 @@ impl Level {
 impl LevelData {
     /// Convert to legacy Level format
     pub fn to_legacy(&self) -> Level {
+        // Convert localized messages to simple strings (English by default)
+        let messages: Vec<String> = self.messages.iter().map(|m| m.en.clone()).collect();
+
         Level {
             meta: LevelMeta {
                 name: self.name.clone(),
@@ -250,11 +281,15 @@ impl LevelData {
                 version: "1.0".to_string(),
                 width: self.map.width,
                 height: self.map.height,
-                music: if self.music.is_empty() { None } else { Some(self.music.clone()) },
+                music: if self.music.is_empty() {
+                    None
+                } else {
+                    Some(self.music.clone())
+                },
             },
             tiles: self.map.tiles.clone(),
             player_start: (self.start_position.x, self.start_position.y),
-            messages: self.messages.clone(),
+            messages,
             creatures: Vec::new(),
         }
     }

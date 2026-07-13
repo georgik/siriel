@@ -42,6 +42,10 @@ struct Args {
     /// Enable debug output
     #[arg(short, long)]
     debug: bool,
+
+    /// Load specific level file (RON format)
+    #[arg(short, long)]
+    level: Option<String>,
 }
 
 /// Game state
@@ -76,20 +80,42 @@ impl GameState {
             args.timeout
         };
 
-        // Create level manager and load levels from TOML
+        // Create level manager and load levels from RON
         let mut level_manager = LevelManager::new();
 
-        // Load levels from TOML files
+        // Load specified level if provided
+        if let Some(ref level_path) = args.level {
+            let path = Path::new(level_path);
+            match load_level_auto(path) {
+                Ok(level) => {
+                    let id = "custom".to_string();
+                    level_manager.register(id.clone(), level);
+                    eprintln!("Loaded level from: {}", level_path);
+                }
+                Err(e) => {
+                    eprintln!("Failed to load level {}: {}", level_path, e);
+                }
+            }
+        }
+
+        // Load levels from RON files (converted from MIE)
         let level_files = [
-            ("level1", "assets/levels/toml/level01.toml"),
-            ("level2", "assets/levels/toml/level02.toml"),
+            ("fmis01", "assets/levels/fmis01.ron"),
+            ("fmis02", "assets/levels/fmis02.ron"),
+            ("fmis03", "assets/levels/fmis03.ron"),
+            ("fmis04", "assets/levels/fmis04.ron"),
+            ("fmis05", "assets/levels/fmis05.ron"),
+            ("fmis06", "assets/levels/fmis06.ron"),
+            ("fmis07", "assets/levels/fmis07.ron"),
+            ("fmis08", "assets/levels/fmis08.ron"),
+            ("fmis09", "assets/levels/fmis09.ron"),
+            ("fmis10", "assets/levels/fmis10.ron"),
         ];
 
-        let mut loaded_levels = Vec::new();
         for (id, path) in &level_files {
-            match load_from_toml(Path::new(path)) {
+            match load_from_ron(Path::new(path)) {
                 Ok(level) => {
-                    loaded_levels.push((id.to_string(), level));
+                    level_manager.register(id.to_string(), level);
                 }
                 Err(e) => {
                     if args.debug {
@@ -97,11 +123,6 @@ impl GameState {
                     }
                 }
             }
-        }
-
-        // Register loaded levels
-        for (id, level) in loaded_levels {
-            level_manager.register(id, level.clone());
         }
 
         // Set first level or create default if none loaded
@@ -287,7 +308,7 @@ async fn main() {
 
     // Initialize player at level spawn position
     let mut player_physics = PhysicsState::new(88.0, 88.0);
-    let mut player_anim = AnimState::new("idle_down");
+    let mut player_anim = AnimState::new(anim::IDLE);
 
     loop {
         let dt = get_frame_time();
@@ -650,6 +671,14 @@ async fn main() {
         player_anim.set_anim(anim_name);
         avatar.update_anim(&mut player_anim, dt);
 
+        // Debug: Log animation state occasionally
+        if game.debug && game.frame_count % 60 == 0 {
+            eprintln!(
+                "Animation: name={}, frame={}, playing={}",
+                player_anim.current, player_anim.frame, player_anim.playing
+            );
+        }
+
         // Render
         clear_background(WHITE);
 
@@ -755,13 +784,9 @@ async fn main() {
             }
         }
 
-        // Draw player
+        // Draw player (spritesheet has directional frames, no flip needed)
         let pos = player_physics.position();
-        if player_physics.facing_left {
-            avatar.draw_flip_x(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
-        } else {
-            avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
-        }
+        avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
 
         // Draw particles (over everything)
         game.particles.draw();

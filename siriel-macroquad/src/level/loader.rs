@@ -3,8 +3,7 @@
 #![allow(dead_code)]
 
 use super::types::*;
-use crate::entities::Creature;
-use std::collections::HashMap;
+use serde::Deserialize;
 use std::path::Path;
 
 /// Load level from embedded level definition (compile-time)
@@ -136,109 +135,36 @@ pub fn load_from_file(path: &Path) -> Result<Level, String> {
     parse_level_file(&content)
 }
 
-/// TOML level structure for deserialization
-#[derive(Debug, serde::Deserialize)]
-struct TomlLevel {
-    level: TomlLevelData,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct TomlLevelData {
-    name: String,
-    width: usize,
-    height: usize,
-    start_x: i32,
-    start_y: i32,
-    #[serde(default)]
-    start_sound: Option<String>,
-    #[serde(default)]
-    messages: Vec<String>,
-    #[serde(default)]
-    tilemap: HashMap<String, Vec<i32>>,
-    #[serde(default)]
-    entities: Vec<TomlEntity>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct TomlEntity {
-    #[serde(rename = "type")]
-    entity_type: String,
-    sprite_id: i32,
-    x: i32,
-    y: i32,
-    #[serde(default)]
-    behavior: i32,
-    #[serde(default)]
-    param1: i32,
-    #[serde(default)]
-    param2: i32,
-    #[serde(default)]
-    param3: Option<i32>,
-    #[serde(default)]
-    param4: Option<i32>,
-}
-
-/// Load level from TOML file (converted from MIE)
-pub fn load_from_toml(path: &Path) -> Result<Level, String> {
+/// Load level from RON file (primary level format)
+/// RON is Rust-native format that matches LevelData struct exactly
+pub fn load_from_ron(path: &Path) -> Result<Level, String> {
     let content =
-        std::fs::read_to_string(path).map_err(|e| format!("Failed to read TOML file: {}", e))?;
+        std::fs::read_to_string(path).map_err(|e| format!("Failed to read RON file: {}", e))?;
 
-    let toml_level: TomlLevel =
-        toml::from_str(&content).map_err(|e| format!("Failed to parse TOML: {}", e))?;
+    // Parse RON format
+    let mut parser =
+        ron::Deserializer::from_str(&content).map_err(|e| format!("RON parse error: {}", e))?;
 
-    let data = toml_level.level;
+    let level_data =
+        LevelData::deserialize(&mut parser).map_err(|e| format!("Deserialize error: {}", e))?;
 
-    // Parse tilemap from row_0, row_1, etc.
-    let mut tiles = Vec::new();
-    let mut i = 0;
-    while let Some(row) = data.tilemap.get(&format!("row_{}", i)) {
-        tiles.push(row.clone());
-        i += 1;
+    // Convert to legacy format
+    Ok(level_data.to_legacy())
+}
+
+/// Load level with format detection
+/// Note: Only RON format is supported. Use convert_mie.rs to convert MIE files.
+pub fn load_level_auto(path: &Path) -> Result<Level, String> {
+    let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+
+    match extension {
+        "ron" => load_from_ron(path),
+        _ => Err(format!(
+            "Unsupported level format: '{}'. Only .ron files supported. \
+                Use 'cargo run --bin convert_mie -- <input_mie_file>' to convert MIE files.",
+            extension
+        )),
     }
-
-    if tiles.is_empty() {
-        // Create default empty tilemap
-        tiles = vec![vec![0; data.width]; data.height];
-    }
-
-    // Create metadata
-    let meta = LevelMeta {
-        name: data.name.clone(),
-        author: "Converted from MIE".to_string(),
-        version: "1.0".to_string(),
-        width: data.width,
-        height: data.height,
-        music: data.start_sound.clone(),
-    };
-
-    let player_start = (data.start_x, data.start_y);
-
-    let mut level = Level::from_data(meta, tiles, player_start);
-
-    // Add messages
-    level.messages = data.messages;
-
-    // Convert entities to Creatures
-    for entity in &data.entities {
-        let param3 = entity.param3.unwrap_or(0);
-        let param4 = entity.param4.unwrap_or(0);
-
-        if let Some(creature) = Creature::from_toml(
-            &entity.entity_type,
-            entity.sprite_id,
-            entity.x,
-            entity.y,
-            entity.behavior as u32,
-            entity.param1,
-            entity.param2,
-            param3,
-            param4,
-        ) {
-            level.add_creature(creature);
-        }
-    }
-
-    Ok(level)
 }
 
 #[cfg(test)]
@@ -266,5 +192,19 @@ tiles: [[1, 2], [3, 4]]
         assert_eq!(level.meta.author, "Test Author");
         assert_eq!(level.player_start, (100, 100));
         assert_eq!(level.tiles, vec![vec![1, 2], vec![3, 4]]);
+    }
+
+    #[test]
+    fn test_load_fmis01() {
+        let result = load_from_ron(Path::new("assets/levels/fmis01.ron"));
+        if let Err(e) = &result {
+            eprintln!("Error loading RON: {}", e);
+        }
+        assert!(result.is_ok(), "Failed to load RON: {:?}", result);
+
+        let level = result.unwrap();
+        assert_eq!(level.meta.name, "START");
+        assert_eq!(level.meta.width, 39);
+        assert_eq!(level.meta.height, 27);
     }
 }

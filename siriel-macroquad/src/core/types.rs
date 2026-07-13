@@ -4,6 +4,21 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Animation name constants
+pub mod anim {
+    pub const IDLE: &str = "idle";
+    pub const WALK_LEFT: &str = "walk_left";
+    pub const WALK_RIGHT: &str = "walk_right";
+    pub const WALK_UP: &str = "walk_up";
+    pub const JUMP_UP: &str = "jump_up";
+    pub const JUMP_LEFT: &str = "jump_left";
+    pub const JUMP_RIGHT: &str = "jump_right";
+    pub const PARACHUTE: &str = "parachute";
+    pub const BACK: &str = "back";
+    pub const EMPTY: &str = "empty";
+    pub const STARS: &str = "stars";
+}
+
 /// 2D point with integer coordinates
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Point {
