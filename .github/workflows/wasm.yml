@@ -41,11 +41,11 @@ jobs:
         run: |
           cd siriel-macroquad
           cargo build --release --target wasm32-unknown-unknown
-          cp target/wasm32-unknown-unknown/release/siriel-macroquad.wasm ../siriel-macroquad.wasm
+          cp target/wasm32-unknown-unknown/release/siriel.wasm ../siriel.wasm
 
       - name: Check WASM size
         run: |
-          SIZE=$(wc -c < siriel-macroquad.wasm)
+          SIZE=$(wc -c < siriel.wasm)
           echo "WASM size: $SIZE bytes"
           if [ $SIZE -gt 15728640 ]; then
             echo "::warning::WASM is larger than 15MB"
@@ -55,7 +55,7 @@ jobs:
         run: |
           mkdir -p pages
           mkdir -p pages/assets/sprites
-          cp siriel-macroquad.wasm pages/
+          cp siriel.wasm pages/
           cp -r siriel-macroquad/assets/sprites/* pages/assets/sprites/
 
           cat > pages/index.html << 'EOF'
@@ -88,7 +88,7 @@ jobs:
               <canvas id="glcanvas" tabindex="0"></canvas>
               <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
               <script>
-                  load("siriel-macroquad.wasm");
+                  load("siriel.wasm");
                   document.getElementById('glcanvas').focus();
               </script>
           </body>
