@@ -181,22 +181,4 @@ impl AvatarAtlas {
             },
         );
     }
-
-    /// Draw avatar with horizontal flip
-    pub fn draw_flip_x(&self, state: &AnimState, x: f32, y: f32, tint: Color) {
-        let frame = self.get_current_frame(state);
-        let src = self.get_frame_rect(&state.current, frame);
-
-        draw_texture_ex(
-            &self.texture,
-            x,
-            y,
-            tint,
-            DrawTextureParams {
-                source: Some(src),
-                flip_x: true,
-                ..Default::default()
-            },
-        );
-    }
 }

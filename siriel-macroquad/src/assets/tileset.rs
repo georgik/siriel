@@ -1,12 +1,12 @@
 // Siriel Macroquad - Tileset (texture-basic.png)
 
-use crate::core::{SPRITE_SIZE, TILE_SIZE};
+use crate::core::SPRITE_SIZE;
 use macroquad::prelude::*;
 
 /// Tileset for map tiles from texture-basic.png
 /// - Dimensions: 304x64 pixels
 /// - Grid: 19 columns x 4 rows = 76 tiles
-/// - Tile size: 16x16 pixels (scaled to 8px for map)
+/// - Tile size: 16x16 pixels
 #[allow(dead_code)]
 pub struct Tileset {
     pub texture: Texture2D,
@@ -52,14 +52,13 @@ impl Tileset {
         }
     }
 
-    /// Draw tile at screen position (scales from 16px to 8px)
+    /// Draw tile at screen position (16px)
     pub fn draw_tile(&self, index: i32, x: f32, y: f32, tint: Color) {
         let src = self.get_tile_rect(index);
         if src.w == 0.0 {
             return; // Invalid tile
         }
 
-        // Scale down from 16px spritesheet to 8px map tiles
         draw_texture_ex(
             &self.texture,
             x,
@@ -67,7 +66,6 @@ impl Tileset {
             tint,
             DrawTextureParams {
                 source: Some(src),
-                dest_size: Some(vec2(TILE_SIZE as f32, TILE_SIZE as f32)),
                 ..Default::default()
             },
         );

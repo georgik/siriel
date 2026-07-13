@@ -10,9 +10,9 @@ pub const SCREEN_HEIGHT: i32 = 960;
 pub const GAME_WIDTH: i32 = 640;
 pub const GAME_HEIGHT: i32 = 480;
 
-// Tile/sprite sizes
-pub const TILE_SIZE: i32 = 8; // Map tiles (8px)
-pub const SPRITE_SIZE: i32 = 16; // Spritesheet tiles (16px)
+// Tile/sprite sizes (all 16px - original DOS scale)
+pub const TILE_SIZE: i32 = 16;
+pub const SPRITE_SIZE: i32 = 16;
 
 // Physics constants (from original DOS)
 pub const GRAVITY: f32 = 0.5;
