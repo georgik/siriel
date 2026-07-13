@@ -1,0 +1,7 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "-C", "link-arg=-s",
+    "-C", "link-arg=--import-memory",
+    "-C", "link-arg=--gc-sections",
+    "-C", "link-arg=--allow-undefined",
+]

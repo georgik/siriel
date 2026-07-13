@@ -1,0 +1,112 @@
+name: Build WASM & Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build WASM
+        run: |
+          cd siriel-macroquad
+          cargo build --release --target wasm32-unknown-unknown
+          cp target/wasm32-unknown-unknown/release/siriel-macroquad.wasm ../siriel-macroquad.wasm
+
+      - name: Check WASM size
+        run: |
+          SIZE=$(wc -c < siriel-macroquad.wasm)
+          echo "WASM size: $SIZE bytes"
+          if [ $SIZE -gt 15728640 ]; then
+            echo "::warning::WASM is larger than 15MB"
+          fi
+
+      - name: Create pages package
+        run: |
+          mkdir -p pages
+          mkdir -p pages/assets/sprites
+          cp siriel-macroquad.wasm pages/
+          cp -r siriel-macroquad/assets/sprites/* pages/assets/sprites/
+
+          cat > pages/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="utf-8">
+              <title>Siriel - Macroquad WASM</title>
+              <link rel="icon" type="image/x-icon" href="favicon.ico">
+              <style>
+                  html, body, canvas {
+                      margin: 0;
+                      padding: 0;
+                      width: 100%;
+                      height: 100%;
+                      overflow: hidden;
+                      background: black;
+                  }
+                  body {
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                  }
+                  #glcanvas {
+                      outline: none;
+                  }
+              </style>
+          </head>
+          <body>
+              <canvas id="glcanvas" tabindex="0"></canvas>
+              <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
+              <script>
+                  load("siriel-macroquad.wasm");
+                  document.getElementById('glcanvas').focus();
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
