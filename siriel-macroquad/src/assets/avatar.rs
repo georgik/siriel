@@ -3,7 +3,6 @@
 use crate::core::{AnimState, Animation, LoopMode};
 use macroquad::prelude::*;
 use serde::Deserialize;
-use std::fs;
 
 /// RON metadata structure for avatar spritesheet
 #[derive(Deserialize)]
@@ -50,8 +49,9 @@ impl AvatarAtlas {
 
         // Load RON metadata
         let ron_path = "assets/sprites/siriel-avatar.ron";
-        let ron_content = fs::read_to_string(ron_path)
-            .map_err(|e| format!("Failed to read {}: {}", ron_path, e))?;
+        let ron_content = load_string(ron_path)
+            .await
+            .map_err(|e| format!("Failed to read {}: {:?}", ron_path, e))?;
         let metadata: AvatarMetadata =
             ron::from_str(&ron_content).map_err(|e| format!("Failed to parse RON: {}", e))?;
 

@@ -17,6 +17,7 @@ use core::*;
 use effects::*;
 use entities::*;
 use level::*;
+use macroquad::logging::*;
 use macroquad::prelude::*;
 use menu::*;
 use player::*;
@@ -285,15 +286,21 @@ impl GameState {
 
 #[macroquad::main("Siriel Macroquad")]
 async fn main() {
+    // WASM debug - log entry
+    info!("=== Siriel WASM: main() started ===");
+
     // Parse CLI args (for desktop only - WASM ignores these)
     let args = Args::parse();
+    info!("=== Siriel WASM: args parsed ===");
+
     let mut game = GameState::new(&args);
+    info!("=== Siriel WASM: GameState created ===");
 
     // Load assets
     let avatar = match AvatarAtlas::load().await {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("Failed to load avatar: {}", e);
+            error!("Failed to load avatar: {}", e);
             return;
         }
     };
@@ -301,7 +308,7 @@ async fn main() {
     let tileset = match Tileset::load("assets/sprites/texture-basic.png").await {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("Failed to load tileset: {}", e);
+            error!("Failed to load tileset: {}", e);
             return;
         }
     };
@@ -310,7 +317,13 @@ async fn main() {
     let mut player_physics = PhysicsState::new(88.0, 88.0);
     let mut player_anim = AnimState::new(anim::IDLE);
 
+    info!("=== Siriel WASM: Entering game loop ===");
+
     loop {
+        // Log first frame only
+        if game.frame_count == 0 {
+            info!("=== Siriel WASM: Frame 0 started ===");
+        }
         let dt = get_frame_time();
 
         // Handle game modes
@@ -330,7 +343,7 @@ async fn main() {
                 }
 
                 // Render
-                clear_background(WHITE);
+                clear_background(BLUE);
 
                 // Draw main menu
                 game.main_menu.draw();

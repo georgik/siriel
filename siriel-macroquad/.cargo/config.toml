@@ -1,3 +1,6 @@
+[alias]
+xtask = "run --package xtask --profile xtask --"
+
 [unstable]
 build-std = ["core", "alloc", "std"]
 
@@ -5,6 +8,5 @@ build-std = ["core", "alloc", "std"]
 rustflags = [
     "-C", "link-arg=-s",
     "-C", "link-arg=--gc-sections",
-    "-C", "link-arg=--import-memory",
     "-C", "link-arg=--allow-undefined",
 ]
