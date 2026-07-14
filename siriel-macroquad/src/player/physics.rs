@@ -39,8 +39,8 @@ impl PhysicsState {
             self.facing_left = false;
         }
 
-        // Jump
-        if is_key_pressed(KeyCode::Space) && self.on_ground {
+        // Jump (arcade: Up arrow)
+        if is_key_pressed(KeyCode::Up) && self.on_ground {
             self.vy = JUMP_FORCE;
             self.on_ground = false;
         }

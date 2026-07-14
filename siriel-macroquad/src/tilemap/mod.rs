@@ -5,7 +5,13 @@ use crate::core::{MAP_WIDTH, TILE_SIZE};
 use macroquad::prelude::*;
 
 /// Draw tilemap from 2D array
-pub fn draw_tilemap(tileset: &Tileset, tilemap: &[Vec<i32>], offset_x: f32, offset_y: f32) {
+pub fn draw_tilemap(
+    tileset: &Tileset,
+    tilemap: &[Vec<i32>],
+    offset_x: f32,
+    offset_y: f32,
+    show_indices: bool,
+) {
     for (y, row) in tilemap.iter().enumerate() {
         for (x, &tile) in row.iter().enumerate() {
             // Skip empty tiles
@@ -19,6 +25,17 @@ pub fn draw_tilemap(tileset: &Tileset, tilemap: &[Vec<i32>], offset_x: f32, offs
             // Check if tile is valid for spritesheet
             if tile < tileset.tile_count {
                 tileset.draw_tile(tile, screen_x, screen_y, WHITE);
+
+                // Debug: draw tile index
+                if show_indices {
+                    draw_text(
+                        &tile.to_string(),
+                        screen_x + 2.0,
+                        screen_y + 2.0,
+                        10.0,
+                        YELLOW,
+                    );
+                }
             }
         }
     }

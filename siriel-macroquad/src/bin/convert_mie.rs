@@ -126,7 +126,12 @@ fn convert_map(map_lines: &[String]) -> Result<Vec<Vec<i32>>, String> {
     for line in map_lines {
         let row: Vec<i32> = line
             .chars()
-            .map(|c| c as i32)
+            .map(|c| {
+                // Original Siriel used ASCII values starting at 15 (0x0F = Control-O)
+                // Offset to 0-based indices for spritesheet
+                let tile = c as i32;
+                tile - 15
+            })
             .collect();
         tiles.push(row);
     }

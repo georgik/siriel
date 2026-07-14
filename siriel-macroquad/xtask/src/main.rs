@@ -29,6 +29,8 @@ enum Commands {
     },
     /// Clean build artifacts
     Clean,
+    /// Convert all MIE level files to RON format
+    ConvertLevels,
 }
 
 #[tokio::main]
@@ -39,6 +41,7 @@ async fn main() -> Result<()> {
         Commands::BuildWasm { verbose } => build_wasm(verbose).await,
         Commands::ServeWasm { verbose, port } => serve_wasm(verbose, port).await,
         Commands::Clean => clean(),
+        Commands::ConvertLevels => convert_levels(),
     }
 }
 
@@ -195,6 +198,82 @@ async fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
             async_fs::copy(&src_path, &dst_path).await?;
         }
     }
+
+    Ok(())
+}
+
+fn convert_levels() -> Result<()> {
+    println!("Converting all MIE level files to RON format...");
+
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let project_root = manifest_dir.parent().unwrap();
+    let mie_dir = project_root.join("../siriel-3.5-dos/BIN");
+    let levels_dir = project_root.join("assets/levels");
+
+    // Create levels directory if it doesn't exist
+    fs::create_dir_all(&levels_dir).context("Failed to create levels directory")?;
+
+    // Find all FMIS*.MIE files
+    let mie_files: Vec<PathBuf> = fs::read_dir(&mie_dir)?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("MIE"))
+        .filter(|p| {
+            p.file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .starts_with("FMIS")
+        })
+        .collect();
+
+    if mie_files.is_empty() {
+        println!("No FMIS*.MIE files found in {}", mie_dir.display());
+        return Ok(());
+    }
+
+    println!("Found {} MIE files", mie_files.len());
+
+    // Build converter
+    let mut cmd = Command::new("cargo");
+    cmd.arg("run")
+        .arg("--bin")
+        .arg("convert_mie")
+        .current_dir(project_root);
+
+    let mut converted = 0;
+    for mie_file in mie_files {
+        let stem = mie_file.file_stem().and_then(|s| s.to_str()).unwrap();
+        let ron_file = levels_dir.join(format!("{}.ron", stem.to_lowercase()));
+
+        print!("Converting {} -> {} ... ", stem, ron_file.display());
+
+        let result = Command::new("cargo")
+            .arg("run")
+            .arg("--bin")
+            .arg("convert_mie")
+            .arg(&mie_file)
+            .arg(&ron_file)
+            .current_dir(project_root)
+            .output();
+
+        match result {
+            Ok(output) if output.status.success() => {
+                converted += 1;
+                println!("OK");
+            }
+            Ok(output) => {
+                println!("FAILED");
+                println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            }
+            Err(e) => {
+                println!("ERROR: {}", e);
+            }
+        }
+    }
+
+    println!();
+    println!("Converted {} levels", converted);
+    println!("Output directory: {}", levels_dir.display());
 
     Ok(())
 }

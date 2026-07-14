@@ -71,6 +71,8 @@ struct GameState {
     main_menu: Menu,
     level_selector: Menu,
     current_game_mode: GameMode,
+    // Debug visualization
+    show_tile_indices: bool,
 }
 
 impl GameState {
@@ -179,6 +181,7 @@ impl GameState {
             main_menu,
             level_selector,
             current_game_mode: GameMode::MainMenu,
+            show_tile_indices: false,
         }
     }
 
@@ -365,13 +368,6 @@ async fn main() {
                 draw_text_centered("SIRIEL MACROQUAD", screen_width() / 2.0, 80.0, 40.0, BLACK);
 
                 // Draw version info
-                draw_text(
-                    "Phase 11 - Menu System",
-                    10.0,
-                    screen_height() - 30.0,
-                    16.0,
-                    DARKGRAY,
-                );
 
                 next_frame().await;
                 game.frame_count += 1;
@@ -420,6 +416,15 @@ async fn main() {
         // ESC to go to menu, exit if in menu already
         if is_key_pressed(KeyCode::Escape) {
             game.current_game_mode = GameMode::MainMenu;
+        }
+
+        // Debug: F1 to toggle tile indices display
+        if is_key_pressed(KeyCode::F1) {
+            game.show_tile_indices = !game.show_tile_indices;
+            eprintln!(
+                "Tile indices: {}",
+                if game.show_tile_indices { "ON" } else { "OFF" }
+            );
         }
 
         // Level switching: N for next level
@@ -729,7 +734,13 @@ async fn main() {
 
         // Draw tilemap
         if let Some(current_level) = game.level_manager.current() {
-            draw_tilemap(&tileset, &current_level.tiles, game_x, game_y);
+            draw_tilemap(
+                &tileset,
+                &current_level.tiles,
+                game_x,
+                game_y,
+                game.show_tile_indices,
+            );
 
             // Draw entities
             // Draw enemies (red rectangles)
@@ -917,7 +928,7 @@ async fn main() {
 
         // Controls help
         draw_text(
-            "Arrows: Move | Space: Jump | N: Next Level | ESC: Exit",
+            "Arrows: Move/Jump | N: Next Level | ESC: Exit",
             10.0,
             screen_height() - 30.0,
             16.0,
