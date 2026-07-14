@@ -4,6 +4,7 @@
 use super::ai::*;
 use super::types::EntityType;
 use crate::core::TILE_SIZE;
+use macroquad::prelude::*;
 
 /// Creature entity with AI behavior
 /// Matches original predmet structure from AKTIV35.PAS
@@ -238,8 +239,8 @@ impl Creature {
 
         if should_change {
             // Pick new random direction
-            self.inf3 = rand::random::<u32>() as i32 % 4;
-            self.inf4 = rand::random::<u32>() as i32 % 200 + 20;
+            self.inf3 = rand::gen_range(0, 4);
+            self.inf4 = rand::gen_range(20, 220);
         }
 
         // Move in current direction
@@ -286,7 +287,7 @@ impl Creature {
             } else {
                 // Random patrol
                 if self.inf7 == 0 {
-                    self.inf7 = rand::random::<u32>() as i32 % 4 + 1;
+                    self.inf7 = rand::gen_range(1, 5);
                 }
 
                 let dir = match self.inf7 {
