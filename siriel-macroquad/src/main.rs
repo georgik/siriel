@@ -99,33 +99,7 @@ impl GameState {
             }
         }
 
-        // Load levels from RON files (converted from MIE)
-        let level_files = [
-            ("fmis01", "assets/levels/fmis01.ron"),
-            ("fmis02", "assets/levels/fmis02.ron"),
-            ("fmis03", "assets/levels/fmis03.ron"),
-            ("fmis04", "assets/levels/fmis04.ron"),
-            ("fmis05", "assets/levels/fmis05.ron"),
-            ("fmis06", "assets/levels/fmis06.ron"),
-            ("fmis07", "assets/levels/fmis07.ron"),
-            ("fmis08", "assets/levels/fmis08.ron"),
-            ("fmis09", "assets/levels/fmis09.ron"),
-            ("fmis10", "assets/levels/fmis10.ron"),
-        ];
-
-        for (id, path) in &level_files {
-            match load_from_ron(Path::new(path)) {
-                Ok(level) => {
-                    level_manager.register(id.to_string(), level);
-                }
-                Err(e) => {
-                    if args.debug {
-                        eprintln!("Failed to load level {}: {}", path, e);
-                    }
-                }
-            }
-        }
-
+        // Level loading now done asynchronously in main() after assets load
         // Set first level or create default if none loaded
         if level_manager.level_count() > 0 {
             level_manager.set_level("level1").ok();
@@ -287,14 +261,14 @@ impl GameState {
 #[macroquad::main("Siriel Macroquad")]
 async fn main() {
     // WASM debug - log entry
-    info!("=== Siriel WASM: main() started ===");
+    info!("=== Siriel: main() started ===");
 
     // Parse CLI args (for desktop only - WASM ignores these)
     let args = Args::parse();
-    info!("=== Siriel WASM: args parsed ===");
+    info!("=== Siriel: args parsed ===");
 
     let mut game = GameState::new(&args);
-    info!("=== Siriel WASM: GameState created ===");
+    info!("=== Siriel: GameState created ===");
 
     // Load assets
     let avatar = match AvatarAtlas::load().await {
@@ -313,16 +287,55 @@ async fn main() {
         }
     };
 
+    // Load levels asynchronously (WASM-compatible)
+    eprintln!("=== Loading levels ===");
+    let level_files = [
+        ("level1", "assets/levels/fmis01.ron"),
+        ("level2", "assets/levels/fmis02.ron"),
+        ("level3", "assets/levels/fmis03.ron"),
+        ("level4", "assets/levels/fmis04.ron"),
+        ("level5", "assets/levels/fmis05.ron"),
+        ("level6", "assets/levels/fmis06.ron"),
+        ("level7", "assets/levels/fmis07.ron"),
+        ("level8", "assets/levels/fmis08.ron"),
+        ("level9", "assets/levels/fmis09.ron"),
+        ("level10", "assets/levels/fmis10.ron"),
+    ];
+
+    for (id, path) in &level_files {
+        match load_from_ron_async(path).await {
+            Ok(level) => {
+                game.level_manager.register(id.to_string(), level);
+                eprintln!("Loaded: {}", id);
+            }
+            Err(e) => {
+                if game.debug {
+                    eprintln!("Failed to load {}: {}", path, e);
+                }
+            }
+        }
+    }
+
+    // Set first level if any loaded
+    if game.level_manager.level_count() > 0 {
+        game.level_manager.set_level("level1").ok();
+    }
+
+    eprintln!(
+        "=== Level loading complete: {} levels ===",
+        game.level_manager.level_count()
+    );
+
     // Initialize player at level spawn position
     let mut player_physics = PhysicsState::new(88.0, 88.0);
     let mut player_anim = AnimState::new(anim::IDLE);
 
-    info!("=== Siriel WASM: Entering game loop ===");
+    info!("=== Siriel: Entering game loop ===");
 
     loop {
         // Log first frame only
         if game.frame_count == 0 {
-            info!("=== Siriel WASM: Frame 0 started ===");
+            info!("=== Siriel: Frame 0 started ===");
         }
         let dt = get_frame_time();
 

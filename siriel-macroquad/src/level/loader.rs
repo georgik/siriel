@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 
 use super::types::*;
+use macroquad::prelude::*;
 use serde::Deserialize;
 use std::path::Path;
 
@@ -149,6 +150,22 @@ pub fn load_from_ron(path: &Path) -> Result<Level, String> {
         LevelData::deserialize(&mut parser).map_err(|e| format!("Deserialize error: {}", e))?;
 
     // Convert to legacy format
+    Ok(level_data.to_legacy())
+}
+
+/// Load level from RON file asynchronously (WASM-compatible)
+/// Uses macroquad's load_string instead of std::fs
+pub async fn load_from_ron_async(path: &str) -> Result<Level, String> {
+    let content = load_string(path)
+        .await
+        .map_err(|e| format!("Failed to load RON: {:?}", e))?;
+
+    let mut parser =
+        ron::Deserializer::from_str(&content).map_err(|e| format!("RON parse error: {}", e))?;
+
+    let level_data =
+        LevelData::deserialize(&mut parser).map_err(|e| format!("Deserialize error: {}", e))?;
+
     Ok(level_data.to_legacy())
 }
 

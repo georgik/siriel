@@ -41,11 +41,11 @@ jobs:
         run: |
           cd siriel-macroquad
           cargo build --release --target wasm32-unknown-unknown
-          cp target/wasm32-unknown-unknown/release/siriel.wasm ../siriel.wasm
+          cargo xtask build-wasm
 
       - name: Check WASM size
         run: |
-          SIZE=$(wc -c < siriel.wasm)
+          SIZE=$(wc -c < siriel-macroquad/dist/siriel.wasm)
           echo "WASM size: $SIZE bytes"
           if [ $SIZE -gt 15728640 ]; then
             echo "::warning::WASM is larger than 15MB"
@@ -54,46 +54,7 @@ jobs:
       - name: Create pages package
         run: |
           mkdir -p pages
-          mkdir -p pages/assets/sprites
-          cp siriel.wasm pages/
-          cp -r siriel-macroquad/assets/sprites/* pages/assets/sprites/
-
-          cat > pages/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="utf-8">
-              <title>Siriel - Macroquad WASM</title>
-              <link rel="icon" type="image/x-icon" href="favicon.ico">
-              <style>
-                  html, body, canvas {
-                      margin: 0;
-                      padding: 0;
-                      width: 100%;
-                      height: 100%;
-                      overflow: hidden;
-                      background: black;
-                  }
-                  body {
-                      display: flex;
-                      justify-content: center;
-                      align-items: center;
-                  }
-                  #glcanvas {
-                      outline: none;
-                  }
-              </style>
-          </head>
-          <body>
-              <canvas id="glcanvas" tabindex="0"></canvas>
-              <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
-              <script>
-                  load("siriel.wasm");
-                  document.getElementById('glcanvas').focus();
-              </script>
-          </body>
-          </html>
-          EOF
+          cp -r siriel-macroquad/dist/* pages/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
