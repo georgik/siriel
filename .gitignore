@@ -1,3 +1,5 @@
 .DS_Store
 SCORE.DAT
 dist/
+target/
+

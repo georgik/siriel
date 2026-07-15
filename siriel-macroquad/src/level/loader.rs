@@ -169,6 +169,18 @@ pub async fn load_from_ron_async(path: &str) -> Result<Level, String> {
     Ok(level_data.to_legacy())
 }
 
+/// Load datadisc metadata asynchronously
+pub async fn load_datadisc_async(path: &str) -> Result<Datadisc, String> {
+    let content = load_string(path)
+        .await
+        .map_err(|e| format!("Failed to load datadisc: {:?}", e))?;
+
+    let mut parser =
+        ron::Deserializer::from_str(&content).map_err(|e| format!("RON parse error: {}", e))?;
+
+    Datadisc::deserialize(&mut parser).map_err(|e| format!("Deserialize error: {}", e))
+}
+
 /// Load level with format detection
 /// Note: Only RON format is supported. Use convert_mie.rs to convert MIE files.
 pub fn load_level_auto(path: &Path) -> Result<Level, String> {

@@ -73,6 +73,8 @@ struct GameState {
     current_game_mode: GameMode,
     // Debug visualization
     show_tile_indices: bool,
+    // Pending player spawn position (set when level changes, applied in game loop)
+    pending_player_spawn: Option<(i32, i32)>,
 }
 
 impl GameState {
@@ -135,8 +137,8 @@ impl GameState {
         main_menu.add_separator();
         main_menu.add_item_with_key('Q', "Quit", MenuAction::Quit);
 
-        // Create level selector
-        let mut level_selector = Menu::new(MenuConfig {
+        // Create empty level selector (rebuilt after datadisc loads)
+        let level_selector = Menu::new(MenuConfig {
             x: 180.0,
             y: 120.0,
             title: "Select Level".to_string(),
@@ -145,22 +147,6 @@ impl GameState {
             background_color: Color::new(0.52, 0.58, 0.67, 1.0),
             ..Default::default()
         });
-        level_selector.add_item_with_key(
-            '1',
-            "Level 01 - Empty Plains",
-            MenuAction::LoadLevel("level1".to_string()),
-        );
-        level_selector.add_item_with_key(
-            '2',
-            "Level 02 - Platform Gardens",
-            MenuAction::LoadLevel("level2".to_string()),
-        );
-        level_selector.add_separator();
-        level_selector.add_item_with_key(
-            'B',
-            "Back",
-            MenuAction::GotoMode("main_menu".to_string()),
-        );
 
         Self {
             frame_count: 0,
@@ -182,6 +168,7 @@ impl GameState {
             level_selector,
             current_game_mode: GameMode::MainMenu,
             show_tile_indices: false,
+            pending_player_spawn: None,
         }
     }
 
@@ -220,6 +207,9 @@ impl GameState {
                     }
                     return;
                 }
+                // Get spawn position from level
+                let spawn = self.level_manager.current().map(|lvl| lvl.player_start);
+                self.pending_player_spawn = spawn;
                 self.load_creatures_from_level();
                 self.current_game_mode = GameMode::Playing;
                 self.player_health = 3;
@@ -236,6 +226,9 @@ impl GameState {
                         eprintln!("Failed to load level: {}", e);
                     }
                 } else {
+                    // Get spawn position from level
+                    let spawn = self.level_manager.current().map(|lvl| lvl.player_start);
+                    self.pending_player_spawn = spawn;
                     self.load_creatures_from_level();
                     self.current_game_mode = GameMode::Playing;
                     self.player_health = 3;
@@ -290,26 +283,57 @@ async fn main() {
         }
     };
 
-    // Load levels asynchronously (WASM-compatible)
-    eprintln!("=== Loading levels ===");
-    let level_files = [
-        ("level1", "assets/levels/fmis01.ron"),
-        ("level2", "assets/levels/fmis02.ron"),
-        ("level3", "assets/levels/fmis03.ron"),
-        ("level4", "assets/levels/fmis04.ron"),
-        ("level5", "assets/levels/fmis05.ron"),
-        ("level6", "assets/levels/fmis06.ron"),
-        ("level7", "assets/levels/fmis07.ron"),
-        ("level8", "assets/levels/fmis08.ron"),
-        ("level9", "assets/levels/fmis09.ron"),
-        ("level10", "assets/levels/fmis10.ron"),
-    ];
+    // Load datadisc metadata and build level menu
+    eprintln!("=== Loading datadisc ===");
+    let datadisc = match load_datadisc_async("assets/levels/datadisc.ron").await {
+        Ok(dd) => {
+            eprintln!("Loaded datadisc: {}", dd.name);
+            dd
+        }
+        Err(e) => {
+            eprintln!("Failed to load datadisc: {}, using defaults", e);
+            // Fallback empty datadisc
+            Datadisc {
+                name: "Default".to_string(),
+                description: String::new(),
+                levels: Vec::new(),
+            }
+        }
+    };
 
-    for (id, path) in &level_files {
-        match load_from_ron_async(path).await {
+    // Rebuild level selector from datadisc
+    game.level_selector = Menu::new(MenuConfig {
+        x: 180.0,
+        y: 120.0,
+        title: "Select Level".to_string(),
+        primary_color: BLACK,
+        secondary_color: WHITE,
+        background_color: Color::new(0.52, 0.58, 0.67, 1.0),
+        ..Default::default()
+    });
+
+    for level_entry in &datadisc.levels {
+        game.level_selector.add_item_with_key(
+            level_entry.key,
+            &level_entry.name,
+            MenuAction::LoadLevel(level_entry.id.clone()),
+        );
+    }
+    game.level_selector.add_separator();
+    game.level_selector.add_item_with_key(
+        'B',
+        "Back",
+        MenuAction::GotoMode("main_menu".to_string()),
+    );
+
+    // Load levels from datadisc
+    eprintln!("=== Loading levels from datadisc ===");
+    for level_entry in &datadisc.levels {
+        let path = format!("assets/levels/{}", level_entry.file);
+        match load_from_ron_async(&path).await {
             Ok(level) => {
-                game.level_manager.register(id.to_string(), level);
-                eprintln!("Loaded: {}", id);
+                game.level_manager.register(level_entry.id.clone(), level);
+                eprintln!("Loaded: {}", level_entry.id);
             }
             Err(e) => {
                 if game.debug {
@@ -320,8 +344,13 @@ async fn main() {
     }
 
     // Set first level if any loaded
+    let first_level_id = datadisc
+        .levels
+        .first()
+        .map(|l| l.id.as_str())
+        .unwrap_or("level1");
     if game.level_manager.level_count() > 0 {
-        game.level_manager.set_level("level1").ok();
+        game.level_manager.set_level(first_level_id).ok();
     }
 
     eprintln!(
@@ -427,6 +456,14 @@ async fn main() {
             );
         }
 
+        // Apply pending player spawn (from level menu selection)
+        if let Some((sx, sy)) = game.pending_player_spawn.take() {
+            player_physics.x = sx as f32;
+            player_physics.y = sy as f32;
+            player_physics.vx = 0.0;
+            player_physics.vy = 0.0;
+        }
+
         // Level switching: N for next level
         if is_key_pressed(KeyCode::N) {
             if let Err(e) = game.level_manager.next_level() {
@@ -434,9 +471,14 @@ async fn main() {
                     eprintln!("Next level error: {}", e);
                 }
             } else {
-                // Reset player position on level change
-                player_physics.x = 88.0;
-                player_physics.y = 88.0;
+                // Reset player position to level spawn
+                let spawn = game
+                    .level_manager
+                    .current()
+                    .map(|lvl| lvl.player_start)
+                    .unwrap_or((88, 88));
+                player_physics.x = spawn.0 as f32;
+                player_physics.y = spawn.1 as f32;
                 player_physics.vx = 0.0;
                 player_physics.vy = 0.0;
                 game.load_creatures_from_level();

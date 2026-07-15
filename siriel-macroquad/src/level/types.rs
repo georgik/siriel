@@ -201,6 +201,24 @@ pub struct Transition {
     pub target_position: GridPos,
 }
 
+/// Level entry in datadisc
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatadiscLevel {
+    pub id: String,
+    pub key: char,
+    pub name: String,
+    pub file: String,
+}
+
+/// Datadisc metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Datadisc {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    pub levels: Vec<DatadiscLevel>,
+}
+
 /// Legacy Level (for backwards compatibility)
 #[derive(Debug, Clone)]
 pub struct Level {
