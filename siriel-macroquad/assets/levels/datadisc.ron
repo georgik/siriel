@@ -1,0 +1,20 @@
+// Siriel Macroquad - Datadisc Metadata
+// Describes levels contained in a datadisc for menu generation
+
+(
+    name: "Siriel 3.5 - The First Missions",
+    description: "Original Siriel 3.5 mission levels",
+
+    levels: [
+        (id: "level1", key: '1', name: "Level 01 - Empty Plains", file: "fmis01.ron"),
+        (id: "level2", key: '2', name: "Level 02 - Platform Gardens", file: "fmis02.ron"),
+        (id: "level3", key: '3', name: "Level 03 - Crystal Caves", file: "fmis03.ron"),
+        (id: "level4", key: '4', name: "Level 04 - Windy Peaks", file: "fmis04.ron"),
+        (id: "level5", key: '5', name: "Level 05 - Dark Forest", file: "fmis05.ron"),
+        (id: "level6", key: '6', name: "Level 06 - River Run", file: "fmis06.ron"),
+        (id: "level7", key: '7', name: "Level 07 - Sky Temple", file: "fmis07.ron"),
+        (id: "level8", key: '8', name: "Level 08 - Ice Fortress", file: "fmis08.ron"),
+        (id: "level9", key: '9', name: "Level 09 - Fire Depths", file: "fmis09.ron"),
+        (id: "level10", key: '0', name: "Level 10 - Final Trial", file: "fmis10.ron"),
+    ],
+)
