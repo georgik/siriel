@@ -1,0 +1,29 @@
+(
+    tile_size: 16,
+    columns: 4,
+    rows: 20,
+    animations: [
+        // Animated sprites (rows 1-10, 4 frames each, 2 fps)
+        (name: "teleport", row: 0, frame_count: 4, fps: 2),
+        (name: "pear", row: 1, frame_count: 4, fps: 2),
+        (name: "cherry", row: 2, frame_count: 4, fps: 2),
+        (name: "wheel", row: 3, frame_count: 4, fps: 2),
+        (name: "teleport2", row: 4, frame_count: 4, fps: 2),
+        (name: "water", row: 5, frame_count: 4, fps: 2),
+        (name: "coin", row: 6, frame_count: 4, fps: 2),
+        (name: "hearth", row: 7, frame_count: 4, fps: 2),
+        (name: "pacman", row: 8, frame_count: 4, fps: 2),
+        (name: "monster", row: 9, frame_count: 4, fps: 2),
+        // Static sprites (rows 11-20, 1 frame each)
+        (name: "exit", row: 10, frame_count: 1, fps: 1),
+        (name: "coin_static", row: 11, frame_count: 1, fps: 1),
+        (name: "lollipop", row: 12, frame_count: 1, fps: 1),
+        (name: "ice_cream", row: 13, frame_count: 1, fps: 1),
+        (name: "apple", row: 14, frame_count: 1, fps: 1),
+        (name: "orange", row: 15, frame_count: 1, fps: 1),
+        (name: "money", row: 16, frame_count: 1, fps: 1),
+        (name: "gold", row: 17, frame_count: 1, fps: 1),
+        (name: "switch", row: 18, frame_count: 1, fps: 1),
+        (name: "teleport3", row: 19, frame_count: 1, fps: 1),
+    ],
+)

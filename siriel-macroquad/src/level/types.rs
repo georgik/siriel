@@ -108,13 +108,11 @@ impl LocalizedMessage {
 pub struct LevelEntity {
     pub id: String,
     pub entity_type: EntityType,
-    pub sprite_id: i32,
+    pub sprite_name: String,
     pub position: GridPos,
     pub behavior: Behavior,
     #[serde(default)]
     pub params: Vec<i32>,
-    #[serde(default)]
-    pub animated: bool,
     #[serde(default)]
     pub danger: bool,
     #[serde(default)]
@@ -292,6 +290,51 @@ impl LevelData {
         // Convert localized messages to simple strings (English by default)
         let messages: Vec<String> = self.messages.iter().map(|m| m.en.clone()).collect();
 
+        // Convert entities to creatures
+        use crate::entities::{Creature, BehaviorType};
+        let creatures: Vec<Creature> = self
+            .entities
+            .iter()
+            .filter_map(|entity| {
+                // Map behavior string to BehaviorType
+                let behavior = match entity.behavior {
+                    Behavior::Static => BehaviorType::Pickup,
+                    Behavior::HorizontalOscillator => BehaviorType::HorizontalPatrol,
+                    Behavior::VerticalOscillator => BehaviorType::VerticalPatrol,
+                    Behavior::PlatformWithGravity => BehaviorType::PlatformGravity,
+                    Behavior::EdgeWalking => BehaviorType::PlatformEdge,
+                    Behavior::RandomMovement => BehaviorType::RandomWanderer,
+                    Behavior::Hunter => BehaviorType::ChasingEnemy,
+                    Behavior::Fireball => BehaviorType::Fireball,
+                    Behavior::AdvancedProjectile => BehaviorType::FireballAlt,
+                    Behavior::Teleport => BehaviorType::Teleport,
+                    Behavior::LevelComplete => BehaviorType::LevelComplete,
+                    Behavior::AddLife => BehaviorType::AddLife,
+                    _ => BehaviorType::Pickup,
+                };
+
+                // Store sprite_name in the frame field for now
+                // TODO: Add sprite_name field to Creature
+                Some(Creature::from_entity(
+                    &entity.id,
+                    &entity.sprite_name,
+                    entity.position.x,
+                    entity.position.y,
+                    behavior,
+                    entity.danger,
+                    Some(match entity.group {
+                        Group::A => 'A',
+                        Group::B => 'B',
+                        Group::C => 'C',
+                        Group::D => 'D',
+                        Group::E => 'E',
+                        Group::F => 'F',
+                        Group::G => 'G',
+                    }),
+                ))
+            })
+            .collect();
+
         Level {
             meta: LevelMeta {
                 name: self.name.clone(),
@@ -308,7 +351,7 @@ impl LevelData {
             tiles: self.map.tiles.clone(),
             player_start: (self.start_position.x, self.start_position.y),
             messages,
-            creatures: Vec::new(),
+            creatures,
         }
     }
 }

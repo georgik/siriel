@@ -194,6 +194,33 @@ fn behavior_from_id(id: i32) -> &'static str {
     }
 }
 
+/// Map sprite_id (row index) to sprite name from objects-fmis.ron
+fn sprite_name_from_id(id: i32) -> &'static str {
+    match id {
+        0 => "teleport",
+        1 => "pear",
+        2 => "cherry",
+        3 => "wheel",
+        4 => "teleport2",
+        5 => "water",
+        6 => "coin",
+        7 => "hearth",
+        8 => "pacman",
+        9 => "monster",
+        10 => "exit",
+        11 => "coin_static",
+        12 => "lollipop",
+        13 => "ice_cream",
+        14 => "apple",
+        15 => "orange",
+        16 => "money",
+        17 => "gold",
+        18 => "switch",
+        19 => "teleport3",
+        _ => "coin_static", // Fallback
+    }
+}
+
 fn group_from_char(code: &str) -> &'static str {
     if code.len() >= 4 {
         match code.chars().nth(3).unwrap() {
@@ -209,10 +236,6 @@ fn group_from_char(code: &str) -> &'static str {
     } else {
         "A"
     }
-}
-
-fn is_animated(code: &str) -> bool {
-    code.len() >= 2 && code.chars().nth(1) == Some('A')
 }
 
 fn is_dangerous(code: &str) -> bool {
@@ -263,7 +286,10 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 "            entity_type: {},\n",
                 entity_type_from_code(&entity.code)
             ));
-            ron.push_str(&format!("            sprite_id: {},\n", entity.sprite_id));
+            ron.push_str(&format!(
+                "            sprite_name: \"{}\",\n",
+                sprite_name_from_id(entity.sprite_id)
+            ));
             ron.push_str(&format!(
                 "            position: (x: {}, y: {}),\n",
                 entity.x, entity.y
@@ -280,10 +306,6 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 ron.push_str("],\n");
             }
 
-            ron.push_str(&format!(
-                "            animated: {},\n",
-                is_animated(&entity.code)
-            ));
             ron.push_str(&format!(
                 "            danger: {},\n",
                 is_dangerous(&entity.code)

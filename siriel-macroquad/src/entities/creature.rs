@@ -17,6 +17,9 @@ pub struct Creature {
     /// Entity code (e.g., "ZNNA", "YNN~")
     pub code: String,
 
+    /// Sprite name from objects-fmis.ron (e.g., "pear", "coin", "teleport")
+    pub sprite_name: String,
+
     /// Behavior type (funk)
     pub behavior: BehaviorType,
 
@@ -94,6 +97,7 @@ impl Creature {
                 entity_type,
             ),
             code: code.to_string(),
+            sprite_name: String::new(), // Empty for from_toml (legacy)
             behavior: behavior_type,
             inf1: param1,
             inf2: param2,
@@ -116,6 +120,58 @@ impl Creature {
             },
             value,
         })
+    }
+
+    /// Create creature from entity data (with sprite_name)
+    pub fn from_entity(
+        id: &str,
+        sprite_name: &str,
+        x: i32,
+        y: i32,
+        behavior: BehaviorType,
+        danger: bool,
+        group: Option<char>,
+    ) -> Self {
+        let pixel_x = x * TILE_SIZE;
+        let pixel_y = y * TILE_SIZE;
+
+        let entity_type = if danger {
+            EntityType::Enemy
+        } else {
+            EntityType::Item
+        };
+
+        let value = 10;
+
+        Self {
+            base: super::types::BaseEntity::new(
+                pixel_x as f32,
+                pixel_y as f32,
+                TILE_SIZE,
+                TILE_SIZE,
+                entity_type,
+            ),
+            code: id.to_string(),
+            sprite_name: sprite_name.to_string(),
+            behavior,
+            inf1: 0,
+            inf2: 0,
+            inf3: 0,
+            inf4: 0,
+            inf5: 0,
+            inf6: 0,
+            inf7: 0,
+            origin_x: pixel_x,
+            origin_y: pixel_y,
+            direction: Direction::Right,
+            moving_left: false,
+            room: 1,
+            frame: 0,
+            anim_speed: 1,
+            visible: true,
+            group,
+            value,
+        }
     }
 
     /// Update creature AI behavior

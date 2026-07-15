@@ -283,6 +283,14 @@ async fn main() {
         }
     };
 
+    let objects = match ObjectsAtlas::load().await {
+        Ok(o) => o,
+        Err(e) => {
+            error!("Failed to load objects: {}", e);
+            return;
+        }
+    };
+
     // Load datadisc metadata and build level menu
     eprintln!("=== Loading datadisc ===");
     let datadisc = match load_datadisc_async("assets/levels/datadisc.ron").await {
@@ -821,43 +829,44 @@ async fn main() {
                     let cx = game_x + creature.base.x;
                     let cy = game_y + creature.base.y;
 
-                    // Color based on behavior/danger
-                    let color = match creature.behavior {
-                        BehaviorType::Pickup | BehaviorType::AnimatedCollectible => GOLD,
-                        BehaviorType::Teleport => MAGENTA,
-                        BehaviorType::LevelComplete => GREEN,
-                        BehaviorType::AddLife => LIME,
-                        BehaviorType::Fireball | BehaviorType::FireballAlt => ORANGE,
-                        BehaviorType::ChasingEnemy => RED,
-                        BehaviorType::HorizontalPatrol | BehaviorType::VerticalPatrol => SKYBLUE,
-                        BehaviorType::PlatformGravity | BehaviorType::PlatformEdge => BROWN,
-                        _ => GRAY,
+                    // Use sprite_name from creature, fallback to default based on behavior
+                    let obj_name = if !creature.sprite_name.is_empty() {
+                        &creature.sprite_name
+                    } else {
+                        // Legacy fallback for creatures without sprite_name
+                        match creature.behavior {
+                            BehaviorType::Teleport => "teleport",
+                            BehaviorType::LevelComplete => "exit",
+                            BehaviorType::AddLife => "hearth",
+                            BehaviorType::Fireball | BehaviorType::FireballAlt => "monster",
+                            BehaviorType::ChasingEnemy => "pacman",
+                            _ => "coin_static",
+                        }
                     };
 
-                    // Draw creature (simple colored rectangle for now)
-                    draw_rectangle(
-                        cx,
-                        cy,
-                        creature.base.width as f32,
-                        creature.base.height as f32,
-                        color,
-                    );
-
-                    // Draw border for enemies
-                    if matches!(
-                        creature.behavior,
-                        BehaviorType::Fireball
-                            | BehaviorType::FireballAlt
-                            | BehaviorType::ChasingEnemy
-                    ) {
-                        draw_rectangle_lines(
-                            cx,
-                            cy,
-                            creature.base.width as f32,
-                            creature.base.height as f32,
-                            1.0,
-                            DARKGRAY,
-                        );
+                    // Use sprite if available, otherwise fallback to colored rect
+                    if objects.has_object(obj_name) {
+                        // Animate based on fps
+                        let fps = objects.fps(obj_name) as f64;
+                        let frame_count = objects.frame_count(obj_name) as i32;
+                        let frame = if fps > 0.0 && frame_count > 1 {
+                            (get_time() * fps) as i32 % frame_count
+                        } else {
+                            0
+                        };
+                        objects.draw(obj_name, frame, cx, cy, WHITE);
+                    } else {
+                        // Fallback to colored rectangle
+                        let color = match creature.behavior {
+                            BehaviorType::Pickup | BehaviorType::AnimatedCollectible => GOLD,
+                            BehaviorType::Teleport => MAGENTA,
+                            BehaviorType::LevelComplete => GREEN,
+                            BehaviorType::AddLife => LIME,
+                            BehaviorType::Fireball | BehaviorType::FireballAlt => ORANGE,
+                            BehaviorType::ChasingEnemy => RED,
+                            _ => GRAY,
+                        };
+                        draw_rectangle(cx, cy, creature.base.width as f32, creature.base.height as f32, color);
                     }
                 }
             }
