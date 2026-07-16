@@ -195,6 +195,24 @@ fn behavior_from_id(id: i32) -> &'static str {
     }
 }
 
+/// Get parameter description comment for behavior type
+fn param_description(behavior_id: i32) -> &'static str {
+    match behavior_id {
+        1 => " // [unknown, value]",
+        2 => " // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]",
+        3 => " // [top_grid, bottom_grid, speed, initial_dir: 0=down, 1=up]",
+        4 => " // [gravity_param1, gravity_param2, ...]",
+        5 => " // [edge_walk_param1, ...]",
+        9 => " // [target_level]",
+        12 => " // [random_movement_params...]",
+        15 => " // [fireball_params...]",
+        16 => " // [hunter_params...]",
+        17 => " // [sound_id]",
+        18 => " // [projectile_params...]",
+        _ => "",
+    }
+}
+
 /// Map sprite_id (row index) to sprite name from objects-fmis.ron
 fn sprite_name_from_id(id: i32) -> &'static str {
     match id {
@@ -293,7 +311,7 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 sprite_name_from_id(entity.sprite_id)
             ));
             // Original MIE uses 8x8 grid, multiply by 8 for screen position
-            // Add +8 to Y for correct sprite positioning (origin at bottom-left)
+            // Add +8 to Y for correct alignment with tiles
             ron.push_str(&format!(
                 "            position: (x: {}, y: {}),\n",
                 entity.x * 8,
@@ -308,7 +326,7 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 ron.push_str("            params: [");
                 let param_str: Vec<String> = entity.params.iter().map(|p| p.to_string()).collect();
                 ron.push_str(&param_str.join(", "));
-                ron.push_str("],\n");
+                ron.push_str(&format!("],{}\n", param_description(entity.behavior_id)));
             }
 
             ron.push_str(&format!(

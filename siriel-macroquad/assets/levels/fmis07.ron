@@ -45,7 +45,7 @@
             sprite_name: "coin",
             position: (x: 96, y: 128),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -55,7 +55,7 @@
             sprite_name: "cherry",
             position: (x: 40, y: 368),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -65,7 +65,7 @@
             sprite_name: "cherry",
             position: (x: 56, y: 368),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -75,7 +75,7 @@
             sprite_name: "cherry",
             position: (x: 72, y: 368),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -85,7 +85,7 @@
             sprite_name: "cherry",
             position: (x: 88, y: 368),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -95,7 +95,7 @@
             sprite_name: "cherry",
             position: (x: 104, y: 368),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -105,7 +105,7 @@
             sprite_name: "cherry",
             position: (x: 80, y: 80),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -115,7 +115,7 @@
             sprite_name: "cherry",
             position: (x: 144, y: 80),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -125,7 +125,7 @@
             sprite_name: "pear",
             position: (x: 528, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -135,7 +135,7 @@
             sprite_name: "pear",
             position: (x: 288, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -145,7 +145,7 @@
             sprite_name: "pear",
             position: (x: 336, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -155,7 +155,7 @@
             sprite_name: "pear",
             position: (x: 480, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -165,7 +165,7 @@
             sprite_name: "coin",
             position: (x: 112, y: 128),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -175,7 +175,7 @@
             sprite_name: "ice_cream",
             position: (x: 296, y: 192),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -185,7 +185,7 @@
             sprite_name: "ice_cream",
             position: (x: 280, y: 208),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -195,7 +195,7 @@
             sprite_name: "ice_cream",
             position: (x: 264, y: 224),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -205,7 +205,7 @@
             sprite_name: "ice_cream",
             position: (x: 576, y: 160),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -215,7 +215,7 @@
             sprite_name: "ice_cream",
             position: (x: 592, y: 160),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -225,7 +225,7 @@
             sprite_name: "ice_cream",
             position: (x: 560, y: 160),
             behavior: Static,
-            params: [3, 15],
+            params: [3, 15], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -235,7 +235,7 @@
             sprite_name: "teleport",
             position: (x: 408, y: 304),
             behavior: Static,
-            params: [3, 3],
+            params: [3, 3], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -245,7 +245,7 @@
             sprite_name: "teleport",
             position: (x: 8, y: 376),
             behavior: Static,
-            params: [51, 37],
+            params: [51, 37], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -255,7 +255,7 @@
             sprite_name: "teleport",
             position: (x: 608, y: 168),
             behavior: Static,
-            params: [0, 45],
+            params: [0, 45], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -265,7 +265,7 @@
             sprite_name: "teleport",
             position: (x: 408, y: 368),
             behavior: Static,
-            params: [8, 5],
+            params: [8, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -275,7 +275,7 @@
             sprite_name: "teleport2",
             position: (x: 496, y: 168),
             behavior: Static,
-            params: [51, 45],
+            params: [51, 45], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -285,7 +285,7 @@
             sprite_name: "wheel",
             position: (x: 424, y: 200),
             behavior: PlatformWithGravity,
-            params: [3, 1],
+            params: [3, 1], // [gravity_param1, gravity_param2, ...]
             danger: true,
             group: "A",
         ),
@@ -295,7 +295,7 @@
             sprite_name: "wheel",
             position: (x: 392, y: 200),
             behavior: PlatformWithGravity,
-            params: [3, 0],
+            params: [3, 0], // [gravity_param1, gravity_param2, ...]
             danger: true,
             group: "A",
         ),
@@ -305,7 +305,7 @@
             sprite_name: "exit",
             position: (x: 464, y: 240),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),
@@ -315,7 +315,7 @@
             sprite_name: "pacman",
             position: (x: 592, y: 160),
             behavior: PlatformWithGravity,
-            params: [3, 0],
+            params: [3, 0], // [gravity_param1, gravity_param2, ...]
             danger: true,
             group: "A",
         ),

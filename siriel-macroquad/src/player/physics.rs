@@ -33,16 +33,23 @@ impl PhysicsState {
     pub fn handle_input(&mut self) {
         self.vx = 0.0;
 
-        if is_key_down(KeyCode::Left) {
+        let moving_left = is_key_down(KeyCode::Left) || is_key_down(KeyCode::A);
+        let moving_right = is_key_down(KeyCode::Right) || is_key_down(KeyCode::D);
+
+        if moving_left {
             self.vx = -MOVE_SPEED;
             self.facing_left = true;
-        } else if is_key_down(KeyCode::Right) {
+        } else if moving_right {
             self.vx = MOVE_SPEED;
             self.facing_left = false;
         }
 
-        // Jump (arcade: Up arrow)
-        if is_key_pressed(KeyCode::Up) && self.on_ground {
+        // Jump (arcade: Up arrow, W, or Space)
+        let jump_pressed = is_key_pressed(KeyCode::Up)
+            || is_key_pressed(KeyCode::W)
+            || is_key_pressed(KeyCode::Space);
+
+        if jump_pressed && self.on_ground {
             self.vy = JUMP_FORCE;
             self.on_ground = false;
         }

@@ -45,7 +45,7 @@
             sprite_name: "cherry",
             position: (x: 80, y: 344),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -55,7 +55,7 @@
             sprite_name: "pear",
             position: (x: 384, y: 8),
             behavior: Static,
-            params: [3, 100],
+            params: [3, 100], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -65,7 +65,7 @@
             sprite_name: "cherry",
             position: (x: 472, y: 208),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -75,7 +75,7 @@
             sprite_name: "coin",
             position: (x: 416, y: 368),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -85,7 +85,7 @@
             sprite_name: "coin",
             position: (x: 480, y: 368),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -95,7 +95,7 @@
             sprite_name: "coin",
             position: (x: 544, y: 368),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -105,7 +105,7 @@
             sprite_name: "coin",
             position: (x: 608, y: 368),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -115,7 +115,7 @@
             sprite_name: "pear",
             position: (x: 464, y: 224),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -125,7 +125,7 @@
             sprite_name: "cherry",
             position: (x: 488, y: 208),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -135,7 +135,7 @@
             sprite_name: "pear",
             position: (x: 480, y: 224),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -145,7 +145,7 @@
             sprite_name: "pear",
             position: (x: 496, y: 224),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -155,7 +155,7 @@
             sprite_name: "pear",
             position: (x: 48, y: 112),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -165,7 +165,7 @@
             sprite_name: "pear",
             position: (x: 64, y: 224),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -175,7 +175,7 @@
             sprite_name: "pear",
             position: (x: 128, y: 272),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -185,7 +185,7 @@
             sprite_name: "pear",
             position: (x: 112, y: 336),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -195,7 +195,7 @@
             sprite_name: "pear",
             position: (x: 240, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -205,7 +205,7 @@
             sprite_name: "pear",
             position: (x: 272, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -215,7 +215,7 @@
             sprite_name: "pear",
             position: (x: 304, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -225,7 +225,7 @@
             sprite_name: "pear",
             position: (x: 336, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -235,7 +235,7 @@
             sprite_name: "pear",
             position: (x: 368, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -245,7 +245,7 @@
             sprite_name: "pear",
             position: (x: 400, y: 168),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -255,7 +255,7 @@
             sprite_name: "cherry",
             position: (x: 256, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -265,7 +265,7 @@
             sprite_name: "cherry",
             position: (x: 288, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -275,7 +275,7 @@
             sprite_name: "cherry",
             position: (x: 320, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -285,7 +285,7 @@
             sprite_name: "cherry",
             position: (x: 352, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -295,7 +295,7 @@
             sprite_name: "cherry",
             position: (x: 384, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -305,7 +305,7 @@
             sprite_name: "cherry",
             position: (x: 416, y: 152),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -315,7 +315,7 @@
             sprite_name: "cherry",
             position: (x: 272, y: 40),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -325,7 +325,7 @@
             sprite_name: "cherry",
             position: (x: 288, y: 40),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -335,7 +335,7 @@
             sprite_name: "cherry",
             position: (x: 400, y: 320),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -345,7 +345,7 @@
             sprite_name: "cherry",
             position: (x: 248, y: 248),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -355,7 +355,7 @@
             sprite_name: "cherry",
             position: (x: 384, y: 248),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -365,7 +365,7 @@
             sprite_name: "cherry",
             position: (x: 0, y: 96),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -375,7 +375,7 @@
             sprite_name: "cherry",
             position: (x: 0, y: 200),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -385,7 +385,7 @@
             sprite_name: "cherry",
             position: (x: 416, y: 336),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -395,7 +395,7 @@
             sprite_name: "cherry",
             position: (x: 480, y: 336),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -405,7 +405,7 @@
             sprite_name: "cherry",
             position: (x: 544, y: 336),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -415,7 +415,7 @@
             sprite_name: "cherry",
             position: (x: 608, y: 336),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -425,7 +425,7 @@
             sprite_name: "pear",
             position: (x: 416, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -435,7 +435,7 @@
             sprite_name: "pear",
             position: (x: 480, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -445,7 +445,7 @@
             sprite_name: "pear",
             position: (x: 544, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -455,7 +455,7 @@
             sprite_name: "pear",
             position: (x: 608, y: 352),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -465,7 +465,7 @@
             sprite_name: "coin",
             position: (x: 432, y: 8),
             behavior: Static,
-            params: [3, 500],
+            params: [3, 500], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -475,7 +475,7 @@
             sprite_name: "lollipop",
             position: (x: 80, y: 368),
             behavior: Static,
-            params: [3, 30],
+            params: [3, 30], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -485,7 +485,7 @@
             sprite_name: "money",
             position: (x: 432, y: 40),
             behavior: Static,
-            params: [3, 100],
+            params: [3, 100], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -495,7 +495,7 @@
             sprite_name: "money",
             position: (x: 384, y: 40),
             behavior: Static,
-            params: [3, 100],
+            params: [3, 100], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -505,7 +505,7 @@
             sprite_name: "money",
             position: (x: 336, y: 40),
             behavior: Static,
-            params: [3, 100],
+            params: [3, 100], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -525,7 +525,7 @@
             sprite_name: "exit",
             position: (x: 432, y: 40),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),
@@ -565,7 +565,7 @@
             sprite_name: "wheel",
             position: (x: 112, y: 16),
             behavior: EdgeWalking,
-            params: [3, 0],
+            params: [3, 0], // [edge_walk_param1, ...]
             danger: true,
             group: "A",
         ),
@@ -656,7 +656,7 @@
             sprite_name: "wheel",
             position: (x: 464, y: 224),
             behavior: HorizontalOscillator,
-            params: [58, 62, 1, 1],
+            params: [58, 62, 1, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "A",
         ),
@@ -666,7 +666,7 @@
             sprite_name: "pacman",
             position: (x: 336, y: 8),
             behavior: VerticalOscillator,
-            params: [0, 4, 1, 0],
+            params: [0, 4, 1, 0], // [top_grid, bottom_grid, speed, initial_dir: 0=down, 1=up]
             danger: true,
             group: "B",
         ),
@@ -676,7 +676,7 @@
             sprite_name: "pacman",
             position: (x: 248, y: 8),
             behavior: VerticalOscillator,
-            params: [0, 4, 1, 0],
+            params: [0, 4, 1, 0], // [top_grid, bottom_grid, speed, initial_dir: 0=down, 1=up]
             danger: true,
             group: "B",
         ),
@@ -696,7 +696,7 @@
             sprite_name: "monster",
             position: (x: 96, y: 144),
             behavior: HorizontalOscillator,
-            params: [12, 54, 2, 0],
+            params: [12, 54, 2, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "A",
         ),

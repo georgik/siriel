@@ -45,7 +45,7 @@
             sprite_name: "pear",
             position: (x: 64, y: 144),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -55,7 +55,7 @@
             sprite_name: "pear",
             position: (x: 80, y: 144),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -65,7 +65,7 @@
             sprite_name: "pear",
             position: (x: 96, y: 144),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -75,7 +75,7 @@
             sprite_name: "coin",
             position: (x: 136, y: 240),
             behavior: Static,
-            params: [3, 50],
+            params: [3, 50], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -85,7 +85,7 @@
             sprite_name: "cherry",
             position: (x: 304, y: 240),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -95,7 +95,7 @@
             sprite_name: "cherry",
             position: (x: 320, y: 240),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -105,7 +105,7 @@
             sprite_name: "cherry",
             position: (x: 336, y: 240),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -115,7 +115,7 @@
             sprite_name: "cherry",
             position: (x: 536, y: 240),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -125,7 +125,7 @@
             sprite_name: "cherry",
             position: (x: 0, y: 304),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -135,7 +135,7 @@
             sprite_name: "cherry",
             position: (x: 16, y: 304),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -145,7 +145,7 @@
             sprite_name: "cherry",
             position: (x: 32, y: 304),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -155,7 +155,7 @@
             sprite_name: "cherry",
             position: (x: 48, y: 304),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -165,7 +165,7 @@
             sprite_name: "cherry",
             position: (x: 64, y: 304),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -175,7 +175,7 @@
             sprite_name: "cherry",
             position: (x: 0, y: 224),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -185,7 +185,7 @@
             sprite_name: "cherry",
             position: (x: 48, y: 128),
             behavior: Static,
-            params: [3, 5],
+            params: [3, 5], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -195,7 +195,7 @@
             sprite_name: "exit",
             position: (x: 608, y: 280),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),

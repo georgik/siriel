@@ -472,8 +472,8 @@ async fn main() {
             game.current_game_mode = GameMode::MainMenu;
         }
 
-        // Debug: F1 to toggle tile indices display
-        if is_key_pressed(KeyCode::F1) {
+        // Debug: F3 to toggle tile indices display
+        if is_key_pressed(KeyCode::F3) {
             game.show_tile_indices = !game.show_tile_indices;
             eprintln!(
                 "Tile indices: {}",

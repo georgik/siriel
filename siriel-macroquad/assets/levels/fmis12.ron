@@ -549,7 +549,7 @@
             sprite_name: "teleport3",
             position: (x: 272, y: 160),
             behavior: Static,
-            params: [29, 27],
+            params: [29, 27], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -609,7 +609,7 @@
             sprite_name: "exit",
             position: (x: 584, y: 384),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),
@@ -619,7 +619,7 @@
             sprite_name: "pacman",
             position: (x: 608, y: 160),
             behavior: HorizontalOscillator,
-            params: [0, 76, 3, 1],
+            params: [0, 76, 3, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -629,7 +629,7 @@
             sprite_name: "monster",
             position: (x: 0, y: 192),
             behavior: HorizontalOscillator,
-            params: [0, 76, 2, 0],
+            params: [0, 76, 2, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -639,7 +639,7 @@
             sprite_name: "wheel",
             position: (x: 608, y: 224),
             behavior: HorizontalOscillator,
-            params: [0, 76, 1, 1],
+            params: [0, 76, 1, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -649,7 +649,7 @@
             sprite_name: "pacman",
             position: (x: 0, y: 256),
             behavior: HorizontalOscillator,
-            params: [0, 76, 3, 0],
+            params: [0, 76, 3, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -659,7 +659,7 @@
             sprite_name: "monster",
             position: (x: 608, y: 288),
             behavior: HorizontalOscillator,
-            params: [0, 76, 2, 1],
+            params: [0, 76, 2, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -669,7 +669,7 @@
             sprite_name: "wheel",
             position: (x: 0, y: 320),
             behavior: HorizontalOscillator,
-            params: [0, 76, 1, 0],
+            params: [0, 76, 1, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "B",
         ),
@@ -679,7 +679,7 @@
             sprite_name: "wheel",
             position: (x: 48, y: 352),
             behavior: VerticalOscillator,
-            params: [43, 47, 1, 0],
+            params: [43, 47, 1, 0], // [top_grid, bottom_grid, speed, initial_dir: 0=down, 1=up]
             danger: true,
             group: "B",
         ),

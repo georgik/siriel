@@ -122,7 +122,7 @@ impl Creature {
         })
     }
 
-    /// Create creature from entity data (with sprite_name)
+    /// Create creature from entity data (with sprite_name and params)
     pub fn from_entity(
         id: &str,
         sprite_name: &str,
@@ -131,6 +131,7 @@ impl Creature {
         behavior: BehaviorType,
         danger: bool,
         group: Option<char>,
+        params: &[i32],
     ) -> Self {
         // Coordinates are already in pixels (converter handles ×8)
         let pixel_x = x;
@@ -158,13 +159,17 @@ impl Creature {
             code: id.to_string(),
             sprite_name: sprite_name.to_string(),
             behavior,
-            inf1: 0,
-            inf2: 0,
-            inf3: 0,
-            inf4: 0,
-            inf5: 0,
-            inf6: 0,
-            inf7: 0,
+            // Map params from LevelEntity to inf1-inf7
+            // For HorizontalOscillator: [left_grid, right_grid, speed, initial_dir]
+            // For VerticalOscillator: [top_grid, bottom_grid, speed, initial_dir]
+            // Need to convert grid coords to pixels for boundaries
+            inf1: if params.len() > 0 { params[0] * 8 } else { 0 }, // left/top boundary (px)
+            inf2: if params.len() > 1 { params[1] * 8 } else { 0 }, // right/bottom boundary (px)
+            inf3: if params.len() > 2 { params[2] } else { 1 },     // speed
+            inf4: 0,                                                // distance counter
+            inf5: pixel_x,                                          // reset X (origin)
+            inf6: pixel_y,                                          // reset Y (origin)
+            inf7: if params.len() > 3 { params[3] } else { 0 }, // initial direction: 0=right/down, 1=left/up
             origin_x: pixel_x,
             origin_y: pixel_y,
             direction: Direction::Right,

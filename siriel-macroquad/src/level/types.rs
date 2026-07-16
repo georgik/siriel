@@ -308,6 +308,7 @@ impl LevelData {
                     behavior,
                     entity.danger,
                     entity.group.chars().next(),
+                    &entity.params,
                 ))
             })
             .collect();

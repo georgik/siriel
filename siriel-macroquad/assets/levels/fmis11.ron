@@ -275,7 +275,7 @@
             sprite_name: "exit",
             position: (x: 608, y: 384),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),
@@ -325,7 +325,7 @@
             sprite_name: "pacman",
             position: (x: 32, y: 240),
             behavior: HorizontalOscillator,
-            params: [4, 65, 3, 0],
+            params: [4, 65, 3, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "A",
         ),
@@ -335,7 +335,7 @@
             sprite_name: "monster",
             position: (x: 32, y: 384),
             behavior: HorizontalOscillator,
-            params: [4, 67, 2, 0],
+            params: [4, 67, 2, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "A",
         ),
@@ -345,7 +345,7 @@
             sprite_name: "wheel",
             position: (x: 576, y: 304),
             behavior: HorizontalOscillator,
-            params: [12, 72, 1, 1],
+            params: [12, 72, 1, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "A",
         ),

@@ -45,7 +45,7 @@
             sprite_name: "pear",
             position: (x: 64, y: 128),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -55,7 +55,7 @@
             sprite_name: "pear",
             position: (x: 48, y: 128),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -65,7 +65,7 @@
             sprite_name: "pear",
             position: (x: 32, y: 128),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -75,7 +75,7 @@
             sprite_name: "pear",
             position: (x: 16, y: 128),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -85,7 +85,7 @@
             sprite_name: "pear",
             position: (x: 0, y: 128),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -95,7 +95,7 @@
             sprite_name: "pear",
             position: (x: 8, y: 112),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -105,7 +105,7 @@
             sprite_name: "pear",
             position: (x: 24, y: 112),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -115,7 +115,7 @@
             sprite_name: "pear",
             position: (x: 40, y: 112),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -125,7 +125,7 @@
             sprite_name: "pear",
             position: (x: 56, y: 112),
             behavior: Static,
-            params: [3, 10],
+            params: [3, 10], // [unknown, value]
             danger: false,
             group: "A",
         ),
@@ -305,7 +305,7 @@
             sprite_name: "exit",
             position: (x: 208, y: 48),
             behavior: LevelComplete,
-            params: [1],
+            params: [1], // [target_level]
             danger: false,
             group: "~",
         ),
@@ -345,7 +345,7 @@
             sprite_name: "monster",
             position: (x: 304, y: 40),
             behavior: EdgeWalking,
-            params: [2, 1],
+            params: [2, 1], // [edge_walk_param1, ...]
             danger: true,
             group: "D",
         ),
@@ -355,7 +355,7 @@
             sprite_name: "pacman",
             position: (x: 288, y: 352),
             behavior: HorizontalOscillator,
-            params: [15, 36, 2, 1],
+            params: [15, 36, 2, 1], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "C",
         ),
@@ -393,7 +393,7 @@
             sprite_name: "pacman",
             position: (x: 328, y: 336),
             behavior: HorizontalOscillator,
-            params: [41, 51, 3, 0],
+            params: [41, 51, 3, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "E",
         ),
@@ -403,7 +403,7 @@
             sprite_name: "pacman",
             position: (x: 368, y: 352),
             behavior: HorizontalOscillator,
-            params: [46, 56, 1, 0],
+            params: [46, 56, 1, 0], // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]
             danger: true,
             group: "E",
         ),

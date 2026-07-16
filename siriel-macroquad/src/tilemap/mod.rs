@@ -12,6 +12,36 @@ pub fn draw_tilemap(
     offset_y: f32,
     show_indices: bool,
 ) {
+    // Draw grid lines first (behind tiles)
+    if show_indices {
+        let map_width_px = tilemap.first().map_or(0, |r| r.len() * TILE_SIZE as usize);
+        let map_height_px = tilemap.len() * TILE_SIZE as usize;
+
+        // Vertical lines every tile (16px)
+        for x in (0..=map_width_px).step_by(TILE_SIZE as usize) {
+            draw_line(
+                offset_x + x as f32,
+                offset_y,
+                offset_x + x as f32,
+                offset_y + map_height_px as f32,
+                1.0,
+                GRAY,
+            );
+        }
+
+        // Horizontal lines every tile (16px)
+        for y in (0..=map_height_px).step_by(TILE_SIZE as usize) {
+            draw_line(
+                offset_x,
+                offset_y + y as f32,
+                offset_x + map_width_px as f32,
+                offset_y + y as f32,
+                1.0,
+                GRAY,
+            );
+        }
+    }
+
     for (y, row) in tilemap.iter().enumerate() {
         for (x, &tile) in row.iter().enumerate() {
             // Skip empty tiles
@@ -26,15 +56,27 @@ pub fn draw_tilemap(
             if tile < tileset.tile_count {
                 tileset.draw_tile(tile, screen_x, screen_y, WHITE);
 
-                // Debug: draw tile index
+                // Debug: draw tile index and coordinates
                 if show_indices {
+                    // Show tile ID on every tile
                     draw_text(
                         &tile.to_string(),
                         screen_x + 2.0,
                         screen_y + 2.0,
-                        10.0,
+                        8.0,
                         YELLOW,
                     );
+
+                    // Show (x,y) only every 10th tile
+                    if x % 10 == 0 && y % 10 == 0 {
+                        draw_text(
+                            &format!("({},{})", x, y),
+                            screen_x + 2.0,
+                            screen_y + 11.0,
+                            8.0,
+                            WHITE,
+                        );
+                    }
                 }
             }
         }
