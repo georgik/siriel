@@ -47,7 +47,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_1",
@@ -57,7 +57,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_2",
@@ -67,7 +67,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_3",
@@ -77,7 +77,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_4",
@@ -87,7 +87,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_5",
@@ -97,7 +97,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_6",
@@ -107,7 +107,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_7",
@@ -117,7 +117,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_8",
@@ -127,7 +127,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_9",
@@ -137,7 +137,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_10",
@@ -147,7 +147,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZANA_11",
@@ -157,7 +157,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_12",
@@ -167,7 +167,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_13",
@@ -177,7 +177,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_14",
@@ -187,7 +187,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_15",
@@ -197,7 +197,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_16",
@@ -207,7 +207,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_17",
@@ -217,7 +217,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_18",
@@ -227,7 +227,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "XANA_19",
@@ -237,7 +237,7 @@
             behavior: Static,
             params: [3, 3],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "XNNA_20",
@@ -247,7 +247,7 @@
             behavior: Static,
             params: [51, 37],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "XNNA_21",
@@ -257,7 +257,7 @@
             behavior: Static,
             params: [0, 45],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "XANA_22",
@@ -267,7 +267,7 @@
             behavior: Static,
             params: [8, 5],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YANA_23",
@@ -277,7 +277,7 @@
             behavior: Static,
             params: [51, 45],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YASA_24",
@@ -287,7 +287,7 @@
             behavior: PlatformWithGravity,
             params: [3, 1],
             danger: true,
-            group: A,
+            group: "A",
         ),
         (
             id: "YASA_25",
@@ -297,17 +297,17 @@
             behavior: PlatformWithGravity,
             params: [3, 0],
             danger: true,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNN~_26",
             entity_type: Trigger,
             sprite_name: "exit",
             position: (x: 464, y: 232),
-            behavior: Static,
+            behavior: LevelComplete,
             params: [1],
             danger: false,
-            group: A,
+            group: "~",
         ),
         (
             id: "YASA_27",
@@ -317,7 +317,7 @@
             behavior: PlatformWithGravity,
             params: [3, 0],
             danger: true,
-            group: A,
+            group: "A",
         ),
     ],
     messages: [

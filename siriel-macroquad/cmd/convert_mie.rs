@@ -185,6 +185,7 @@ fn behavior_from_id(id: i32) -> &'static str {
         3 => "VerticalOscillator",
         4 => "PlatformWithGravity",
         5 => "EdgeWalking",
+        9 => "LevelComplete",
         12 => "RandomMovement",
         15 => "Fireball",
         16 => "Hunter",
@@ -231,6 +232,7 @@ fn group_from_char(code: &str) -> &'static str {
             'E' => "E",
             'F' => "F",
             'G' => "G",
+            '~' => "~",
             _ => "A",
         }
     } else {
@@ -293,7 +295,8 @@ fn convert_to_ron(level: &MieLevel) -> String {
             // Original MIE uses 8x8 grid, multiply by 8 for screen position
             ron.push_str(&format!(
                 "            position: (x: {}, y: {}),\n",
-                entity.x * 8, entity.y * 8
+                entity.x * 8,
+                entity.y * 8
             ));
             ron.push_str(&format!(
                 "            behavior: {},\n",
@@ -312,7 +315,7 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 is_dangerous(&entity.code)
             ));
             ron.push_str(&format!(
-                "            group: {},\n",
+                "            group: \"{}\",\n",
                 group_from_char(&entity.code)
             ));
 

@@ -67,6 +67,9 @@ struct GameState {
     god_mode: bool,
     freeze_mode: bool,
     powerup_timer: f32,
+    // Collectible tracking
+    total_collectibles: i32,
+    collected_count: i32,
     // Menu system
     main_menu: Menu,
     level_selector: Menu,
@@ -164,6 +167,8 @@ impl GameState {
             god_mode: false,
             freeze_mode: false,
             powerup_timer: 0.0,
+            total_collectibles: 0,
+            collected_count: 0,
             main_menu,
             level_selector,
             current_game_mode: GameMode::MainMenu,
@@ -176,6 +181,18 @@ impl GameState {
     fn load_creatures_from_level(&mut self) {
         if let Some(current_level) = self.level_manager.current() {
             self.creatures = current_level.creatures.clone();
+            // Count collectibles and reset counters
+            self.total_collectibles = self
+                .creatures
+                .iter()
+                .filter(|c| {
+                    matches!(
+                        c.behavior,
+                        BehaviorType::Pickup | BehaviorType::AnimatedCollectible
+                    )
+                })
+                .count() as i32;
+            self.collected_count = 0;
         }
     }
 
@@ -554,6 +571,7 @@ async fn main() {
                         BehaviorType::Pickup | BehaviorType::AnimatedCollectible => {
                             // Collectible
                             creature.base.alive = false;
+                            game.collected_count += 1;
                             game.particles
                                 .sparkle(creature.base.x + 8.0, creature.base.y + 8.0);
                             game.sound_manager.play(SoundType::Coin);
@@ -668,6 +686,18 @@ async fn main() {
             for creature in &mut game.creatures {
                 if creature.group == Some(group) {
                     creature.visible = false;
+                }
+            }
+        }
+
+        // Reveal exit doors when all collectibles collected
+        if game.collected_count >= game.total_collectibles && game.total_collectibles > 0 {
+            for creature in &mut game.creatures {
+                // Reveal creatures with ExitDoor visibility (hidden exit doors)
+                if !creature.visible && creature.base.alive {
+                    if matches!(creature.behavior, BehaviorType::LevelComplete) {
+                        creature.visible = true;
+                    }
                 }
             }
         }
@@ -866,7 +896,13 @@ async fn main() {
                             BehaviorType::ChasingEnemy => RED,
                             _ => GRAY,
                         };
-                        draw_rectangle(cx, cy, creature.base.width as f32, creature.base.height as f32, color);
+                        draw_rectangle(
+                            cx,
+                            cy,
+                            creature.base.width as f32,
+                            creature.base.height as f32,
+                            color,
+                        );
                     }
                 }
             }

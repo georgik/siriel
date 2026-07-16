@@ -152,16 +152,25 @@ fn entity_type_from_code(code: &str) -> &'static str {
 
 fn behavior_from_id(id: i32) -> &'static str {
     match id {
-        1 => "Static",
+        0 => "Static",
+        1 => "Teleport",
         2 => "HorizontalOscillator",
         3 => "VerticalOscillator",
         4 => "PlatformWithGravity",
         5 => "EdgeWalking",
+        6 => "TextureChange",
+        7 => "ShowGroup",
+        8 => "HideGroup",
+        9 => "LevelComplete",
+        10 => "AddLife",
         12 => "RandomMovement",
+        13 => "SwapRoomVisibility",
+        14 => "TransferToStage",
         15 => "Fireball",
         16 => "Hunter",
         17 => "SoundTrigger",
         18 => "AdvancedProjectile",
+        19 => "TextureChange",
         _ => "Static",
     }
 }

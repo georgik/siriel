@@ -50,23 +50,8 @@ impl Default for Behavior {
     }
 }
 
-/// Visibility group
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum Group {
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-}
-
-impl Default for Group {
-    fn default() -> Self {
-        Group::A
-    }
-}
+/// Visibility group (string identifier like "A", "B", "~", etc.)
+pub type Group = String;
 
 /// Grid position
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -291,7 +276,7 @@ impl LevelData {
         let messages: Vec<String> = self.messages.iter().map(|m| m.en.clone()).collect();
 
         // Convert entities to creatures
-        use crate::entities::{Creature, BehaviorType};
+        use crate::entities::{BehaviorType, Creature};
         let creatures: Vec<Creature> = self
             .entities
             .iter()
@@ -322,15 +307,7 @@ impl LevelData {
                     entity.position.y,
                     behavior,
                     entity.danger,
-                    Some(match entity.group {
-                        Group::A => 'A',
-                        Group::B => 'B',
-                        Group::C => 'C',
-                        Group::D => 'D',
-                        Group::E => 'E',
-                        Group::F => 'F',
-                        Group::G => 'G',
-                    }),
+                    entity.group.chars().next(),
                 ))
             })
             .collect();

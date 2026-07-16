@@ -142,6 +142,9 @@ impl Creature {
             EntityType::Item
         };
 
+        // Visibility based on group: only "A" group visible initially
+        let visible = group == Some('A');
+
         let value = 10;
 
         Self {
@@ -169,7 +172,7 @@ impl Creature {
             room: 1,
             frame: 0,
             anim_speed: 1,
-            visible: true,
+            visible,
             group,
             value,
         }

@@ -100,10 +100,7 @@ impl ObjectsAtlas {
             .find(|(name, _)| name == obj_name)
             .map(|(_, row)| *row as i32)
             .unwrap_or_else(|| {
-                eprintln!(
-                    "WARNING: Object '{}' not found in spritesheet",
-                    obj_name
-                );
+                eprintln!("WARNING: Object '{}' not found in spritesheet", obj_name);
                 0
             });
 

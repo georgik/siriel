@@ -47,7 +47,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNB_1",
@@ -57,7 +57,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_2",
@@ -67,7 +67,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_3",
@@ -77,7 +77,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_4",
@@ -87,7 +87,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_5",
@@ -97,7 +97,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_6",
@@ -107,7 +107,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_7",
@@ -117,7 +117,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_8",
@@ -127,7 +127,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_9",
@@ -137,7 +137,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_10",
@@ -147,7 +147,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_11",
@@ -157,7 +157,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNC_12",
@@ -167,7 +167,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_13",
@@ -177,7 +177,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_14",
@@ -187,7 +187,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_15",
@@ -197,7 +197,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_16",
@@ -207,7 +207,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_17",
@@ -217,7 +217,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_18",
@@ -227,7 +227,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_19",
@@ -237,7 +237,7 @@
             behavior: Static,
             params: [3, 5],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNA_20",
@@ -247,7 +247,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_21",
@@ -257,7 +257,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_22",
@@ -267,7 +267,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_23",
@@ -277,7 +277,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_24",
@@ -287,7 +287,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_25",
@@ -297,7 +297,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZNNA_26",
@@ -307,7 +307,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YAS!_27",
@@ -317,17 +317,17 @@
             behavior: HorizontalOscillator,
             params: [28, 40, 3, 1],
             danger: true,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNN~_28",
             entity_type: Trigger,
             sprite_name: "exit",
             position: (x: 272, y: 328),
-            behavior: Static,
+            behavior: LevelComplete,
             params: [1],
             danger: false,
-            group: A,
+            group: "~",
         ),
         (
             id: "YNNA_29",
@@ -337,7 +337,7 @@
             behavior: Static,
             params: [33],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YAN!_30",
@@ -347,7 +347,7 @@
             behavior: Static,
             params: [1],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YAN!_31",
@@ -357,7 +357,7 @@
             behavior: Static,
             params: [1],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YAN!_32",
@@ -367,7 +367,7 @@
             behavior: Static,
             params: [1],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNNA_33",
@@ -377,7 +377,7 @@
             behavior: Static,
             params: [8, 45, 8, 45, 0],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNNA_34",
@@ -387,7 +387,7 @@
             behavior: Static,
             params: [66],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNNA_35",
@@ -397,7 +397,7 @@
             behavior: Static,
             params: [68, 45, 68, 45, 0],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNNA_36",
@@ -407,7 +407,7 @@
             behavior: Static,
             params: [67],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YNNC_37",
@@ -417,7 +417,7 @@
             behavior: Static,
             params: [30, 10, 31, 22, 0],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASA_38",
@@ -427,7 +427,7 @@
             behavior: EdgeWalking,
             params: [2, 1],
             danger: true,
-            group: A,
+            group: "A",
         ),
     ],
 )

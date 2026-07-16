@@ -47,7 +47,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_1",
@@ -57,7 +57,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_2",
@@ -67,7 +67,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_3",
@@ -77,7 +77,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_4",
@@ -87,7 +87,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_5",
@@ -97,7 +97,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNB_6",
@@ -107,7 +107,7 @@
             behavior: Static,
             params: [3, 15],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "ZNNC_7",
@@ -117,7 +117,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_8",
@@ -127,7 +127,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_9",
@@ -137,7 +137,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_10",
@@ -147,7 +147,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_11",
@@ -157,7 +157,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_12",
@@ -167,7 +167,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_13",
@@ -177,7 +177,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZNNC_14",
@@ -187,7 +187,7 @@
             behavior: Static,
             params: [3, 50],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "ZANA_15",
@@ -197,7 +197,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZANA_16",
@@ -207,7 +207,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "ZANA_17",
@@ -217,7 +217,7 @@
             behavior: Static,
             params: [3, 10],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YASB_18",
@@ -226,7 +226,7 @@
             position: (x: 400, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YNNA_19",
@@ -236,7 +236,7 @@
             behavior: Static,
             params: [66],
             danger: false,
-            group: A,
+            group: "A",
         ),
         (
             id: "YASB_20",
@@ -245,7 +245,7 @@
             position: (x: 576, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_21",
@@ -254,7 +254,7 @@
             position: (x: 560, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_22",
@@ -263,7 +263,7 @@
             position: (x: 544, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_23",
@@ -272,7 +272,7 @@
             position: (x: 496, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_24",
@@ -281,7 +281,7 @@
             position: (x: 480, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_25",
@@ -290,7 +290,7 @@
             position: (x: 464, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_26",
@@ -299,7 +299,7 @@
             position: (x: 416, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_27",
@@ -308,7 +308,7 @@
             position: (x: 384, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_28",
@@ -317,7 +317,7 @@
             position: (x: 336, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASB_29",
@@ -326,7 +326,7 @@
             position: (x: 320, y: 376),
             behavior: Static,
             danger: true,
-            group: B,
+            group: "B",
         ),
         (
             id: "YASC_30",
@@ -335,7 +335,7 @@
             position: (x: 32, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_31",
@@ -344,7 +344,7 @@
             position: (x: 48, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_32",
@@ -353,7 +353,7 @@
             position: (x: 64, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_33",
@@ -362,7 +362,7 @@
             position: (x: 128, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_34",
@@ -371,7 +371,7 @@
             position: (x: 144, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_35",
@@ -380,7 +380,7 @@
             position: (x: 192, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_36",
@@ -389,7 +389,7 @@
             position: (x: 208, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_37",
@@ -398,7 +398,7 @@
             position: (x: 256, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YASC_38",
@@ -407,7 +407,7 @@
             position: (x: 272, y: 376),
             behavior: Static,
             danger: true,
-            group: C,
+            group: "C",
         ),
         (
             id: "YNAC_39",
@@ -417,7 +417,7 @@
             behavior: Static,
             params: [1],
             danger: false,
-            group: C,
+            group: "C",
         ),
         (
             id: "YNNB_40",
@@ -427,17 +427,17 @@
             behavior: Static,
             params: [67],
             danger: false,
-            group: B,
+            group: "B",
         ),
         (
             id: "YNN~_41",
             entity_type: Trigger,
             sprite_name: "exit",
             position: (x: 608, y: 360),
-            behavior: Static,
+            behavior: LevelComplete,
             params: [1],
             danger: false,
-            group: A,
+            group: "~",
         ),
         (
             id: "YASA_42",
@@ -447,7 +447,7 @@
             behavior: HorizontalOscillator,
             params: [4, 71, 3, 0],
             danger: true,
-            group: A,
+            group: "A",
         ),
     ],
 )
