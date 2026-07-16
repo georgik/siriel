@@ -132,8 +132,9 @@ impl Creature {
         danger: bool,
         group: Option<char>,
     ) -> Self {
-        let pixel_x = x * TILE_SIZE;
-        let pixel_y = y * TILE_SIZE;
+        // Coordinates are already in pixels (converter handles ×8)
+        let pixel_x = x;
+        let pixel_y = y;
 
         let entity_type = if danger {
             EntityType::Enemy

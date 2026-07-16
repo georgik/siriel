@@ -290,9 +290,10 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 "            sprite_name: \"{}\",\n",
                 sprite_name_from_id(entity.sprite_id)
             ));
+            // Original MIE uses 8x8 grid, multiply by 8 for screen position
             ron.push_str(&format!(
                 "            position: (x: {}, y: {}),\n",
-                entity.x, entity.y
+                entity.x * 8, entity.y * 8
             ));
             ron.push_str(&format!(
                 "            behavior: {},\n",
