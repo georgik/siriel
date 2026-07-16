@@ -1,5 +1,7 @@
 // Siriel Macroquad - Player Physics
+// Implements pixel-perfect collision matching original Siriel 3.5
 
+use crate::assets::Tileset;
 use crate::core::anim;
 use crate::core::{GRAVITY, JUMP_FORCE, MOVE_SPEED, TILE_SIZE};
 use macroquad::prelude::*;
@@ -64,23 +66,23 @@ impl PhysicsState {
         }
     }
 
-    /// Update physics with tilemap collision
-    pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], _dt: f32) {
+    /// Update physics with tilemap collision using pixel-perfect masks
+    pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], tileset: &Tileset, _dt: f32) {
         // Apply gravity
         self.vy += GRAVITY;
 
         // Horizontal movement with collision
         let new_x = self.x + self.vx;
-        if !self.check_collision(new_x, self.y, tilemap) {
+        if !self.check_collision(new_x, self.y, tilemap, tileset) {
             self.x = new_x;
         }
 
         // Vertical movement with collision
         let new_y = self.y + self.vy;
-        if !self.check_collision(self.x, new_y, tilemap) {
+        if !self.check_collision(self.x, new_y, tilemap, tileset) {
             self.y = new_y;
-            // Check if we're on ground
-            self.on_ground = self.check_ground(self.y, tilemap);
+            // Check if we're on ground using asymmetric foot check
+            self.on_ground = self.check_ground(new_y, tilemap, tileset);
         } else {
             // Collision occurred
             if self.vy > 0.0 {
@@ -95,49 +97,65 @@ impl PhysicsState {
         self.y = self.y.clamp(0.0, (26 * TILE_SIZE - 16) as f32);
     }
 
-    /// Check if position collides with solid tile
-    fn check_collision(&self, x: f32, y: f32, tilemap: &[Vec<i32>]) -> bool {
-        // Check all four corners of the player sprite
-        let corners = [
-            (x, y),               // Top-left
-            (x + 15.0, y),        // Top-right
-            (x, y + 15.0),        // Bottom-left
-            (x + 15.0, y + 15.0), // Bottom-right
+    /// Check if position collides with solid pixels
+    /// Uses 4 points at ±6 offset from center (matches original smeruj())
+    fn check_collision(&self, x: f32, y: f32, tilemap: &[Vec<i32>], tileset: &Tileset) -> bool {
+        // 4 points at ±6 from center (matches original smeruj())
+        let points = [
+            (x - 6.0, y),        // Left
+            (x + 6.0, y),        // Right
+            (x - 6.0, y + 16.0), // Bottom-left
+            (x + 6.0, y + 16.0), // Bottom-right
         ];
 
-        for (cx, cy) in corners {
-            let tile_x = (cx / TILE_SIZE as f32) as usize;
-            let tile_y = (cy / TILE_SIZE as f32) as usize;
+        for (px, py) in points {
+            let tile_x = (px / TILE_SIZE as f32) as usize;
+            let tile_y = (py / TILE_SIZE as f32) as usize;
 
             if tile_y < tilemap.len() && tile_x < tilemap[tile_y].len() {
-                let tile = tilemap[tile_y][tile_x];
-                // Tiles 24+ are solid
-                if tile >= 24 {
-                    return true;
+                let tile_id = tilemap[tile_y][tile_x] as usize;
+
+                // Skip invalid tiles
+                if tile_id >= tileset.collision_masks.len() {
+                    continue;
+                }
+
+                // Check pixel-level transparency
+                let pixel_x = (px as i32 % TILE_SIZE) as usize;
+                let pixel_y = (py as i32 % TILE_SIZE) as usize;
+
+                if tileset.is_pixel_solid(tile_id as i32, pixel_x, pixel_y) {
+                    return true; // Collision detected
                 }
             }
         }
-        false
+        false // No collision at any point
     }
 
-    /// Check if standing on solid ground
-    fn check_ground(&self, y: f32, tilemap: &[Vec<i32>]) -> bool {
-        let bottom_y = y + 16.0;
-        let tile_y = (bottom_y / TILE_SIZE as f32) as usize;
+    /// Check if standing on solid ground using asymmetric foot check
+    /// Matches original gravitacia() - checks (x-12, y) and (x+4, y)
+    fn check_ground(&self, y: f32, tilemap: &[Vec<i32>], tileset: &Tileset) -> bool {
+        // Asymmetric foot check like original gravitacia()
+        let feet_points = [
+            (self.x - 12.0, y + 16.0), // Left foot
+            (self.x + 4.0, y + 16.0),  // Right foot
+        ];
 
-        if tile_y >= tilemap.len() {
-            return false;
+        for (px, py) in feet_points {
+            let tile_x = (px / TILE_SIZE as f32) as usize;
+            let tile_y = (py / TILE_SIZE as f32) as usize;
+
+            if tile_y < tilemap.len() && tile_x < tilemap[tile_y].len() {
+                let tile_id = tilemap[tile_y][tile_x] as usize;
+                if tile_id < tileset.collision_masks.len() {
+                    let pixel_x = (px as i32 % TILE_SIZE) as usize;
+                    let pixel_y = (py as i32 % TILE_SIZE) as usize;
+                    if tileset.is_pixel_solid(tile_id as i32, pixel_x, pixel_y) {
+                        return true; // Standing on solid ground
+                    }
+                }
+            }
         }
-
-        // Check center point of player's bottom
-        let center_x = (self.x + 8.0) / TILE_SIZE as f32;
-        let tile_x = center_x as usize;
-
-        if tile_x < tilemap[tile_y].len() {
-            let tile = tilemap[tile_y][tile_x];
-            return tile >= 24;
-        }
-
         false
     }
 

@@ -514,9 +514,9 @@ async fn main() {
         // Handle input
         player_physics.handle_input();
 
-        // Update physics with tilemap collision
+        // Update physics with tilemap collision using pixel-perfect masks
         if let Some(current_level) = game.level_manager.current() {
-            player_physics.update_with_collision(&current_level.tiles, dt);
+            player_physics.update_with_collision(&current_level.tiles, &tileset, dt);
         }
 
         // Update entities
