@@ -96,8 +96,27 @@ pub struct LevelEntity {
     pub sprite_name: String,
     pub position: GridPos,
     pub behavior: Behavior,
+    // Named behavior-specific parameters
     #[serde(default)]
-    pub params: Vec<i32>,
+    pub event_id: Option<i32>,
+    #[serde(default)]
+    pub score: Option<i32>,
+    #[serde(default)]
+    pub target_level: Option<i32>,
+    #[serde(default)]
+    pub sound_id: Option<i32>,
+    #[serde(default)]
+    pub left_grid: Option<i32>,
+    #[serde(default)]
+    pub right_grid: Option<i32>,
+    #[serde(default)]
+    pub top_grid: Option<i32>,
+    #[serde(default)]
+    pub bottom_grid: Option<i32>,
+    #[serde(default)]
+    pub speed: Option<i32>,
+    #[serde(default)]
+    pub initial_dir: Option<i32>,
     #[serde(default)]
     pub danger: bool,
     #[serde(default)]
@@ -298,6 +317,72 @@ impl LevelData {
                     _ => BehaviorType::Pickup,
                 };
 
+                // Build params array from named fields in behavior-specific order
+                let params = match entity.behavior {
+                    Behavior::Static => {
+                        // Collectible: [event_id, score]
+                        let mut p = Vec::new();
+                        if let Some(v) = entity.event_id {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.score {
+                            p.push(v);
+                        }
+                        p
+                    }
+                    Behavior::HorizontalOscillator => {
+                        // [left_grid, right_grid, speed, initial_dir]
+                        let mut p = Vec::new();
+                        if let Some(v) = entity.left_grid {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.right_grid {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.speed {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.initial_dir {
+                            p.push(v);
+                        }
+                        p
+                    }
+                    Behavior::VerticalOscillator => {
+                        // [top_grid, bottom_grid, speed, initial_dir]
+                        let mut p = Vec::new();
+                        if let Some(v) = entity.top_grid {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.bottom_grid {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.speed {
+                            p.push(v);
+                        }
+                        if let Some(v) = entity.initial_dir {
+                            p.push(v);
+                        }
+                        p
+                    }
+                    Behavior::LevelComplete => {
+                        // [target_level]
+                        let mut p = Vec::new();
+                        if let Some(v) = entity.target_level {
+                            p.push(v);
+                        }
+                        p
+                    }
+                    Behavior::SoundTrigger => {
+                        // [sound_id]
+                        let mut p = Vec::new();
+                        if let Some(v) = entity.sound_id {
+                            p.push(v);
+                        }
+                        p
+                    }
+                    _ => Vec::new(),
+                };
+
                 // Store sprite_name in the frame field for now
                 // TODO: Add sprite_name field to Creature
                 Some(Creature::from_entity(
@@ -308,7 +393,7 @@ impl LevelData {
                     behavior,
                     entity.danger,
                     entity.group.chars().next(),
-                    &entity.params,
+                    &params,
                 ))
             })
             .collect();

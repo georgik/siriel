@@ -1,8 +1,8 @@
 // Siriel Macroquad - Level System
 
-mod loader;
-mod manager;
-mod types;
+pub mod loader;
+pub mod manager;
+pub mod types;
 
 #[cfg(test)]
 mod tests;

@@ -45,7 +45,8 @@
             sprite_name: "pear",
             position: (x: 64, y: 144),
             behavior: Static,
-            params: [3, 10], // [unknown, value]
+            event_id: Some(3),
+            score: Some(10),
             danger: false,
             group: "A",
         ),
@@ -55,7 +56,8 @@
             sprite_name: "pear",
             position: (x: 80, y: 144),
             behavior: Static,
-            params: [3, 10], // [unknown, value]
+            event_id: Some(3),
+            score: Some(10),
             danger: false,
             group: "A",
         ),
@@ -65,7 +67,8 @@
             sprite_name: "pear",
             position: (x: 96, y: 144),
             behavior: Static,
-            params: [3, 10], // [unknown, value]
+            event_id: Some(3),
+            score: Some(10),
             danger: false,
             group: "A",
         ),
@@ -75,7 +78,8 @@
             sprite_name: "coin",
             position: (x: 136, y: 240),
             behavior: Static,
-            params: [3, 50], // [unknown, value]
+            event_id: Some(3),
+            score: Some(50),
             danger: false,
             group: "A",
         ),
@@ -85,7 +89,8 @@
             sprite_name: "cherry",
             position: (x: 304, y: 240),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -95,7 +100,8 @@
             sprite_name: "cherry",
             position: (x: 320, y: 240),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -105,7 +111,8 @@
             sprite_name: "cherry",
             position: (x: 336, y: 240),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -115,7 +122,8 @@
             sprite_name: "cherry",
             position: (x: 536, y: 240),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -125,7 +133,8 @@
             sprite_name: "cherry",
             position: (x: 0, y: 304),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -135,7 +144,8 @@
             sprite_name: "cherry",
             position: (x: 16, y: 304),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -145,7 +155,8 @@
             sprite_name: "cherry",
             position: (x: 32, y: 304),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -155,7 +166,8 @@
             sprite_name: "cherry",
             position: (x: 48, y: 304),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -165,7 +177,8 @@
             sprite_name: "cherry",
             position: (x: 64, y: 304),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -175,7 +188,8 @@
             sprite_name: "cherry",
             position: (x: 0, y: 224),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -185,7 +199,8 @@
             sprite_name: "cherry",
             position: (x: 48, y: 128),
             behavior: Static,
-            params: [3, 5], // [unknown, value]
+            event_id: Some(3),
+            score: Some(5),
             danger: false,
             group: "A",
         ),
@@ -195,7 +210,7 @@
             sprite_name: "exit",
             position: (x: 608, y: 280),
             behavior: LevelComplete,
-            params: [1], // [target_level]
+            target_level: Some(1),
             danger: false,
             group: "~",
         ),

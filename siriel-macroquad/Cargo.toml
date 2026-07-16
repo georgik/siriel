@@ -11,6 +11,10 @@ version = "0.1.0"
 edition = "2024"
 default-run = "siriel"
 
+[lib]
+name = "siriel_macroquad"
+path = "src/lib.rs"
+
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 macroquad = "0.4.15"

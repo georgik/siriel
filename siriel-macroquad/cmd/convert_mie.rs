@@ -195,24 +195,6 @@ fn behavior_from_id(id: i32) -> &'static str {
     }
 }
 
-/// Get parameter description comment for behavior type
-fn param_description(behavior_id: i32) -> &'static str {
-    match behavior_id {
-        1 => " // [unknown, value]",
-        2 => " // [left_grid, right_grid, speed, initial_dir: 0=right, 1=left]",
-        3 => " // [top_grid, bottom_grid, speed, initial_dir: 0=down, 1=up]",
-        4 => " // [gravity_param1, gravity_param2, ...]",
-        5 => " // [edge_walk_param1, ...]",
-        9 => " // [target_level]",
-        12 => " // [random_movement_params...]",
-        15 => " // [fireball_params...]",
-        16 => " // [hunter_params...]",
-        17 => " // [sound_id]",
-        18 => " // [projectile_params...]",
-        _ => "",
-    }
-}
-
 /// Map sprite_id (row index) to sprite name from objects-fmis.ron
 fn sprite_name_from_id(id: i32) -> &'static str {
     match id {
@@ -322,11 +304,96 @@ fn convert_to_ron(level: &MieLevel) -> String {
                 behavior_from_id(entity.behavior_id)
             ));
 
-            if !entity.params.is_empty() {
-                ron.push_str("            params: [");
-                let param_str: Vec<String> = entity.params.iter().map(|p| p.to_string()).collect();
-                ron.push_str(&param_str.join(", "));
-                ron.push_str(&format!("],{}\n", param_description(entity.behavior_id)));
+            // Output named parameters based on behavior type
+            match entity.behavior_id {
+                1 => {
+                    // Collectible: event_id, score
+                    if entity.params.len() >= 1 {
+                        ron.push_str(&format!(
+                            "            event_id: Some({}),\n",
+                            entity.params[0]
+                        ));
+                    }
+                    if entity.params.len() >= 2 {
+                        ron.push_str(&format!("            score: Some({}),\n", entity.params[1]));
+                    }
+                }
+                2 => {
+                    // HorizontalOscillator: left_grid, right_grid, speed, initial_dir
+                    if entity.params.len() >= 1 {
+                        ron.push_str(&format!(
+                            "            left_grid: Some({}),\n",
+                            entity.params[0]
+                        ));
+                    }
+                    if entity.params.len() >= 2 {
+                        ron.push_str(&format!(
+                            "            right_grid: Some({}),\n",
+                            entity.params[1]
+                        ));
+                    }
+                    if entity.params.len() >= 3 {
+                        ron.push_str(&format!("            speed: Some({}),\n", entity.params[2]));
+                    }
+                    if entity.params.len() >= 4 {
+                        ron.push_str(&format!(
+                            "            initial_dir: Some({}),\n",
+                            entity.params[3]
+                        ));
+                    }
+                }
+                3 => {
+                    // VerticalOscillator: top_grid, bottom_grid, speed, initial_dir
+                    if entity.params.len() >= 1 {
+                        ron.push_str(&format!(
+                            "            top_grid: Some({}),\n",
+                            entity.params[0]
+                        ));
+                    }
+                    if entity.params.len() >= 2 {
+                        ron.push_str(&format!(
+                            "            bottom_grid: Some({}),\n",
+                            entity.params[1]
+                        ));
+                    }
+                    if entity.params.len() >= 3 {
+                        ron.push_str(&format!("            speed: Some({}),\n", entity.params[2]));
+                    }
+                    if entity.params.len() >= 4 {
+                        ron.push_str(&format!(
+                            "            initial_dir: Some({}),\n",
+                            entity.params[3]
+                        ));
+                    }
+                }
+                9 => {
+                    // LevelComplete: target_level
+                    if entity.params.len() >= 1 {
+                        ron.push_str(&format!(
+                            "            target_level: Some({}),\n",
+                            entity.params[0]
+                        ));
+                    }
+                }
+                17 => {
+                    // SoundTrigger: sound_id
+                    if entity.params.len() >= 1 {
+                        ron.push_str(&format!(
+                            "            sound_id: Some({}),\n",
+                            entity.params[0]
+                        ));
+                    }
+                }
+                _ => {
+                    // Unknown behavior - output as raw params array
+                    if !entity.params.is_empty() {
+                        ron.push_str("            // params: [");
+                        let param_str: Vec<String> =
+                            entity.params.iter().map(|p| p.to_string()).collect();
+                        ron.push_str(&param_str.join(", "));
+                        ron.push_str(&format!("] // behavior_id {}\n", entity.behavior_id));
+                    }
+                }
             }
 
             ron.push_str(&format!(
@@ -529,5 +596,145 @@ fn main() {
             };
             convert_single_file(input_file, &output_file);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_entity() {
+        let entity = parse_entity("ZNN~", "1,10,20,1,3,50").unwrap();
+        assert_eq!(entity.code, "ZNN~");
+        assert_eq!(entity.sprite_id, 1);
+        assert_eq!(entity.x, 10);
+        assert_eq!(entity.y, 20);
+        assert_eq!(entity.behavior_id, 1);
+        assert_eq!(entity.params, vec![3, 50]);
+    }
+
+    #[test]
+    fn test_entity_type_from_code() {
+        assert_eq!(entity_type_from_code("ZNN~"), "Collectible");
+        assert_eq!(entity_type_from_code("ZANA"), "Collectible");
+        assert_eq!(entity_type_from_code("YNN~"), "Trigger");
+        assert_eq!(entity_type_from_code("YAS~"), "Trigger");
+        assert_eq!(entity_type_from_code("XNN~"), "Interactable");
+        assert_eq!(entity_type_from_code("WNN~"), "UseObject");
+        assert_eq!(entity_type_from_code("VNN~"), "Talk");
+    }
+
+    #[test]
+    fn test_behavior_from_id() {
+        assert_eq!(behavior_from_id(1), "Static");
+        assert_eq!(behavior_from_id(2), "HorizontalOscillator");
+        assert_eq!(behavior_from_id(3), "VerticalOscillator");
+        assert_eq!(behavior_from_id(9), "LevelComplete");
+        assert_eq!(behavior_from_id(17), "SoundTrigger");
+    }
+
+    #[test]
+    fn test_coordinate_conversion() {
+        let mie_level = MieLevel {
+            name: "Test".to_string(),
+            start_x: 88,
+            start_y: 88,
+            sound: "TEST".to_string(),
+            messages: Vec::new(),
+            entities: vec![MieEntity {
+                code: "ZNN~".to_string(),
+                sprite_id: 1,
+                x: 10, // Should become 80
+                y: 20, // Should become 168 (20*8 + 8)
+                behavior_id: 1,
+                params: vec![3, 50],
+            }],
+            tiles: vec![vec![0; 42]; 26],
+        };
+
+        let ron = convert_to_ron(&mie_level);
+
+        // Check coordinate conversion in output
+        assert!(ron.contains("position: (x: 80, y: 168)")); // x=10*8, y=20*8+8
+    }
+
+    #[test]
+    fn test_named_fields_output() {
+        let mie_level = MieLevel {
+            name: "Test".to_string(),
+            start_x: 88,
+            start_y: 88,
+            sound: "TEST".to_string(),
+            messages: Vec::new(),
+            entities: vec![
+                // Collectible with event_id and score
+                MieEntity {
+                    code: "ZNN~".to_string(),
+                    sprite_id: 1,
+                    x: 10,
+                    y: 20,
+                    behavior_id: 1,
+                    params: vec![3, 50],
+                },
+                // Horizontal oscillator
+                MieEntity {
+                    code: "ZNN~".to_string(),
+                    sprite_id: 1,
+                    x: 30,
+                    y: 40,
+                    behavior_id: 2,
+                    params: vec![5, 15, 2, 0],
+                },
+                // Level complete
+                MieEntity {
+                    code: "YNN~".to_string(),
+                    sprite_id: 10,
+                    x: 50,
+                    y: 60,
+                    behavior_id: 9,
+                    params: vec![1],
+                },
+            ],
+            tiles: vec![vec![0; 42]; 26],
+        };
+
+        let ron = convert_to_ron(&mie_level);
+
+        // Check named fields for collectible
+        assert!(ron.contains("event_id: Some(3),"));
+        assert!(ron.contains("score: Some(50),"));
+
+        // Check named fields for horizontal oscillator
+        assert!(ron.contains("left_grid: Some(5),"));
+        assert!(ron.contains("right_grid: Some(15),"));
+        assert!(ron.contains("speed: Some(2),"));
+        assert!(ron.contains("initial_dir: Some(0),"));
+
+        // Check named fields for level complete
+        assert!(ron.contains("target_level: Some(1),"));
+    }
+
+    #[test]
+    fn test_sprite_name_from_id() {
+        assert_eq!(sprite_name_from_id(0), "teleport");
+        assert_eq!(sprite_name_from_id(1), "pear");
+        assert_eq!(sprite_name_from_id(2), "cherry");
+        assert_eq!(sprite_name_from_id(6), "coin");
+        assert_eq!(sprite_name_from_id(7), "hearth");
+        assert_eq!(sprite_name_from_id(10), "exit");
+    }
+
+    #[test]
+    fn test_group_from_char() {
+        assert_eq!(group_from_char("ZNN~"), "~");
+        assert_eq!(group_from_char("ZNNA"), "A");
+        assert_eq!(group_from_char("ZNNB"), "B");
+    }
+
+    #[test]
+    fn test_is_dangerous() {
+        assert!(is_dangerous("ZNS~")); // S at position 2 = dangerous
+        assert!(!is_dangerous("ZNN~")); // N at position 2 = not dangerous
     }
 }
