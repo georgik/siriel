@@ -912,6 +912,11 @@ async fn main() {
         let pos = player_physics.position();
         avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
 
+        // Debug: Draw collision box
+        if game.debug {
+            draw_collision_box_debug(game_x, game_y, pos.x, pos.y, player_physics.on_ground);
+        }
+
         // Draw particles (over everything)
         game.particles.draw();
 
@@ -1071,5 +1076,59 @@ fn draw_text_centered(text: &str, x: f32, y: f32, font_size: f32, color: Color) 
         y - font_size / 2.0,
         font_size,
         color,
+    );
+}
+
+/// Draw player collision box visualization (debug)
+/// Shows the 4 collision points used for movement and ground detection
+fn draw_collision_box_debug(game_x: f32, game_y: f32, x: f32, y: f32, on_ground: bool) {
+    // Collision box outline (16x16 sprite)
+    let box_x = game_x + x;
+    let box_y = game_y + y;
+
+    // Draw box outline
+    draw_rectangle_lines(box_x, box_y, 16.0, 16.0, 1.0, LIME);
+
+    // Draw the 4 collision points (matching physics.rs check_collision)
+    // Upper points at y+6 (shoulders) - X offset +6 applied
+    let shoulder_y = box_y + 6.0;
+    draw_circle(box_x, shoulder_y, 2.0, SKYBLUE); // Left shoulder (x+0)
+    draw_circle(box_x + 12.0, shoulder_y, 2.0, SKYBLUE); // Right shoulder (x+12)
+
+    // Lower points at y+16 (feet) - X offset +6 applied
+    let feet_y = box_y + 16.0;
+    draw_circle(box_x, feet_y, 2.0, YELLOW); // Left foot (x+0)
+    draw_circle(box_x + 12.0, feet_y, 2.0, YELLOW); // Right foot (x+12)
+
+    // Draw asymmetric ground check points (matching physics.rs check_ground)
+    draw_circle(box_x - 12.0, feet_y, 2.0, MAGENTA); // Left foot ground check
+    draw_circle(box_x + 4.0, feet_y, 2.0, MAGENTA); // Right foot ground check
+
+    // Draw shoulder check points for wall sliding (matching physics.rs check_shoulder)
+    let shoulder_check_y = box_y - 12.0;
+    draw_circle(box_x - 5.0, shoulder_check_y, 2.0, ORANGE); // Left shoulder (for right move)
+    draw_circle(box_x + 6.0, shoulder_check_y, 2.0, ORANGE); // Right shoulder (for left move)
+
+    // Labels
+    draw_text("Collision Box", box_x - 5.0, box_y - 22.0, 10.0, LIME);
+    draw_text("C:shoulders", box_x + 14.0, shoulder_y - 3.0, 8.0, SKYBLUE);
+    draw_text("Y:feet", box_x + 14.0, feet_y - 3.0, 8.0, YELLOW);
+    draw_text("M:ground", box_x + 10.0, feet_y + 6.0, 8.0, MAGENTA);
+    draw_text(
+        "O:wall chk",
+        box_x + 10.0,
+        shoulder_check_y - 3.0,
+        8.0,
+        ORANGE,
+    );
+
+    // Ground status
+    let ground_text = if on_ground { "ON GROUND" } else { "AIR" };
+    draw_text(
+        ground_text,
+        box_x - 10.0,
+        box_y + 18.0,
+        10.0,
+        if on_ground { GREEN } else { RED },
     );
 }

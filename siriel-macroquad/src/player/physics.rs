@@ -74,6 +74,7 @@ impl PhysicsState {
     }
 
     /// Update physics with tilemap collision using pixel-perfect masks
+    /// Matches original SI35.PAS movement with automatic wall sliding
     pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], tileset: &Tileset, _dt: f32) {
         // Apply gravity
         self.vy += GRAVITY;
@@ -82,6 +83,22 @@ impl PhysicsState {
         let new_x = self.x + self.vx;
         if !self.check_collision(new_x, self.y, tilemap, tileset) {
             self.x = new_x;
+        } else {
+            // Original auto wall-slide: if blocked, check if opposite shoulder is clear
+            // GAME.INC lines 195-196: po3(si.x-5,si.y-12) and po3(si.x+6,si.y-12)
+            if self.vx > 0.0 {
+                // Moving right, blocked - check left shoulder
+                if !self.check_shoulder(-5.0, tilemap, tileset) {
+                    // Left shoulder clear, slide left
+                    self.x -= 1.0;
+                }
+            } else if self.vx < 0.0 {
+                // Moving left, blocked - check right shoulder
+                if !self.check_shoulder(6.0, tilemap, tileset) {
+                    // Right shoulder clear, slide right
+                    self.x += 1.0;
+                }
+            }
         }
 
         // Vertical movement with collision
@@ -104,15 +121,38 @@ impl PhysicsState {
         self.y = self.y.clamp(0.0, (26 * TILE_SIZE - 16) as f32);
     }
 
+    /// Check shoulder point for collision (y-12 offset from position)
+    /// Matches original GAME.INC lines 195-196: po3(si.x±5, si.y-12)
+    fn check_shoulder(&self, x_offset: f32, tilemap: &[Vec<i32>], tileset: &Tileset) -> bool {
+        let px = self.x + x_offset;
+        let py = self.y - 12.0;
+
+        let tile_x = (px / TILE_SIZE as f32) as usize;
+        let tile_y = (py / TILE_SIZE as f32) as usize;
+
+        if tile_y < tilemap.len() && tile_x < tilemap[tile_y].len() {
+            let tile_id = tilemap[tile_y][tile_x] as usize;
+            if tile_id < tileset.collision_masks.len() {
+                let pixel_x = (px as i32 % TILE_SIZE) as usize;
+                let pixel_y = (py as i32 % TILE_SIZE) as usize;
+                return tileset.is_pixel_solid(tile_id as i32, pixel_x, pixel_y);
+            }
+        }
+        false
+    }
+
     /// Check if position collides with solid pixels
-    /// Uses 4 points at ±6 offset from center (matches original smeruj())
+    /// Uses 4 points matching original smeruj() from SI35.PAS:
+    /// - Upper points at y+6 (allows 45° slope climbing)
+    /// - Lower points at y+16 (feet level)
+    /// - X offset shifted +6 (fixed for sprite alignment)
     fn check_collision(&self, x: f32, y: f32, tilemap: &[Vec<i32>], tileset: &Tileset) -> bool {
-        // 4 points at ±6 from center (matches original smeruj())
+        // Fixed X offset +6: x, x+12 | y+6, y+16
         let points = [
-            (x - 6.0, y),        // Left
-            (x + 6.0, y),        // Right
-            (x - 6.0, y + 16.0), // Bottom-left
-            (x + 6.0, y + 16.0), // Bottom-right
+            (x, y + 6.0),         // Left-shoulder (6px down from top)
+            (x + 12.0, y + 6.0),  // Right-shoulder
+            (x, y + 16.0),        // Left-foot
+            (x + 12.0, y + 16.0), // Right-foot
         ];
 
         for (px, py) in points {
