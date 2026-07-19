@@ -9,6 +9,7 @@ mod level;
 mod menu;
 mod player;
 mod tilemap;
+mod touch_controls;
 
 use assets::*;
 use audio::*;
@@ -23,6 +24,7 @@ use menu::*;
 use player::*;
 use std::path::Path;
 use tilemap::*;
+use touch_controls::TouchControls;
 
 /// Siriel Macroquad - Modern 2D Game Engine
 #[derive(Parser, Debug)]
@@ -78,6 +80,8 @@ struct GameState {
     show_tile_indices: bool,
     // Pending player spawn position (set when level changes, applied in game loop)
     pending_player_spawn: Option<(i32, i32)>,
+    // Touch controls for mobile/WASM
+    touch_controls: TouchControls,
 }
 
 impl GameState {
@@ -174,6 +178,7 @@ impl GameState {
             current_game_mode: GameMode::MainMenu,
             show_tile_indices: false,
             pending_player_spawn: None,
+            touch_controls: TouchControls::new(),
         }
     }
 
@@ -399,6 +404,24 @@ async fn main() {
         // Handle game modes
         match game.current_game_mode {
             GameMode::MainMenu => {
+                // Update touch controls
+                let (_left, _right, _jump, esc) = game.touch_controls.update();
+
+                // Set up touch areas for menu navigation
+                let (w, h) = (screen_width(), screen_height());
+                let item_positions = game.main_menu.get_item_positions();
+                game.main_menu
+                    .navigation_mut()
+                    .setup_touch_areas(0.0, 0.0, w, h);
+                game.main_menu
+                    .navigation_mut()
+                    .set_item_positions(item_positions);
+
+                // ESC from touch or keyboard exits
+                if esc {
+                    break;
+                }
+
                 // Update main menu
                 match game.main_menu.update(dt) {
                     menu::NavigationResult::Activate(_index) => {
@@ -421,7 +444,8 @@ async fn main() {
                 // Draw title
                 draw_text_centered("SIRIEL MACROQUAD", screen_width() / 2.0, 80.0, 40.0, BLACK);
 
-                // Draw version info
+                // Draw touch navigation buttons
+                game.main_menu.navigation_mut().draw_touch_buttons();
 
                 next_frame().await;
                 game.frame_count += 1;
@@ -432,6 +456,24 @@ async fn main() {
                 continue;
             }
             GameMode::LevelSelector => {
+                // Update touch controls
+                let (_left, _right, _jump, esc) = game.touch_controls.update();
+
+                // Set up touch areas for menu navigation
+                let (w, h) = (screen_width(), screen_height());
+                let item_positions = game.level_selector.get_item_positions();
+                game.level_selector
+                    .navigation_mut()
+                    .setup_touch_areas(0.0, 0.0, w, h);
+                game.level_selector
+                    .navigation_mut()
+                    .set_item_positions(item_positions);
+
+                // ESC from touch or keyboard returns to main menu
+                if esc {
+                    game.current_game_mode = GameMode::MainMenu;
+                }
+
                 // Update level selector
                 match game.level_selector.update(dt) {
                     menu::NavigationResult::Activate(_index) => {
@@ -448,6 +490,7 @@ async fn main() {
                 // Render
                 clear_background(WHITE);
                 game.level_selector.draw();
+                game.level_selector.navigation_mut().draw_touch_buttons();
 
                 next_frame().await;
                 game.frame_count += 1;
@@ -511,8 +554,20 @@ async fn main() {
             }
         }
 
-        // Handle input
-        player_physics.handle_input();
+        // Handle input (keyboard + touch)
+        let (touch_left, touch_right, touch_jump, touch_esc) = game.touch_controls.update();
+
+        // ESC from touch also exits to menu
+        if touch_esc {
+            game.current_game_mode = GameMode::MainMenu;
+        }
+
+        // Use touch input if any button pressed, otherwise use keyboard
+        if touch_left || touch_right || touch_jump {
+            player_physics.handle_touch_input(touch_left, touch_right, touch_jump);
+        } else {
+            player_physics.handle_input();
+        }
 
         // Update physics with tilemap collision using pixel-perfect masks
         if let Some(current_level) = game.level_manager.current() {
@@ -1026,6 +1081,9 @@ async fn main() {
             16.0,
             DARKGRAY,
         );
+
+        // Draw touch controls (virtual buttons)
+        game.touch_controls.draw();
 
         // Screenshot prompt
         if game.screenshot.is_some() && !game.screenshot_taken {

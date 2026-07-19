@@ -230,6 +230,41 @@ impl Menu {
     pub async fn load_decoration(&mut self) -> Result<(), String> {
         self.decoration.load_tiles().await
     }
+
+    /// Get navigation handler for touch setup
+    pub fn navigation_mut(&mut self) -> &mut MenuNavigation {
+        &mut self.navigation
+    }
+
+    /// Get item positions for touch detection
+    pub fn get_item_positions(&self) -> Vec<(usize, f32, f32, f32, f32)> {
+        let (width, _) = self.calculate_dimensions();
+        let item_start_y = self.config.y + 24.0;
+        let item_x = self.config.x + 32.0;
+        let item_width = width - 64.0;
+        let item_height = 16.0;
+
+        let mut positions = Vec::new();
+        for (i, item) in self.items.iter().enumerate() {
+            if !item.is_separator() {
+                let y = item_start_y + (i as f32 - self.first_visible as f32) * item_height;
+                // Only include if potentially visible
+                if y >= item_start_y - item_height
+                    && y <= item_start_y + (self.visible_count as f32 * item_height)
+                {
+                    positions.push((i, item_x, y, item_width, item_height));
+                }
+            }
+        }
+        positions
+    }
+
+    /// Draw menu with touch support
+    pub fn draw_with_touch(&mut self) {
+        self.draw();
+        // Draw touch navigation buttons
+        self.navigation.draw_touch_buttons();
+    }
 }
 
 #[cfg(test)]

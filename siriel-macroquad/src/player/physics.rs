@@ -55,6 +55,24 @@ impl PhysicsState {
         }
     }
 
+    /// Handle input from virtual touch buttons
+    pub fn handle_touch_input(&mut self, left: bool, right: bool, jump: bool) {
+        self.vx = 0.0;
+
+        if left {
+            self.vx = -MOVE_SPEED;
+            self.facing_left = true;
+        } else if right {
+            self.vx = MOVE_SPEED;
+            self.facing_left = false;
+        }
+
+        if jump && self.on_ground {
+            self.vy = JUMP_FORCE;
+            self.on_ground = false;
+        }
+    }
+
     /// Update physics (simple version without collision)
     #[allow(dead_code)]
     pub fn update(&mut self, _dt: f32) {

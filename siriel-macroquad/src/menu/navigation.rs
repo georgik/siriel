@@ -1,5 +1,5 @@
 // Siriel Macroquad - Menu Navigation
-// Keyboard input handling for menus
+// Keyboard and touch input handling for menus
 
 use crate::menu::item::MenuItem;
 use macroquad::prelude::*;
@@ -23,6 +23,16 @@ pub struct MenuNavigation {
     key_repeat_delay: f32,
     /// Time since last key press
     last_key_time: f32,
+    /// Last touch position (for detecting tap vs hold)
+    last_touch_pos: Option<(f32, f32)>,
+    /// Touch start time
+    touch_start_time: f32,
+    /// Virtual up button area (for touch navigation)
+    pub up_area: Option<(f32, f32, f32, f32)>,
+    /// Virtual down button area (for touch navigation)
+    pub down_area: Option<(f32, f32, f32, f32)>,
+    /// Menu items positions (for touch selection)
+    item_positions: Vec<(usize, f32, f32, f32, f32)>, // (index, x, y, width, height)
 }
 
 impl MenuNavigation {
@@ -31,7 +41,87 @@ impl MenuNavigation {
         Self {
             key_repeat_delay: 0.12, // 120ms like siriel-modern
             last_key_time: 0.0,
+            last_touch_pos: None,
+            touch_start_time: 0.0,
+            up_area: None,
+            down_area: None,
+            item_positions: Vec::new(),
         }
+    }
+
+    /// Set up touch areas for navigation buttons
+    pub fn setup_touch_areas(
+        &mut self,
+        _menu_x: f32,
+        _menu_y: f32,
+        _menu_width: f32,
+        _menu_height: f32,
+    ) {
+        let w = screen_width();
+
+        // Up button: top-left corner of screen
+        self.up_area = Some((w - 70.0, 80.0, 50.0, 50.0));
+        // Down button: below up button
+        self.down_area = Some((w - 70.0, 140.0, 50.0, 50.0));
+    }
+
+    /// Set menu item positions for touch selection
+    pub fn set_item_positions(&mut self, positions: Vec<(usize, f32, f32, f32, f32)>) {
+        self.item_positions = positions;
+    }
+
+    /// Check if touch point is in a menu item
+    fn check_item_touch(&self, x: f32, y: f32) -> Option<usize> {
+        for (index, ix, iy, iw, ih) in &self.item_positions {
+            if x >= *ix && x <= ix + iw && y >= *iy && y <= iy + ih {
+                return Some(*index);
+            }
+        }
+        None
+    }
+
+    /// Handle touch input
+    fn handle_touch(&mut self, items: &[MenuItem], selected: usize) -> NavigationResult {
+        for touch in touches() {
+            let x = touch.position.x;
+            let y = touch.position.y;
+
+            // Check if this is a new touch
+            if self.last_touch_pos.is_none() {
+                self.last_touch_pos = Some((x, y));
+                self.touch_start_time = get_time() as f32;
+            }
+
+            // Check menu item tap (only on initial touch, not hold)
+            if let Some(item_idx) = self.check_item_touch(x, y) {
+                if item_idx < items.len() && !items[item_idx].is_separator() {
+                    // Instant activate on touch (short tap)
+                    return NavigationResult::Activate(item_idx);
+                }
+            }
+
+            // Check navigation buttons
+            if let Some((ux, uy, uw, uh)) = self.up_area {
+                if x >= ux && x <= ux + uw && y >= uy && y <= uy + uh {
+                    return NavigationResult::Selected(
+                        self.find_previous_selectable(items, selected),
+                    );
+                }
+            }
+
+            if let Some((dx, dy, dw, dh)) = self.down_area {
+                if x >= dx && x <= dx + dw && y >= dy && y <= dy + dh {
+                    return NavigationResult::Selected(self.find_next_selectable(items, selected));
+                }
+            }
+        }
+
+        // No active touches
+        if touches().is_empty() {
+            self.last_touch_pos = None;
+        }
+
+        NavigationResult::None
     }
 
     /// Set key repeat delay
@@ -53,6 +143,14 @@ impl MenuNavigation {
         // Check for menu items
         if items.is_empty() {
             return NavigationResult::None;
+        }
+
+        // Handle touch input first (takes priority on mobile)
+        if Self::is_touch_active() {
+            let touch_result = self.handle_touch(items, selected);
+            if touch_result != NavigationResult::None {
+                return touch_result;
+            }
         }
 
         let mut new_selected = selected;
@@ -119,6 +217,32 @@ impl MenuNavigation {
             NavigationResult::Selected(new_selected)
         } else {
             NavigationResult::None
+        }
+    }
+
+    /// Check if touch is active
+    fn is_touch_active() -> bool {
+        !touches().is_empty()
+    }
+
+    /// Draw navigation buttons (for touch devices)
+    pub fn draw_touch_buttons(&self) {
+        if !Self::is_touch_active() && !cfg!(target_arch = "wasm32") {
+            return;
+        }
+
+        if let Some((ux, uy, uw, uh)) = self.up_area {
+            let color = Color::new(0.3, 0.3, 0.3, 0.6);
+            draw_rectangle(ux, uy, uw, uh, color);
+            draw_rectangle_lines(ux, uy, uw, uh, 2.0, WHITE);
+            draw_text("▲", ux + 15.0, uy + 30.0, 24.0, WHITE);
+        }
+
+        if let Some((dx, dy, dw, dh)) = self.down_area {
+            let color = Color::new(0.3, 0.3, 0.3, 0.6);
+            draw_rectangle(dx, dy, dw, dh, color);
+            draw_rectangle_lines(dx, dy, dw, dh, 2.0, WHITE);
+            draw_text("▼", dx + 15.0, dy + 30.0, 24.0, WHITE);
         }
     }
 

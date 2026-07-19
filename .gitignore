@@ -2,4 +2,5 @@
 SCORE.DAT
 dist/
 target/
+Cargo.lock
 
