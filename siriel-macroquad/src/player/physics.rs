@@ -235,7 +235,12 @@ impl PhysicsState {
             if self.vy < 0.0 {
                 return anim::JUMP_UP;
             } else {
-                return anim::PARACHUTE;
+                // Falling: use directional walk sprites, parachute drawn separately
+                return if self.facing_left {
+                    anim::WALK_LEFT
+                } else {
+                    anim::WALK_RIGHT
+                };
             }
         }
 

@@ -88,6 +88,11 @@ impl CharacterAnimation {
         self.state
     }
 
+    /// Check if currently falling (should show parachute)
+    pub fn is_falling(&self) -> bool {
+        self.state == AnimStateType::Falling
+    }
+
     /// Get current direction
     pub fn direction(&self) -> Direction {
         self.direction
@@ -189,7 +194,12 @@ impl CharacterAnimation {
                 Direction::Right => anim::JUMP_RIGHT.to_string(),
                 Direction::Down => anim::JUMP_UP.to_string(),
             },
-            AnimStateType::Falling => anim::PARACHUTE.to_string(),
+            AnimStateType::Falling => match self.direction {
+                Direction::Left => anim::WALK_LEFT.to_string(),
+                Direction::Right => anim::WALK_RIGHT.to_string(),
+                Direction::Up => anim::WALK_UP.to_string(),
+                Direction::Down => anim::WALK_LEFT.to_string(), // Use walk_left for down (side view)
+            },
         };
 
         // Reset animation state

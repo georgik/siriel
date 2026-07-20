@@ -391,6 +391,9 @@ async fn main() {
     // Initialize player at level spawn position
     let mut player_physics = PhysicsState::new(88.0, 88.0);
     let mut player_anim = AnimState::new(anim::IDLE);
+    let mut parachute_closing = false;
+    let mut parachute_close_progress = 0.0; // 0.0 = open, 1.0 = closed
+    let mut was_falling = false;
 
     info!("=== Siriel: Entering game loop ===");
 
@@ -966,6 +969,51 @@ async fn main() {
         // Draw player (spritesheet has directional frames, no flip needed)
         let pos = player_physics.position();
         avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
+
+        // Update parachute closing state
+        let is_falling = !player_physics.on_ground && player_physics.vy > 0.0;
+        if was_falling && !is_falling && !parachute_closing {
+            // Transition from falling to on_ground - start closing animation
+            parachute_closing = true;
+            parachute_close_progress = 0.0;
+        }
+        was_falling = is_falling;
+
+        // Animate closing
+        if parachute_closing {
+            parachute_close_progress += dt * 2.0; // Close over ~0.5 seconds
+            if parachute_close_progress >= 1.0 {
+                parachute_closing = false;
+                parachute_close_progress = 1.0;
+            }
+        }
+
+        // Draw parachute above player when falling or closing
+        if is_falling || parachute_closing {
+            let parachute_frame = if parachute_closing {
+                // Reverse animation: frame 2 → 0 as progress 0 → 1
+                ((2.0 - parachute_close_progress * 2.0).floor() as i32).clamp(0, 2)
+            } else {
+                // Animate forward at 1 fps
+                (get_time() * 1.0) as i32 % 3
+            };
+            let parachute_src = macroquad::prelude::Rect {
+                x: parachute_frame as f32 * 16.0,
+                y: 7.0 * 16.0, // Row 7
+                w: 16.0,
+                h: 16.0,
+            };
+            draw_texture_ex(
+                &avatar.texture,
+                game_x + pos.x + 2.0,  // x+2 offset per original
+                game_y + pos.y - 16.0, // 16px above head
+                WHITE,
+                DrawTextureParams {
+                    source: Some(parachute_src),
+                    ..Default::default()
+                },
+            );
+        }
 
         // Debug: Draw collision box
         if game.debug {

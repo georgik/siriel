@@ -49,7 +49,7 @@
             name: "parachute",
             row: 7,
             frame_count: 3,
-            fps: 2,
+            fps: 1,
         ),
         (
             name: "back",
