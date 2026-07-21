@@ -971,13 +971,13 @@ async fn main() {
         avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
 
         // Update parachute closing state
-        let is_falling = !player_physics.on_ground && player_physics.vy > 0.0;
-        if was_falling && !is_falling && !parachute_closing {
-            // Transition from falling to on_ground - start closing animation
+        let parachute_deployed = player_physics.parachute_active();
+        if was_falling && !parachute_deployed && !parachute_closing {
+            // Transition from deployed to not - start closing animation
             parachute_closing = true;
             parachute_close_progress = 0.0;
         }
-        was_falling = is_falling;
+        was_falling = parachute_deployed;
 
         // Animate closing
         if parachute_closing {
@@ -988,8 +988,8 @@ async fn main() {
             }
         }
 
-        // Draw parachute above player when falling or closing
-        if is_falling || parachute_closing {
+        // Draw parachute above player when deployed or closing
+        if parachute_deployed || parachute_closing {
             let parachute_frame = if parachute_closing {
                 // Reverse animation: frame 2 → 0 as progress 0 → 1
                 ((2.0 - parachute_close_progress * 2.0).floor() as i32).clamp(0, 2)

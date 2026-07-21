@@ -15,7 +15,16 @@ pub struct PhysicsState {
     pub vy: f32,
     pub on_ground: bool,
     pub facing_left: bool,
+    // Parachute mechanics
+    fall_start_y: f32,
+    parachute_active: bool,
+    was_on_ground: bool,
 }
+
+/// Minimum fall distance to trigger parachute (2 tiles = 32px)
+const PARACHUTE_TRIGGER_DISTANCE: f32 = 32.0;
+/// Glide speed when parachute is open (slower than normal gravity fall)
+const PARACHUTE_GLIDE_SPEED: f32 = 1.5;
 
 impl PhysicsState {
     pub fn new(x: f32, y: f32) -> Self {
@@ -26,6 +35,9 @@ impl PhysicsState {
             vy: 0.0,
             on_ground: false,
             facing_left: false,
+            fall_start_y: y,
+            parachute_active: false,
+            was_on_ground: true,
         }
     }
 
@@ -94,8 +106,38 @@ impl PhysicsState {
     /// Update physics with tilemap collision using pixel-perfect masks
     /// Matches original SI35.PAS movement with automatic wall sliding
     pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], tileset: &Tileset, _dt: f32) {
-        // Apply gravity
-        self.vy += GRAVITY;
+        // Track ground state transitions for parachute logic
+        if self.was_on_ground && !self.on_ground {
+            // Just left ground - start tracking fall
+            self.fall_start_y = self.y;
+            self.parachute_active = false;
+        } else if !self.was_on_ground && self.on_ground {
+            // Just landed - reset parachute state
+            self.parachute_active = false;
+        }
+        self.was_on_ground = self.on_ground;
+
+        // Check if should deploy parachute (falling more than 2 tiles)
+        if !self.on_ground && self.vy > 0.0 && !self.parachute_active {
+            let fall_distance = self.y - self.fall_start_y;
+            if fall_distance >= PARACHUTE_TRIGGER_DISTANCE {
+                self.parachute_active = true;
+            }
+        }
+
+        // Apply gravity (or cap at glide speed if parachute active)
+        if self.parachute_active {
+            // Glide mode: cap fall speed
+            if self.vy < PARACHUTE_GLIDE_SPEED {
+                self.vy += GRAVITY;
+                if self.vy > PARACHUTE_GLIDE_SPEED {
+                    self.vy = PARACHUTE_GLIDE_SPEED;
+                }
+            }
+        } else {
+            // Normal gravity
+            self.vy += GRAVITY;
+        }
 
         // Horizontal movement with collision
         let new_x = self.x + self.vx;
@@ -227,6 +269,11 @@ impl PhysicsState {
     /// Get current position
     pub fn position(&self) -> Vec2 {
         vec2(self.x, self.y)
+    }
+
+    /// Check if parachute is currently active
+    pub fn parachute_active(&self) -> bool {
+        self.parachute_active
     }
 
     /// Get animation name based on state
