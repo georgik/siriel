@@ -12,11 +12,10 @@ pub struct VirtualButton {
     pub height: f32,
     pub label: String,
     pub pressed: bool,
-    pub key_code: KeyCode, // Also trigger keyboard equivalent
 }
 
 impl VirtualButton {
-    pub fn new(x: f32, y: f32, width: f32, height: f32, label: &str, key_code: KeyCode) -> Self {
+    pub fn new(x: f32, y: f32, width: f32, height: f32, label: &str) -> Self {
         Self {
             x,
             y,
@@ -24,7 +23,6 @@ impl VirtualButton {
             height,
             label: label.to_string(),
             pressed: false,
-            key_code,
         }
     }
 
@@ -70,10 +68,10 @@ pub struct TouchControls {
 impl TouchControls {
     pub fn new() -> Self {
         Self {
-            left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "←", KeyCode::Left),
-            right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, "→", KeyCode::Right),
-            jump_btn: VirtualButton::new(650.0, 500.0, 80.0, 60.0, "JUMP", KeyCode::Space),
-            esc_btn: VirtualButton::new(700.0, 20.0, 60.0, 40.0, "ESC", KeyCode::Escape),
+            left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "←"),
+            right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, "→"),
+            jump_btn: VirtualButton::new(650.0, 500.0, 80.0, 60.0, "JUMP"),
+            esc_btn: VirtualButton::new(700.0, 20.0, 60.0, 40.0, "ESC"),
             menu_tap: None,
         }
     }
@@ -166,11 +164,6 @@ impl TouchControls {
             self.jump_btn.draw();
             self.esc_btn.draw();
         }
-    }
-
-    /// Get menu tap position (consumed after one frame)
-    pub fn take_menu_tap(&mut self) -> Option<(f32, f32)> {
-        self.menu_tap.take()
     }
 }
 

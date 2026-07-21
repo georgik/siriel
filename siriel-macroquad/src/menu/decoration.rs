@@ -52,7 +52,7 @@ impl GlistDecoration {
         let sheet = match load_texture(texture_path).await {
             Ok(t) => t,
             Err(e) => {
-                eprintln!("Failed to load GLIST texture: {}", e);
+                info!("Failed to load GLIST texture: {}", e);
                 return Err(format!("Failed to load GLIST: {}", e));
             }
         };

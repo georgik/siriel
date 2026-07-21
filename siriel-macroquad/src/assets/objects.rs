@@ -37,15 +37,15 @@ pub struct ObjectsAtlas {
 impl ObjectsAtlas {
     /// Load objects spritesheet from PNG + RON metadata
     pub async fn load() -> Result<Self, String> {
-        eprintln!("=== Objects Loading ===");
+        info!("=== Objects Loading ===");
 
         let texture = load_texture("assets/sprites/objects-fmis.png")
             .await
             .map_err(|e| format!("Failed to load objects: {:?}", e))?;
 
         texture.set_filter(FilterMode::Nearest);
-        eprintln!("Texture loaded: objects-fmis.png");
-        eprintln!("Texture size: {}x{}", texture.width(), texture.height());
+        info!("Texture loaded: objects-fmis.png");
+        info!("Texture size: {}x{}", texture.width(), texture.height());
 
         // Load RON metadata
         let ron_path = "assets/sprites/objects-fmis.ron";
@@ -55,11 +55,11 @@ impl ObjectsAtlas {
         let metadata: ObjectsMetadata =
             ron::from_str(&ron_content).map_err(|e| format!("Failed to parse RON: {}", e))?;
 
-        eprintln!("RON metadata loaded:");
-        eprintln!("  tile_size: {}", metadata.tile_size);
-        eprintln!("  columns: {}", metadata.columns);
-        eprintln!("  rows: {}", metadata.rows);
-        eprintln!("  object count: {}", metadata.animations.len());
+        info!("RON metadata loaded:");
+        info!("  tile_size: {}", metadata.tile_size);
+        info!("  columns: {}", metadata.columns);
+        info!("  rows: {}", metadata.rows);
+        info!("  object count: {}", metadata.animations.len());
 
         let tile_size = metadata.tile_size as i32;
         let columns = metadata.columns as i32;
@@ -68,19 +68,19 @@ impl ObjectsAtlas {
         let mut frame_counts = Vec::new();
         let mut fps_values = Vec::new();
 
-        eprintln!("Objects loaded:");
+        info!("Objects loaded:");
         for obj_def in &metadata.animations {
             object_rows.push((obj_def.name.clone(), obj_def.row));
             frame_counts.push((obj_def.name.clone(), obj_def.frame_count));
             fps_values.push((obj_def.name.clone(), obj_def.fps));
 
-            eprintln!(
+            info!(
                 "  - {}: row={}, frames={}, fps={}",
                 obj_def.name, obj_def.row, obj_def.frame_count, obj_def.fps
             );
         }
 
-        eprintln!("=== Objects Loading Complete ===");
+        info!("=== Objects Loading Complete ===");
 
         Ok(Self {
             texture,
@@ -100,7 +100,7 @@ impl ObjectsAtlas {
             .find(|(name, _)| name == obj_name)
             .map(|(_, row)| *row as i32)
             .unwrap_or_else(|| {
-                eprintln!("WARNING: Object '{}' not found in spritesheet", obj_name);
+                warn!(" Object '{}' not found in spritesheet", obj_name);
                 0
             });
 

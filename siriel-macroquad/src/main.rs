@@ -102,10 +102,10 @@ impl GameState {
                 Ok(level) => {
                     let id = "custom".to_string();
                     level_manager.register(id.clone(), level);
-                    eprintln!("Loaded level from: {}", level_path);
+                    info!("Loaded level from: {}", level_path);
                 }
                 Err(e) => {
-                    eprintln!("Failed to load level {}: {}", level_path, e);
+                    warn!("Failed to load level {}: {}", level_path, e);
                 }
             }
         }
@@ -113,13 +113,13 @@ impl GameState {
         // Level loading now done asynchronously in main() after assets load
         // Set first level or create default if none loaded
         if level_manager.level_count() > 0 {
-            level_manager.set_level("level1").ok();
+            level_manager.set_level("fmis01").ok();
         } else {
-            // Fallback to empty level - register as level1 so menu items work
+            // Fallback to empty level - register as fmis01 so menu items work
             let mut default_level = Level::empty();
             default_level.meta.name = "Default Level".to_string();
-            level_manager.register("level1".to_string(), default_level);
-            level_manager.set_level("level1").unwrap();
+            level_manager.register("fmis01".to_string(), default_level);
+            level_manager.set_level("fmis01").unwrap();
         }
 
         // Create entity manager
@@ -211,21 +211,21 @@ impl GameState {
     fn handle_menu_action(&mut self, action: &MenuAction) {
         match action {
             MenuAction::NewGame => {
-                // Start new game - try level1, fallback to first available
-                let level_id: String = if self.level_manager.get_level("level1").is_some() {
-                    "level1".to_string()
+                // Start new game - try fmis01, fallback to first available
+                let level_id: String = if self.level_manager.get_level("fmis01").is_some() {
+                    "fmis01".to_string()
                 } else if let Some(first) = self.level_manager.level_ids().first() {
                     first.clone()
                 } else {
                     if self.debug {
-                        eprintln!("No levels available!");
+                        warn!("No levels available!");
                     }
                     return;
                 };
 
                 if let Err(e) = self.level_manager.set_level(&level_id) {
                     if self.debug {
-                        eprintln!("Failed to load level {}: {}", level_id, e);
+                        warn!("Failed to load level {}: {}", level_id, e);
                     }
                     return;
                 }
@@ -245,7 +245,7 @@ impl GameState {
             MenuAction::LoadLevel(level_id) => {
                 if let Err(e) = self.level_manager.set_level(level_id) {
                     if self.debug {
-                        eprintln!("Failed to load level: {}", e);
+                        warn!("Failed to load level: {}", e);
                     }
                 } else {
                     // Get spawn position from level
@@ -278,6 +278,9 @@ impl GameState {
 
 #[macroquad::main("Siriel Macroquad")]
 async fn main() {
+    // Initialize logger (RUST_LOG=debug for debug output)
+    let _ = env_logger::try_init();
+
     // WASM debug - log entry
     info!("=== Siriel: main() started ===");
 
@@ -314,14 +317,14 @@ async fn main() {
     };
 
     // Load datadisc metadata and build level menu
-    eprintln!("=== Loading datadisc ===");
+    info!("=== Loading datadisc ===");
     let datadisc = match load_datadisc_async("assets/levels/datadisc.ron").await {
         Ok(dd) => {
-            eprintln!("Loaded datadisc: {}", dd.name);
+            info!("Loaded datadisc: {}", dd.name);
             dd
         }
         Err(e) => {
-            eprintln!("Failed to load datadisc: {}, using defaults", e);
+            warn!("Failed to load datadisc: {}, using defaults", e);
             // Fallback empty datadisc
             Datadisc {
                 name: "Default".to_string(),
@@ -357,17 +360,17 @@ async fn main() {
     );
 
     // Load levels from datadisc
-    eprintln!("=== Loading levels from datadisc ===");
+    info!("=== Loading levels from datadisc ===");
     for level_entry in &datadisc.levels {
         let path = format!("assets/levels/{}", level_entry.file);
         match load_from_ron_async(&path).await {
             Ok(level) => {
                 game.level_manager.register(level_entry.id.clone(), level);
-                eprintln!("Loaded: {}", level_entry.id);
+                info!("Loaded: {}", level_entry.id);
             }
             Err(e) => {
                 if game.debug {
-                    eprintln!("Failed to load {}: {}", path, e);
+                    warn!("Failed to load {}: {}", path, e);
                 }
             }
         }
@@ -378,12 +381,12 @@ async fn main() {
         .levels
         .first()
         .map(|l| l.id.as_str())
-        .unwrap_or("level1");
+        .unwrap_or("fmis01");
     if game.level_manager.level_count() > 0 {
         game.level_manager.set_level(first_level_id).ok();
     }
 
-    eprintln!(
+    info!(
         "=== Level loading complete: {} levels ===",
         game.level_manager.level_count()
     );
@@ -506,6 +509,163 @@ async fn main() {
             GameMode::Playing => {
                 // Game loop continues below
             }
+            GameMode::LevelComplete => {
+                // Update touch controls
+                let (_left, _right, _jump, esc) = game.touch_controls.update();
+
+                // ESC returns to main menu
+                if is_key_pressed(KeyCode::Escape) || esc {
+                    game.current_game_mode = GameMode::MainMenu;
+                    next_frame().await;
+                    game.frame_count += 1;
+                    continue;
+                }
+
+                // Enter/Space/Click to continue
+                let confirm = is_key_pressed(KeyCode::Enter)
+                    || is_key_pressed(KeyCode::Space)
+                    || is_mouse_button_pressed(MouseButton::Left);
+
+                if confirm {
+                    // Load next level
+                    debug!(
+                        "Current level before next_level: {:?}",
+                        game.level_manager.current_id()
+                    );
+                    if let Err(e) = game.level_manager.next_level() {
+                        warn!("next_level error: {}", e);
+                        game.current_game_mode = GameMode::MainMenu;
+                    } else {
+                        debug!(
+                            "Current level after next_level: {:?}",
+                            game.level_manager.current_id()
+                        );
+                        let spawn = game
+                            .level_manager
+                            .current()
+                            .map(|lvl| lvl.player_start)
+                            .unwrap_or((88, 88));
+                        debug!("Spawn position: {:?}", spawn);
+                        player_physics.x = spawn.0 as f32;
+                        player_physics.y = spawn.1 as f32;
+                        player_physics.vx = 0.0;
+                        player_physics.vy = 0.0;
+                        game.load_creatures_from_level();
+                        game.current_game_mode = GameMode::Playing;
+                        game.sound_manager.play(SoundType::Select);
+                        debug!("Switched to Playing mode");
+                    }
+                    next_frame().await;
+                    game.frame_count += 1;
+                    continue;
+                }
+
+                // Render level complete screen
+                clear_background(BLUE);
+
+                let (w, h) = (screen_width(), screen_height());
+
+                // Congratulations message
+                draw_text_centered("LEVEL COMPLETE!", w / 2.0, h / 2.0 - 40.0, 50.0, YELLOW);
+                draw_text_centered(
+                    "Press ENTER or tap to continue",
+                    w / 2.0,
+                    h / 2.0 + 20.0,
+                    20.0,
+                    WHITE,
+                );
+                draw_text_centered(
+                    "Press ESC for main menu",
+                    w / 2.0,
+                    h / 2.0 + 50.0,
+                    16.0,
+                    GRAY,
+                );
+
+                // Show current level info
+                if let Some(current_id) = game.level_manager.current_id() {
+                    let level_num = game
+                        .level_manager
+                        .level_ids()
+                        .iter()
+                        .position(|x| x == current_id)
+                        .map_or(0, |p| p + 1);
+                    draw_text_centered(
+                        &format!(
+                            "Completed Level {}/{}",
+                            level_num,
+                            game.level_manager.level_count()
+                        ),
+                        w / 2.0,
+                        h / 2.0 - 80.0,
+                        24.0,
+                        WHITE,
+                    );
+                }
+
+                next_frame().await;
+                game.frame_count += 1;
+                if game.should_exit() {
+                    break;
+                }
+                continue;
+            }
+            GameMode::Victory => {
+                // Update touch controls
+                let (_left, _right, _jump, esc) = game.touch_controls.update();
+
+                // ESC returns to main menu
+                if is_key_pressed(KeyCode::Escape) || esc {
+                    game.current_game_mode = GameMode::MainMenu;
+                    next_frame().await;
+                    game.frame_count += 1;
+                    continue;
+                }
+
+                // Any key/click to continue
+                let confirm = is_key_pressed(KeyCode::Enter)
+                    || is_key_pressed(KeyCode::Space)
+                    || is_mouse_button_pressed(MouseButton::Left);
+
+                if confirm {
+                    game.current_game_mode = GameMode::MainMenu;
+                    next_frame().await;
+                    game.frame_count += 1;
+                    continue;
+                }
+
+                // Render victory screen
+                clear_background(GOLD);
+
+                let (w, h) = (screen_width(), screen_height());
+
+                // Victory message
+                draw_text_centered("CONGRATULATIONS!", w / 2.0, h / 2.0 - 60.0, 60.0, RED);
+                draw_text_centered("YOU HAVE COMPLETED", w / 2.0, h / 2.0, 40.0, BLUE);
+                draw_text_centered("ALL LEVELS!", w / 2.0, h / 2.0 + 40.0, 40.0, BLUE);
+
+                draw_text_centered(
+                    "Press ENTER or tap to continue",
+                    w / 2.0,
+                    h / 2.0 + 100.0,
+                    20.0,
+                    WHITE,
+                );
+                draw_text_centered(
+                    "Press ESC for main menu",
+                    w / 2.0,
+                    h / 2.0 + 130.0,
+                    16.0,
+                    GRAY,
+                );
+
+                next_frame().await;
+                game.frame_count += 1;
+                if game.should_exit() {
+                    break;
+                }
+                continue;
+            }
             _ => {
                 // Other modes - for now just go to main menu
                 game.current_game_mode = GameMode::MainMenu;
@@ -521,7 +681,7 @@ async fn main() {
         // Debug: F3 to toggle tile indices display
         if is_key_pressed(KeyCode::F3) {
             game.show_tile_indices = !game.show_tile_indices;
-            eprintln!(
+            debug!(
                 "Tile indices: {}",
                 if game.show_tile_indices { "ON" } else { "OFF" }
             );
@@ -539,7 +699,7 @@ async fn main() {
         if is_key_pressed(KeyCode::N) {
             if let Err(e) = game.level_manager.next_level() {
                 if game.debug {
-                    eprintln!("Next level error: {}", e);
+                    debug!("Next level error: {}", e);
                 }
             } else {
                 // Reset player position to level spawn
@@ -772,13 +932,11 @@ async fn main() {
         // Handle level complete after creature loop
         if level_complete_triggered {
             if game.level_manager.is_last_level() {
-                // Game complete!
-                game.current_game_mode = GameMode::MainMenu;
+                // Game complete - show victory screen
+                game.current_game_mode = GameMode::Victory;
             } else {
-                game.level_manager.next_level().ok();
-                player_physics.x = 88.0;
-                player_physics.y = 88.0;
-                game.load_creatures_from_level();
+                // Level complete - show congratulations
+                game.current_game_mode = GameMode::LevelComplete;
             }
         }
 
@@ -810,7 +968,7 @@ async fn main() {
                         _ => {}
                     }
                     if game.debug {
-                        eprintln!("Collected: {:?}", item_type);
+                        debug!("Collected: {:?}", item_type);
                     }
                 }
                 _ => {}
@@ -842,7 +1000,7 @@ async fn main() {
 
         // Debug: Log animation state occasionally
         if game.debug && game.frame_count % 60 == 0 {
-            eprintln!(
+            debug!(
                 "Animation: name={}, frame={}, playing={}",
                 player_anim.current, player_anim.frame, player_anim.playing
             );

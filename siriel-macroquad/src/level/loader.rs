@@ -227,7 +227,7 @@ tiles: [[1, 2], [3, 4]]
     fn test_load_fmis01() {
         let result = load_from_ron(Path::new("assets/levels/fmis01.ron"));
         if let Err(e) = &result {
-            eprintln!("Error loading RON: {}", e);
+            warn!("Error loading RON: {}", e);
         }
         assert!(result.is_ok(), "Failed to load RON: {:?}", result);
 

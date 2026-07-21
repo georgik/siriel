@@ -37,15 +37,15 @@ pub struct AvatarAtlas {
 impl AvatarAtlas {
     /// Load avatar spritesheet from PNG + RON metadata
     pub async fn load() -> Result<Self, String> {
-        eprintln!("=== Avatar Loading ===");
+        info!("=== Avatar Loading ===");
 
         let texture = load_texture("assets/sprites/siriel-avatar.png")
             .await
             .map_err(|e| format!("Failed to load avatar: {:?}", e))?;
 
         texture.set_filter(FilterMode::Nearest);
-        eprintln!("Texture loaded: siriel-avatar.png");
-        eprintln!("Texture size: {}x{}", texture.width(), texture.height());
+        info!("Texture loaded: siriel-avatar.png");
+        info!("Texture size: {}x{}", texture.width(), texture.height());
 
         // Load RON metadata
         let ron_path = "assets/sprites/siriel-avatar.ron";
@@ -55,11 +55,11 @@ impl AvatarAtlas {
         let metadata: AvatarMetadata =
             ron::from_str(&ron_content).map_err(|e| format!("Failed to parse RON: {}", e))?;
 
-        eprintln!("RON metadata loaded:");
-        eprintln!("  tile_size: {}", metadata.tile_size);
-        eprintln!("  columns: {}", metadata.columns);
-        eprintln!("  rows: {}", metadata.rows);
-        eprintln!("  animation count: {}", metadata.animations.len());
+        info!("RON metadata loaded:");
+        info!("  tile_size: {}", metadata.tile_size);
+        info!("  columns: {}", metadata.columns);
+        info!("  rows: {}", metadata.rows);
+        info!("  animation count: {}", metadata.animations.len());
 
         let tile_size = metadata.tile_size as i32;
         let columns = metadata.columns as i32;
@@ -68,7 +68,7 @@ impl AvatarAtlas {
         let mut animations = Vec::new();
         let mut animation_rows = Vec::new();
 
-        eprintln!("Animations loaded:");
+        info!("Animations loaded:");
         for anim_def in &metadata.animations {
             let duration = if anim_def.fps > 0 {
                 1.0 / anim_def.fps as f32
@@ -99,13 +99,13 @@ impl AvatarAtlas {
 
             animation_rows.push((anim_def.name.clone(), anim_def.row));
 
-            eprintln!(
+            info!(
                 "  - {}: row={}, frames={}, fps={}, duration={:.3}",
                 anim_def.name, anim_def.row, anim_def.frame_count, anim_def.fps, duration
             );
         }
 
-        eprintln!("=== Avatar Loading Complete ===");
+        info!("=== Avatar Loading Complete ===");
 
         Ok(Self {
             texture,
@@ -124,7 +124,7 @@ impl AvatarAtlas {
             .find(|(name, _)| name == anim_name)
             .map(|(_, row)| *row as i32)
             .unwrap_or_else(|| {
-                eprintln!(
+                info!(
                     "WARNING: Animation '{}' not found in spritesheet",
                     anim_name
                 );
@@ -151,12 +151,12 @@ impl AvatarAtlas {
         let anim = match self.animations.iter().find(|a| a.name == state.current) {
             Some(a) => a,
             None => {
-                eprintln!(
+                info!(
                     "WARNING: Requested animation '{}' not found. Available animations:",
                     state.current
                 );
                 for a in &self.animations {
-                    eprintln!("  - {}", a.name);
+                    info!("  - {}", a.name);
                 }
                 return 0;
             }

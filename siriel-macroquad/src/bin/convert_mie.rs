@@ -270,8 +270,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
-        eprintln!("Usage: {} <input.mie> <output.ron>", args[0]);
-        eprintln!("Example: {} FMIS01.MIE fmis01.ron", args[0]);
+        warn!("Usage: {} <input.mie> <output.ron>", args[0]);
+        warn!("Example: {} FMIS01.MIE fmis01.ron", args[0]);
         std::process::exit(1);
     }
 
@@ -282,7 +282,7 @@ fn main() {
     let content = match fs::read_to_string(&input_path) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("Error reading file {}: {}", input_path.display(), e);
+            warn!("Error reading file {}: {}", input_path.display(), e);
             std::process::exit(1);
         }
     };
@@ -291,14 +291,14 @@ fn main() {
     let level = match parse_mie(&content) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("Error parsing MIE: {}", e);
+            warn!("Error parsing MIE: {}", e);
             std::process::exit(1);
         }
     };
 
-    println!("Converted level: {}", level.name);
-    println!("  Entities: {}", level.entities.len());
-    println!("  Map size: {}x{}", level.tiles.first().map_or(0, |r| r.len()), level.tiles.len());
+    info!("Converted level: {}", level.name);
+    info!("  Entities: {}", level.entities.len());
+    info!("  Map size: {}x{}", level.tiles.first().map_or(0, |r| r.len()), level.tiles.len());
 
     // Convert to RON
     let ron = convert_to_ron(&level);
@@ -306,15 +306,15 @@ fn main() {
     // Write output
     if let Some(parent) = output_path.parent() {
         if let Err(e) = fs::create_dir_all(parent) {
-            eprintln!("Error creating directory: {}", e);
+            warn!("Error creating directory: {}", e);
             std::process::exit(1);
         }
     }
 
     match fs::write(&output_path, ron) {
-        Ok(_) => println!("Wrote: {}", output_path.display()),
+        Ok(_) => info!("Wrote: {}", output_path.display()),
         Err(e) => {
-            eprintln!("Error writing file {}: {}", output_path.display(), e);
+            warn!("Error writing file {}: {}", output_path.display(), e);
             std::process::exit(1);
         }
     }
