@@ -3,7 +3,7 @@
 
 use crate::assets::Tileset;
 use crate::core::anim;
-use crate::core::{GRAVITY, JUMP_FORCE, MOVE_SPEED, TILE_SIZE};
+use crate::core::{GRAVITY, JUMP_FORCE, MOVE_SPEED, TARGET_FPS, TILE_SIZE};
 use macroquad::prelude::*;
 
 /// Player physics state
@@ -105,7 +105,11 @@ impl PhysicsState {
 
     /// Update physics with tilemap collision using pixel-perfect masks
     /// Matches original SI35.PAS movement with automatic wall sliding
-    pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], tileset: &Tileset, _dt: f32) {
+    /// dt: delta time in seconds (scales movement to be framerate-independent)
+    pub fn update_with_collision(&mut self, tilemap: &[Vec<i32>], tileset: &Tileset, dt: f32) {
+        // Scale factor: 1.0 at 60 FPS, adjusts for actual framerate
+        // Original DOS values are per-frame at 60 FPS
+        let time_scale = dt * TARGET_FPS as f32;
         // Track ground state transitions for parachute logic
         if self.was_on_ground && !self.on_ground {
             // Just left ground - start tracking fall
@@ -126,43 +130,49 @@ impl PhysicsState {
         }
 
         // Apply gravity (or cap at glide speed if parachute active)
+        // Scale by time_scale for framerate independence
+        let gravity_this_frame = GRAVITY * time_scale;
         if self.parachute_active {
             // Glide mode: cap fall speed
             if self.vy < PARACHUTE_GLIDE_SPEED {
-                self.vy += GRAVITY;
+                self.vy += gravity_this_frame;
                 if self.vy > PARACHUTE_GLIDE_SPEED {
                     self.vy = PARACHUTE_GLIDE_SPEED;
                 }
             }
         } else {
             // Normal gravity
-            self.vy += GRAVITY;
+            self.vy += gravity_this_frame;
         }
 
-        // Horizontal movement with collision
-        let new_x = self.x + self.vx;
+        // Horizontal movement with collision (scaled by time_scale)
+        let horizontal_move = self.vx * time_scale;
+        let new_x = self.x + horizontal_move;
         if !self.check_collision(new_x, self.y, tilemap, tileset) {
             self.x = new_x;
         } else {
             // Original auto wall-slide: if blocked, check if opposite shoulder is clear
             // GAME.INC lines 195-196: po3(si.x-5,si.y-12) and po3(si.x+6,si.y-12)
+            // Slide amount also scaled
+            let slide_amount = 1.0 * time_scale;
             if self.vx > 0.0 {
                 // Moving right, blocked - check left shoulder
                 if !self.check_shoulder(-5.0, tilemap, tileset) {
                     // Left shoulder clear, slide left
-                    self.x -= 1.0;
+                    self.x -= slide_amount;
                 }
             } else if self.vx < 0.0 {
                 // Moving left, blocked - check right shoulder
                 if !self.check_shoulder(6.0, tilemap, tileset) {
                     // Right shoulder clear, slide right
-                    self.x += 1.0;
+                    self.x += slide_amount;
                 }
             }
         }
 
-        // Vertical movement with collision
-        let new_y = self.y + self.vy;
+        // Vertical movement with collision (scaled by time_scale)
+        let vertical_move = self.vy * time_scale;
+        let new_y = self.y + vertical_move;
         if !self.check_collision(self.x, new_y, tilemap, tileset) {
             self.y = new_y;
             // Check if we're on ground using asymmetric foot check
