@@ -290,7 +290,17 @@ impl PhysicsState {
     pub fn get_animation(&self) -> &str {
         if !self.on_ground {
             if self.vy < 0.0 {
-                return anim::JUMP_UP;
+                // Rising: check horizontal movement
+                if self.vx.abs() < 0.1 {
+                    // Jumping straight up
+                    return anim::JUMP_UP;
+                }
+                // Jumping with horizontal movement
+                return if self.facing_left {
+                    anim::JUMP_LEFT
+                } else {
+                    anim::JUMP_RIGHT
+                };
             } else {
                 // Falling: use directional walk sprites, parachute drawn separately
                 return if self.facing_left {
