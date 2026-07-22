@@ -15,9 +15,10 @@ pub const TILE_SIZE: i32 = 16;
 pub const SPRITE_SIZE: i32 = 16;
 
 // Physics constants (from original DOS)
+// rolling=30 frames jump duration, gravity calculated from config
 pub const GRAVITY: f32 = 0.5;
-pub const MOVE_SPEED: f32 = 1.0;
-pub const JUMP_FORCE: f32 = -6.0;
+pub const MOVE_SPEED: f32 = 2.0; // Original DOS: ~2 pixels per frame
+pub const JUMP_FORCE: f32 = -6.0; // Middle value between -4 and -8
 
 // Frame rate
 pub const TARGET_FPS: i32 = 60;
