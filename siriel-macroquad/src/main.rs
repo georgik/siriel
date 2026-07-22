@@ -254,6 +254,8 @@ impl GameState {
                     self.load_creatures_from_level();
                     self.current_game_mode = GameMode::Playing;
                     self.player_health = 3;
+                    // Play level start sound
+                    self.sound_manager.play(SoundType::Start);
                 }
             }
             MenuAction::Quit => {
@@ -315,6 +317,11 @@ async fn main() {
             return;
         }
     };
+
+    // Load sounds
+    game.sound_manager.load_all_sounds().await;
+    // Test: play immediately after load
+    game.sound_manager.play(SoundType::Start);
 
     // Load datadisc metadata and build level menu
     info!("=== Loading datadisc ===");

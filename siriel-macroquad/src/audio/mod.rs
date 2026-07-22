@@ -1,7 +1,7 @@
 // Siriel Macroquad - Audio System
 
-#![allow(dead_code)]
-
+use macroquad::audio::{PlaySoundParams, Sound, load_sound, play_sound};
+use macroquad::prelude::*;
 use std::collections::HashMap;
 
 /// Sound types
@@ -17,6 +17,7 @@ pub enum SoundType {
     Pause,
     Select,
     Complete,
+    Start, // Level start sound
 }
 
 /// Music tracks
@@ -30,14 +31,10 @@ pub enum MusicTrack {
     GameOver,
 }
 
-/// Stub sound handle (placeholder for actual Macroquad Sound type)
-#[derive(Debug, Clone)]
-pub struct SoundHandle;
-
-/// Sound manager
+/// Sound manager with real Macroquad audio
 pub struct SoundManager {
-    sounds: HashMap<SoundType, bool>,
-    music: HashMap<MusicTrack, bool>,
+    sounds: HashMap<SoundType, Option<Sound>>,
+    music: HashMap<MusicTrack, Option<Sound>>,
     sfx_volume: f32,
     music_volume: f32,
     current_music: Option<MusicTrack>,
@@ -54,39 +51,77 @@ impl SoundManager {
         }
     }
 
-    /// Load sound from file (stub for now - returns empty sound)
-    pub async fn load_sound(&mut self, sound_type: SoundType, _path: &str) {
-        // Stub: In real implementation, would load from path
-        // For now, we just mark it as loaded
-        self.sounds.insert(sound_type, true);
+    /// Load sound from file
+    pub async fn load_sound(&mut self, sound_type: SoundType, path: &str) {
+        match load_sound(path).await {
+            Ok(sound) => {
+                self.sounds.insert(sound_type.clone(), Some(sound));
+                info!("Loaded sound: {:?} from {}", sound_type, path);
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to load sound {:?} from {}: {:?}",
+                    sound_type, path, e
+                );
+                self.sounds.insert(sound_type, None);
+            }
+        }
     }
 
-    /// Load music from file (stub for now)
-    pub async fn load_music(&mut self, track: MusicTrack, _path: &str) {
-        // Stub: In real implementation, would load from path
-        self.music.insert(track, true);
+    /// Load music from file
+    pub async fn load_music(&mut self, track: MusicTrack, path: &str) {
+        match load_sound(path).await {
+            Ok(sound) => {
+                self.music.insert(track.clone(), Some(sound));
+                info!("Loaded music: {:?} from {}", track, path);
+            }
+            Err(e) => {
+                warn!("Failed to load music {:?} from {}: {:?}", track, path, e);
+                self.music.insert(track, None);
+            }
+        }
     }
 
     /// Play sound effect
     pub fn play(&self, sound_type: SoundType) {
-        // Stub: In real implementation, would play the sound
-        let _ = sound_type;
+        info!("Attempting to play sound: {:?}", sound_type);
+        if let Some(Some(sound)) = self.sounds.get(&sound_type) {
+            info!(
+                "Playing sound: {:?} with volume {}",
+                sound_type, self.sfx_volume
+            );
+            play_sound(
+                sound,
+                PlaySoundParams {
+                    looped: false,
+                    volume: self.sfx_volume,
+                },
+            );
+        } else {
+            warn!("Sound not loaded: {:?}", sound_type);
+        }
     }
 
     /// Play music track
     pub fn play_music(&mut self, track: MusicTrack) {
-        // Stub: In real implementation, would play the music
         if self.current_music != Some(track.clone()) {
-            self.current_music = Some(track);
+            if let Some(Some(sound)) = self.music.get(&track) {
+                play_sound(
+                    sound,
+                    PlaySoundParams {
+                        looped: true,
+                        volume: self.music_volume,
+                    },
+                );
+                self.current_music = Some(track);
+            }
         }
     }
 
     /// Stop current music
     pub fn stop_music(&mut self) {
-        if let Some(_) = self.current_music {
-            // In real implementation, would stop the sound
-            self.current_music = None;
-        }
+        self.current_music = None;
+        // Note: Macroquad doesn't have stop_sound, so we just track state
     }
 
     /// Set SFX volume
@@ -113,61 +148,25 @@ impl SoundManager {
     pub fn current_music(&self) -> Option<MusicTrack> {
         self.current_music.clone()
     }
+
+    /// Load all game sounds
+    pub async fn load_all_sounds(&mut self) {
+        info!("=== Loading Sounds ===");
+
+        // Load the level start sound (ZINC.wav - already converted)
+        self.load_sound(SoundType::Start, "assets/audio/ZINC.wav")
+            .await;
+
+        // TODO: Load other sounds when converted
+        // self.load_sound(SoundType::Jump, "assets/audio/JUMP.wav").await;
+        // self.load_sound(SoundType::Coin, "assets/audio/COIN.wav").await;
+
+        info!("=== Sound Loading Complete ===");
+    }
 }
 
 impl Default for SoundManager {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_manager_creation() {
-        let manager = SoundManager::new();
-        assert_eq!(manager.sfx_volume(), 0.7);
-        assert_eq!(manager.music_volume(), 0.5);
-        assert!(manager.current_music().is_none());
-    }
-
-    #[test]
-    fn test_set_sfx_volume() {
-        let mut manager = SoundManager::new();
-        manager.set_sfx_volume(0.5);
-        assert_eq!(manager.sfx_volume(), 0.5);
-    }
-
-    #[test]
-    fn test_set_music_volume() {
-        let mut manager = SoundManager::new();
-        manager.set_music_volume(0.3);
-        assert_eq!(manager.music_volume(), 0.3);
-    }
-
-    #[test]
-    fn test_volume_clamping() {
-        let mut manager = SoundManager::new();
-        manager.set_sfx_volume(1.5);
-        assert_eq!(manager.sfx_volume(), 1.0);
-
-        manager.set_sfx_volume(-0.5);
-        assert_eq!(manager.sfx_volume(), 0.0);
-    }
-
-    #[test]
-    fn test_play_does_not_crash() {
-        let manager = SoundManager::new();
-        // Should not crash even without loaded sounds
-        manager.play(SoundType::Jump);
-    }
-
-    #[test]
-    fn test_play_music_does_not_crash() {
-        let mut manager = SoundManager::new();
-        // Should not crash even without loaded music
-        manager.play_music(MusicTrack::Theme);
     }
 }

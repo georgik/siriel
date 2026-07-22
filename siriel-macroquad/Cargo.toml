@@ -17,7 +17,7 @@ path = "src/lib.rs"
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
-macroquad = "0.4.15"
+macroquad = { version = "0.4.15", features = ["audio"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
 ron = "0.8"
@@ -31,3 +31,7 @@ path = "src/main.rs"
 [[bin]]
 name = "convert_mie"
 path = "cmd/convert_mie.rs"
+
+[[bin]]
+name = "audio_test"
+path = "cmd/audio_test.rs"
