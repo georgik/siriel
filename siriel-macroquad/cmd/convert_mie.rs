@@ -1,3 +1,4 @@
+#![cfg_attr(target_arch = "wasm32", allow(dead_code))]
 // Siriel Macroquad - MIE to RON Level Converter
 // Converts original Siriel 3.5 DOS .MIE level files to modern RON format
 // Usage: cargo run --bin convert_mie -- <input_mie_file> [output_ron_file]
@@ -565,6 +566,7 @@ fn print_usage() {
     println!("    cargo run --bin convert_mie -- --batch ../siriel-levels/");
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -597,6 +599,11 @@ fn main() {
             convert_single_file(input_file, &output_file);
         }
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    panic!("convert_mie is a native-only tool and cannot run on wasm");
 }
 
 #[cfg(test)]

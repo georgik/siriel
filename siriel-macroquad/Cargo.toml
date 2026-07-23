@@ -31,7 +31,9 @@ path = "src/main.rs"
 [[bin]]
 name = "convert_mie"
 path = "cmd/convert_mie.rs"
+required-features = []
 
 [[bin]]
 name = "audio_test"
 path = "cmd/audio_test.rs"
+required-features = []
