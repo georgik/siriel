@@ -2,16 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Siriel Macroquad</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
-        html, body, canvas {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
             width: 100%;
             height: 100%;
             overflow: hidden;
             background: black;
+            position: fixed;
+            touch-action: none;
         }
         body {
             display: flex;
@@ -20,16 +29,94 @@
         }
         #glcanvas {
             outline: none;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* Fullscreen button - always visible, top-left to avoid jump button */
+        #fullscreen-btn {
+            display: flex;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        /* Hide when already in fullscreen */
+        body.fullscreen #fullscreen-btn {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <canvas id="glcanvas" tabindex="0"></canvas>
+    <button id="fullscreen-btn" title="Toggle Fullscreen">[]</button>
+
     <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
     <script>
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+        // Load WASM
         load("siriel.wasm");
-        // Ensure canvas has focus for keyboard input
-        document.getElementById('glcanvas').focus();
+
+        // Fullscreen toggle function
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen error:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Button click handler
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // Update button visibility on fullscreen change
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                document.body.classList.add('fullscreen');
+            } else {
+                document.body.classList.remove('fullscreen');
+            }
+        });
+
+        // Auto-hide URL bar on mobile (scroll to top trick)
+        function hideUrlBar() {
+            window.scrollTo(0, 0);
+            document.body.style.height = window.innerHeight + 'px';
+        }
+
+        // Call on load and resize
+        hideUrlBar();
+        window.addEventListener('resize', hideUrlBar);
+
+        // Prevent default touch behaviors (scrolling, zooming)
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.tagName !== 'CANVAS') return;
+            e.preventDefault();
+        }, { passive: false });
+
+        // Double-tap to fullscreen on mobile
+        let lastTap = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                toggleFullscreen();
+            }
+            lastTap = now;
+        });
     </script>
 </body>
 </html>

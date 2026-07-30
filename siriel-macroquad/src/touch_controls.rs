@@ -1,6 +1,7 @@
 // Siriel Macroquad - Touch Controls for Mobile/WASM
 // Provides on-screen virtual buttons for touch devices
 
+use macroquad::input::MouseButton;
 use macroquad::prelude::*;
 
 /// Virtual button for touch input
@@ -71,7 +72,7 @@ impl TouchControls {
             left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "<"),
             right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, ">"),
             jump_btn: VirtualButton::new(650.0, 500.0, 80.0, 60.0, "JUMP"),
-            esc_btn: VirtualButton::new(700.0, 20.0, 60.0, 40.0, "ESC"),
+            esc_btn: VirtualButton::new(10.0, 20.0, 60.0, 40.0, "ESC"),
             menu_tap: None,
         }
     }
@@ -91,8 +92,8 @@ impl TouchControls {
         self.jump_btn.x = w - 100.0;
         self.jump_btn.y = h - 100.0;
 
-        // ESC on top right
-        self.esc_btn.x = w - 70.0;
+        // ESC on top left
+        self.esc_btn.x = 10.0;
         self.esc_btn.y = 10.0;
     }
 
@@ -107,15 +108,12 @@ impl TouchControls {
         self.esc_btn.pressed = false;
         self.menu_tap = None;
 
-        // Handle all active touches
-        for touch in touches() {
-            let x = touch.position.x;
-            let y = touch.position.y;
-
+        // Helper to check input position
+        let mut check_input = |x: f32, y: f32| {
             // Check ESC
             if self.esc_btn.contains(x, y) {
                 self.esc_btn.pressed = true;
-                continue;
+                return;
             }
 
             // Check movement
@@ -137,9 +135,21 @@ impl TouchControls {
                 && !self.jump_btn.pressed
                 && !self.esc_btn.pressed
             {
-                // Only register menu tap on touch start (single frame)
                 self.menu_tap = Some((x, y));
             }
+        };
+
+        // Handle all active touches
+        for touch in touches() {
+            let x = touch.position.x;
+            let y = touch.position.y;
+            check_input(x, y);
+        }
+
+        // Handle mouse click (for desktop WASM)
+        if is_mouse_button_pressed(MouseButton::Left) {
+            let (x, y) = mouse_position();
+            check_input(x, y);
         }
 
         (
