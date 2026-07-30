@@ -235,14 +235,14 @@ impl MenuNavigation {
             let color = Color::new(0.3, 0.3, 0.3, 0.6);
             draw_rectangle(ux, uy, uw, uh, color);
             draw_rectangle_lines(ux, uy, uw, uh, 2.0, WHITE);
-            draw_text("▲", ux + 15.0, uy + 30.0, 24.0, WHITE);
+            draw_text("^", ux + 15.0, uy + 30.0, 24.0, WHITE);
         }
 
         if let Some((dx, dy, dw, dh)) = self.down_area {
             let color = Color::new(0.3, 0.3, 0.3, 0.6);
             draw_rectangle(dx, dy, dw, dh, color);
             draw_rectangle_lines(dx, dy, dw, dh, 2.0, WHITE);
-            draw_text("▼", dx + 15.0, dy + 30.0, 24.0, WHITE);
+            draw_text("v", dx + 15.0, dy + 30.0, 24.0, WHITE);
         }
     }
 

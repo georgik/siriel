@@ -68,8 +68,8 @@ pub struct TouchControls {
 impl TouchControls {
     pub fn new() -> Self {
         Self {
-            left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "←"),
-            right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, "→"),
+            left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "<"),
+            right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, ">"),
             jump_btn: VirtualButton::new(650.0, 500.0, 80.0, 60.0, "JUMP"),
             esc_btn: VirtualButton::new(700.0, 20.0, 60.0, 40.0, "ESC"),
             menu_tap: None,
