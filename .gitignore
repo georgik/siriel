@@ -1,6 +1,7 @@
 .DS_Store
 SCORE.DAT
-dist/
+**/dist/
 target/
 Cargo.lock
+
 

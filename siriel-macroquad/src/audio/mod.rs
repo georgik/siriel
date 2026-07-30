@@ -153,8 +153,8 @@ impl SoundManager {
     pub async fn load_all_sounds(&mut self) {
         info!("=== Loading Sounds ===");
 
-        // Load the level start sound (ZINC.wav - already converted)
-        self.load_sound(SoundType::Start, "assets/audio/ZINC.wav")
+        // Load the level start sound (ZINC.ogg - compressed format)
+        self.load_sound(SoundType::Start, "assets/audio/ZINC.ogg")
             .await;
 
         // TODO: Load other sounds when converted

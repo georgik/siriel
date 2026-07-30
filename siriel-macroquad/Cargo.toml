@@ -36,4 +36,11 @@ required-features = []
 [[bin]]
 name = "audio_test"
 path = "cmd/audio_test.rs"
-required-features = []
+required-features = ["audio-tools"]
+
+[features]
+audio-tools = ["vorbis_rs"]
+
+[dependencies.vorbis_rs]
+version = "0.5.5"
+optional = true
