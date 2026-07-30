@@ -7,47 +7,23 @@ use std::collections::HashMap;
 /// Sound types
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SoundType {
-    Jump,
-    Land,
-    Coin,
-    Health,
-    Hurt,
-    EnemyHit,
-    Explosion,
-    Pause,
-    Select,
-    Complete,
-    Start, // Level start sound
-}
-
-/// Music tracks
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MusicTrack {
-    Theme,
-    Level1,
-    Level2,
-    Boss,
-    Victory,
-    GameOver,
+    Start,  // Level start sound
+    Select, // UI selection sound
+    Coin,   // Coin pickup
+    Health, // Health pickup
+    Hurt,   // Player hurt
+    Land,   // Landing sound
 }
 
 /// Sound manager with real Macroquad audio
 pub struct SoundManager {
     sounds: HashMap<SoundType, Option<Sound>>,
-    music: HashMap<MusicTrack, Option<Sound>>,
-    sfx_volume: f32,
-    music_volume: f32,
-    current_music: Option<MusicTrack>,
 }
 
 impl SoundManager {
     pub fn new() -> Self {
         Self {
             sounds: HashMap::new(),
-            music: HashMap::new(),
-            sfx_volume: 0.7,
-            music_volume: 0.5,
-            current_music: None,
         }
     }
 
@@ -68,85 +44,19 @@ impl SoundManager {
         }
     }
 
-    /// Load music from file
-    pub async fn load_music(&mut self, track: MusicTrack, path: &str) {
-        match load_sound(path).await {
-            Ok(sound) => {
-                self.music.insert(track.clone(), Some(sound));
-                info!("Loaded music: {:?} from {}", track, path);
-            }
-            Err(e) => {
-                warn!("Failed to load music {:?} from {}: {:?}", track, path, e);
-                self.music.insert(track, None);
-            }
-        }
-    }
-
     /// Play sound effect
     pub fn play(&self, sound_type: SoundType) {
-        info!("Attempting to play sound: {:?}", sound_type);
         if let Some(Some(sound)) = self.sounds.get(&sound_type) {
-            info!(
-                "Playing sound: {:?} with volume {}",
-                sound_type, self.sfx_volume
-            );
             play_sound(
                 sound,
                 PlaySoundParams {
                     looped: false,
-                    volume: self.sfx_volume,
+                    volume: 1.0,
                 },
             );
         } else {
             warn!("Sound not loaded: {:?}", sound_type);
         }
-    }
-
-    /// Play music track
-    pub fn play_music(&mut self, track: MusicTrack) {
-        if self.current_music != Some(track.clone()) {
-            if let Some(Some(sound)) = self.music.get(&track) {
-                play_sound(
-                    sound,
-                    PlaySoundParams {
-                        looped: true,
-                        volume: self.music_volume,
-                    },
-                );
-                self.current_music = Some(track);
-            }
-        }
-    }
-
-    /// Stop current music
-    pub fn stop_music(&mut self) {
-        self.current_music = None;
-        // Note: Macroquad doesn't have stop_sound, so we just track state
-    }
-
-    /// Set SFX volume
-    pub fn set_sfx_volume(&mut self, volume: f32) {
-        self.sfx_volume = volume.clamp(0.0, 1.0);
-    }
-
-    /// Set music volume
-    pub fn set_music_volume(&mut self, volume: f32) {
-        self.music_volume = volume.clamp(0.0, 1.0);
-    }
-
-    /// Get SFX volume
-    pub fn sfx_volume(&self) -> f32 {
-        self.sfx_volume
-    }
-
-    /// Get music volume
-    pub fn music_volume(&self) -> f32 {
-        self.music_volume
-    }
-
-    /// Get current music track
-    pub fn current_music(&self) -> Option<MusicTrack> {
-        self.current_music.clone()
     }
 
     /// Load all game sounds
@@ -158,8 +68,11 @@ impl SoundManager {
             .await;
 
         // TODO: Load other sounds when converted
-        // self.load_sound(SoundType::Jump, "assets/audio/JUMP.wav").await;
-        // self.load_sound(SoundType::Coin, "assets/audio/COIN.wav").await;
+        // self.load_sound(SoundType::Select, "assets/audio/SELECT.ogg").await;
+        // self.load_sound(SoundType::Coin, "assets/audio/COIN.ogg").await;
+        // self.load_sound(SoundType::Health, "assets/audio/HEALTH.ogg").await;
+        // self.load_sound(SoundType::Hurt, "assets/audio/HURT.ogg").await;
+        // self.load_sound(SoundType::Land, "assets/audio/LAND.ogg").await;
 
         info!("=== Sound Loading Complete ===");
     }

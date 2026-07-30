@@ -3,7 +3,6 @@
 // Converts original Siriel 3.5 DOS .MIE level files to modern RON format
 // Usage: cargo run --bin convert_mie -- <input_mie_file> [output_ron_file]
 
-use std::env;
 use std::fs;
 use std::path::Path;
 
@@ -568,7 +567,7 @@ fn print_usage() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 2 {
         print_usage();
