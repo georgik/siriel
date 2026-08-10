@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use qrcode::{Color, QrCode};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -126,6 +127,21 @@ async fn serve_wasm(verbose: bool, port: Option<u16>) -> Result<()> {
 
     println!();
     println!("Starting HTTP server on http://localhost:{}", port);
+
+    // Get local LAN IP for mobile testing
+    if let Ok(lan_ip) = get_local_ip() {
+        let lan_url = format!("http://{}:{}", lan_ip, port);
+        println!("LAN URL: {}", lan_url);
+
+        // Generate QR code
+        if let Some(qr) = generate_qr(&lan_url) {
+            println!();
+            println!("Scan QR code for mobile access:");
+            println!("{}", qr);
+            println!();
+        }
+    }
+
     println!("Press Ctrl+C to stop");
     println!();
 
@@ -276,4 +292,46 @@ fn convert_levels() -> Result<()> {
     println!("Output directory: {}", levels_dir.display());
 
     Ok(())
+}
+
+/// Get local LAN IP address for mobile testing
+fn get_local_ip() -> Result<String> {
+    use local_ip_address::local_ip;
+
+    let ip = local_ip()?;
+    Ok(ip.to_string())
+}
+
+/// Generate QR code as ASCII art
+fn generate_qr(url: &str) -> Option<String> {
+    match QrCode::new(url) {
+        Ok(qr) => {
+            // Render as ASCII using Unicode blocks
+            let mut output = String::new();
+            let size = qr.width();
+
+            for y in (0..size).step_by(2) {
+                for x in 0..size {
+                    let dark = qr[(x, y)];
+                    let dark_below = if y + 1 < size {
+                        qr[(x, y + 1)]
+                    } else {
+                        Color::Light
+                    };
+
+                    // Use Unicode block elements for better QR rendering
+                    let c = match (dark, dark_below) {
+                        (Color::Light, Color::Light) => ' ',
+                        (Color::Dark, Color::Light) => '▀',
+                        (Color::Light, Color::Dark) => '▄',
+                        (Color::Dark, Color::Dark) => '█',
+                    };
+                    output.push(c);
+                }
+                output.push('\n');
+            }
+            Some(output)
+        }
+        Err(_) => None,
+    }
 }

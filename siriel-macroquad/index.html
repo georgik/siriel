@@ -108,15 +108,6 @@
             e.preventDefault();
         }, { passive: false });
 
-        // Double-tap to fullscreen on mobile
-        let lastTap = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTap < 300) {
-                toggleFullscreen();
-            }
-            lastTap = now;
-        });
     </script>
 </body>
 </html>
