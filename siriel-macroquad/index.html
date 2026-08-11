@@ -56,18 +56,102 @@
         body.fullscreen #fullscreen-btn {
             display: none !important;
         }
+        /* Loading screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-family: monospace;
+            color: #fff;
+        }
+        #loading-screen.hidden {
+            display: none;
+        }
+        .loading-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #fc0;
+        }
+        .loading-bar-container {
+            width: 300px;
+            height: 24px;
+            border: 2px solid #666;
+            border-radius: 4px;
+            background: #222;
+            overflow: hidden;
+        }
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #fc0, #f80);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .loading-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-title">SIRIEL</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Loading assets...</div>
+    </div>
+
     <canvas id="glcanvas" tabindex="0"></canvas>
     <button id="fullscreen-btn" title="Toggle Fullscreen">[]</button>
 
     <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
     <script>
         const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+
+        // Animate loading bar with status updates
+        let progress = 0;
+        let stage = 0;
+        const stages = ['Loading WASM...', 'Loading sprites...', 'Loading sounds...', 'Loading levels...', 'Starting game...'];
+
+        const loadingInterval = setInterval(() => {
+            progress += Math.random() * 12;
+            if (progress > 95) progress = 95;
+
+            // Update stage text based on progress
+            const newStage = Math.min(Math.floor(progress / 20), stages.length - 1);
+            if (newStage !== stage) {
+                stage = newStage;
+                loadingText.textContent = stages[stage];
+            }
+
+            loadingBar.style.width = progress + '%';
+        }, 300);
 
         // Load WASM
         load("siriel.wasm");
+
+        // Hide after max load time (game likely ready by then)
+        setTimeout(() => {
+            clearInterval(loadingInterval);
+            loadingBar.style.width = '100%';
+            loadingText.textContent = 'Ready!';
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+            }, 400);
+        }, 6000);
 
         // Fullscreen toggle function
         function toggleFullscreen() {

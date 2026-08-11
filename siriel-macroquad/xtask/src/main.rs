@@ -128,17 +128,20 @@ async fn serve_wasm(verbose: bool, port: Option<u16>) -> Result<()> {
     println!();
     println!("Starting HTTP server on http://localhost:{}", port);
 
-    // Get local LAN IP for mobile testing
-    if let Ok(lan_ip) = get_local_ip() {
-        let lan_url = format!("http://{}:{}", lan_ip, port);
-        println!("LAN URL: {}", lan_url);
+    // Show QR codes for all usable network interfaces
+    let interfaces = get_local_interfaces();
+    if !interfaces.is_empty() {
+        println!("Network interfaces:");
+        for (ip, iface_name) in &interfaces {
+            let url = format!("http://{}:{}", ip, port);
+            println!("  {} ({})", url, iface_name);
 
-        // Generate QR code
-        if let Some(qr) = generate_qr(&lan_url) {
-            println!();
-            println!("Scan QR code for mobile access:");
-            println!("{}", qr);
-            println!();
+            if let Some(qr) = generate_qr(&url) {
+                println!();
+                println!("Scan QR code for {}:", ip);
+                println!("{}", qr);
+                println!();
+            }
         }
     }
 
@@ -294,12 +297,41 @@ fn convert_levels() -> Result<()> {
     Ok(())
 }
 
-/// Get local LAN IP address for mobile testing
-fn get_local_ip() -> Result<String> {
-    use local_ip_address::local_ip;
+/// Get all usable local network interfaces
+fn get_local_interfaces() -> Vec<(String, String)> {
+    use local_ip_address::list_afinet_netifas;
+    use std::net::IpAddr;
 
-    let ip = local_ip()?;
-    Ok(ip.to_string())
+    let mut results = Vec::new();
+
+    if let Ok(interfaces) = list_afinet_netifas() {
+        for (name, ip) in interfaces {
+            // Skip localhost and link-local
+            match ip {
+                IpAddr::V4(v4) => {
+                    let octets = v4.octets();
+                    // Skip 127.0.0.0/8 (localhost) and 169.254.0.0/16 (link-local)
+                    if octets[0] == 127 || (octets[0] == 169 && octets[1] == 254) {
+                        continue;
+                    }
+                }
+                IpAddr::V6(v6) => {
+                    // Skip ::1 (localhost) and fe80::/10 (link-local)
+                    if v6.is_loopback() || (v6.segments()[0] & 0xfe0) == 0xfe0 {
+                        continue;
+                    }
+                    // Skip non-usable IPv6 for simplicity (most mobile clients won't use it)
+                    continue;
+                }
+            }
+
+            results.push((ip.to_string(), name));
+        }
+    }
+
+    // Sort for consistent output
+    results.sort();
+    results
 }
 
 /// Generate QR code as ASCII art
