@@ -5,6 +5,7 @@ mod audio;
 mod core;
 mod effects;
 mod entities;
+mod hud;
 mod level;
 mod menu;
 mod player;
@@ -17,6 +18,7 @@ use clap::Parser;
 use core::*;
 use effects::*;
 use entities::*;
+use hud::Hud;
 use level::*;
 use macroquad::logging::*;
 use macroquad::prelude::*;
@@ -63,8 +65,12 @@ struct GameState {
     entity_manager: EntityManager,
     creatures: Vec<Creature>,
     player_health: i32,
+    player_lives: i32,
+    player_score: i32,
+    inventory: [Option<String>; 3], // Up to 3 inventory items (like original)
     particles: ParticleSystem,
     sound_manager: SoundManager,
+    hud: Hud,
     // Powerup state
     god_mode: bool,
     freeze_mode: bool,
@@ -166,8 +172,12 @@ impl GameState {
             entity_manager,
             creatures: Vec::new(),
             player_health: 3,
+            player_lives: 3,
+            player_score: 0,
+            inventory: [None, None, None],
             particles: ParticleSystem::new(),
             sound_manager: SoundManager::new(),
+            hud: Hud::new(),
             god_mode: false,
             freeze_mode: false,
             powerup_timer: 0.0,
@@ -317,6 +327,9 @@ async fn main() {
             return;
         }
     };
+
+    // Load HUD assets (optional - has fallbacks)
+    game.hud.load_assets().await.ok();
 
     // Load sounds
     game.sound_manager.load_all_sounds().await;
@@ -797,6 +810,7 @@ async fn main() {
                             // Collectible
                             creature.base.alive = false;
                             game.collected_count += 1;
+                            game.player_score += 100; // Add 100 points per collectible
                             game.particles
                                 .sparkle(creature.base.x + 8.0, creature.base.y + 8.0);
                             game.sound_manager.play(SoundType::Coin);
@@ -1188,112 +1202,98 @@ async fn main() {
         // Draw particles (over everything)
         game.particles.draw();
 
-        // HUD
-        draw_text("SIRIEL MACROQUAD", 10.0, 10.0, 20.0, DARKGRAY);
+        // Draw HUD (original style: inventory | level name | score + lives)
+        let level_name = game
+            .level_manager
+            .current()
+            .map(|lvl| lvl.meta.name.as_str())
+            .unwrap_or("UNKNOWN");
 
-        // Stats bar
-        draw_text(
-            &format!(
-                "HP: {}  Score: {}  Coins: {}",
-                game.player_health,
-                game.entity_manager.score(),
-                game.entity_manager.coins_collected()
-            ),
-            10.0,
-            40.0,
-            16.0,
-            DARKGRAY,
+        // Convert inventory to slice of optional references
+        let inventory_refs: Vec<Option<&str>> =
+            game.inventory.iter().map(|o| o.as_deref()).collect();
+
+        game.hud.draw(
+            level_name,
+            game.player_score,
+            game.player_lives,
+            &inventory_refs,
+            &objects,
         );
 
-        if let Some(current_level) = game.level_manager.current() {
+        // Debug info (only in debug mode)
+        if game.debug {
+            draw_text(&format!("FPS: {}", get_fps()), 10.0, 10.0, 16.0, DARKGRAY);
             draw_text(
-                &format!("Level: {}", current_level.meta.name),
+                &format!("Frame: {}", game.frame_count),
                 10.0,
-                60.0,
+                30.0,
+                16.0,
+                DARKGRAY,
+            );
+            draw_text(
+                &format!("Anim: {}", player_anim.current),
+                10.0,
+                50.0,
+                16.0,
+                DARKGRAY,
+            );
+            draw_text(
+                &format!("Pos: ({:.0}, {:.0})", pos.x, pos.y),
+                10.0,
+                70.0,
+                16.0,
+                DARKGRAY,
+            );
+            draw_text(
+                &format!("On Ground: {}", player_physics.on_ground),
+                10.0,
+                90.0,
+                16.0,
+                DARKGRAY,
+            );
+
+            // Level indicator
+            if let Some(current_id) = game.level_manager.current_id() {
+                let level_num = game
+                    .level_manager
+                    .level_ids()
+                    .iter()
+                    .position(|x| x == current_id)
+                    .map_or(0, |p| p + 1);
+                draw_text(
+                    &format!("Level {}/{}", level_num, game.level_manager.level_count()),
+                    10.0,
+                    110.0,
+                    16.0,
+                    DARKGRAY,
+                );
+            }
+
+            // Entity counts
+            let (enemy_count, item_count) = game.entity_manager.counts();
+            draw_text(
+                &format!(
+                    "Enemies: {} Items: {} Creatures: {}",
+                    enemy_count,
+                    item_count,
+                    game.creatures.len()
+                ),
+                10.0,
+                130.0,
+                16.0,
+                DARKGRAY,
+            );
+
+            // Particle count
+            draw_text(
+                &format!("Particles: {}", game.particles.count()),
+                10.0,
+                150.0,
                 16.0,
                 DARKGRAY,
             );
         }
-
-        draw_text(&format!("FPS: {}", get_fps()), 10.0, 80.0, 16.0, DARKGRAY);
-        draw_text(
-            &format!("Frame: {}", game.frame_count),
-            10.0,
-            100.0,
-            16.0,
-            DARKGRAY,
-        );
-        draw_text(
-            &format!("Anim: {}", player_anim.current),
-            10.0,
-            120.0,
-            16.0,
-            DARKGRAY,
-        );
-        draw_text(
-            &format!("Pos: ({:.0}, {:.0})", pos.x, pos.y),
-            10.0,
-            140.0,
-            16.0,
-            DARKGRAY,
-        );
-        draw_text(
-            &format!("On Ground: {}", player_physics.on_ground),
-            10.0,
-            160.0,
-            16.0,
-            DARKGRAY,
-        );
-
-        // Level indicator
-        if let Some(current_id) = game.level_manager.current_id() {
-            let level_num = game
-                .level_manager
-                .level_ids()
-                .iter()
-                .position(|x| x == current_id)
-                .map_or(0, |p| p + 1);
-            draw_text(
-                &format!("Level {}/{}", level_num, game.level_manager.level_count()),
-                10.0,
-                180.0,
-                16.0,
-                DARKGRAY,
-            );
-        }
-
-        // Entity counts
-        let (enemy_count, item_count) = game.entity_manager.counts();
-        draw_text(
-            &format!(
-                "Enemies: {} Items: {} Creatures: {}",
-                enemy_count,
-                item_count,
-                game.creatures.len()
-            ),
-            10.0,
-            200.0,
-            16.0,
-            DARKGRAY,
-        );
-
-        // Particle count
-        draw_text(
-            &format!("Particles: {}", game.particles.count()),
-            10.0,
-            220.0,
-            16.0,
-            DARKGRAY,
-        );
-
-        // Controls help
-        draw_text(
-            "Arrows: Move/Jump | N: Next Level | ESC: Exit",
-            10.0,
-            screen_height() - 30.0,
-            16.0,
-            DARKGRAY,
-        );
 
         // Draw touch controls (virtual buttons)
         game.touch_controls.draw();

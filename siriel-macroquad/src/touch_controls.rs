@@ -69,9 +69,9 @@ pub struct TouchControls {
 impl TouchControls {
     pub fn new() -> Self {
         Self {
-            left_btn: VirtualButton::new(20.0, 500.0, 60.0, 60.0, "<"),
-            right_btn: VirtualButton::new(90.0, 500.0, 60.0, 60.0, ">"),
-            jump_btn: VirtualButton::new(650.0, 500.0, 80.0, 60.0, "JUMP"),
+            left_btn: VirtualButton::new(20.0, 480.0, 60.0, 60.0, "<"),
+            right_btn: VirtualButton::new(90.0, 480.0, 60.0, 60.0, ">"),
+            jump_btn: VirtualButton::new(650.0, 480.0, 80.0, 60.0, "JUMP"),
             esc_btn: VirtualButton::new(10.0, 20.0, 60.0, 40.0, "ESC"),
             menu_tap: None,
         }
@@ -82,15 +82,18 @@ impl TouchControls {
         let w = screen_width();
         let h = screen_height();
 
+        // Position above HUD (HUD is at h-70, give 20px margin)
+        let control_bottom = h - 120.0;
+
         // D-pad on bottom left
         self.left_btn.x = w * 0.02;
-        self.left_btn.y = h - 100.0;
+        self.left_btn.y = control_bottom;
         self.right_btn.x = w * 0.1;
-        self.right_btn.y = h - 100.0;
+        self.right_btn.y = control_bottom;
 
         // Jump on bottom right
         self.jump_btn.x = w - 100.0;
-        self.jump_btn.y = h - 100.0;
+        self.jump_btn.y = control_bottom;
 
         // ESC on top left
         self.esc_btn.x = 10.0;
