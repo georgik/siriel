@@ -25,8 +25,10 @@ use macroquad::prelude::*;
 use menu::*;
 use player::*;
 use std::path::Path;
-use tilemap::*;
 use touch_controls::TouchControls;
+
+// Our camera types - rename to avoid conflict with macroquad's Camera trait
+use crate::core::camera::{Camera as GameCamera, CameraBounds};
 
 /// Siriel Macroquad - Modern 2D Game Engine
 #[derive(Parser, Debug)]
@@ -88,6 +90,8 @@ struct GameState {
     pending_player_spawn: Option<(i32, i32)>,
     // Touch controls for mobile/WASM
     touch_controls: TouchControls,
+    // Camera for viewport management
+    camera: GameCamera,
 }
 
 impl GameState {
@@ -189,6 +193,7 @@ impl GameState {
             show_tile_indices: false,
             pending_player_spawn: None,
             touch_controls: TouchControls::new(),
+            camera: GameCamera::new(),
         }
     }
 
@@ -208,6 +213,31 @@ impl GameState {
                 })
                 .count() as i32;
             self.collected_count = 0;
+
+            // Set camera bounds based on level size
+            let level_w = current_level.tiles[0].len() as f32 * TILE_SIZE as f32;
+            let level_h = current_level.tiles.len() as f32 * TILE_SIZE as f32;
+
+            // Allow camera to move to keep player visible
+            // Don't clamp - let camera show empty space if needed
+            // Only clamp if level is MUCH larger than screen
+            let max_x = if level_w > GAME_WIDTH as f32 * 2.0 {
+                level_w - GAME_WIDTH as f32
+            } else {
+                level_w // Allow showing beyond level edge
+            };
+            let max_y = if level_h > GAME_HEIGHT as f32 * 2.0 {
+                level_h - GAME_HEIGHT as f32
+            } else {
+                level_h
+            };
+
+            self.camera.bounds = Some(CameraBounds {
+                min_x: -GAME_WIDTH as f32, // Allow showing empty space left
+                max_x,
+                min_y: -GAME_HEIGHT as f32, // Allow showing empty space above
+                max_y,
+            });
         }
     }
 
@@ -764,6 +794,36 @@ async fn main() {
             player_physics.update_with_collision(&current_level.tiles, &tileset, dt);
         }
 
+        // Update camera to follow player (with deadzone)
+        let player_pos = player_physics.position();
+        let (cam_x, cam_y) = game.camera.position();
+
+        // Deadzone: player must be this far from center before camera moves
+        let deadzone_x = GAME_WIDTH as f32 * 0.25; // 25% from center
+        let deadzone_y = GAME_HEIGHT as f32 * 0.2; // 20% from center
+
+        // Calculate player position relative to camera center
+        let cam_center_x = cam_x + GAME_WIDTH as f32 * 0.5;
+        let cam_center_y = cam_y + GAME_HEIGHT as f32 * 0.5;
+        let rel_x = player_pos.x - cam_center_x;
+        let rel_y = player_pos.y - cam_center_y;
+
+        // Only move camera if player is outside deadzone
+        let target_x = if rel_x.abs() > deadzone_x {
+            cam_center_x + rel_x * 0.1 // Smooth follow
+        } else {
+            cam_center_x
+        };
+
+        let target_y = if rel_y.abs() > deadzone_y {
+            cam_center_y + rel_y * 0.1
+        } else {
+            cam_center_y
+        };
+
+        game.camera.follow(target_x, target_y);
+        game.camera.update(dt);
+
         // Update entities
         game.entity_manager.update(dt);
 
@@ -1037,41 +1097,74 @@ async fn main() {
         // Render
         clear_background(WHITE);
 
-        let game_x = (screen_width() - GAME_WIDTH as f32) / 2.0;
-        let game_y = (screen_height() - GAME_HEIGHT as f32) / 2.0 + 20.0;
+        // Get camera offset (world to screen)
+        let (cam_x, cam_y) = game.camera.position();
 
+        // Screen dimensions - camera shows full game area
+        let screen_w = screen_width();
+        let screen_h = screen_height();
+
+        // Center game on screen
+        let screen_offset_x = (screen_w - GAME_WIDTH as f32) / 2.0;
+        let screen_offset_y = (screen_h - GAME_HEIGHT as f32) / 2.0;
+
+        // Draw background
         draw_rectangle(
-            game_x,
-            game_y,
+            screen_offset_x,
+            screen_offset_y,
             GAME_WIDTH as f32,
             GAME_HEIGHT as f32,
             DARKGRAY,
         );
-        draw_rectangle_lines(
-            game_x,
-            game_y,
-            GAME_WIDTH as f32,
-            GAME_HEIGHT as f32,
-            2.0,
-            BLACK,
-        );
+
+        // Helper to convert world to screen position
+        let world_to_screen = |wx: f32, wy: f32| -> (f32, f32) {
+            (screen_offset_x + wx - cam_x, screen_offset_y + wy - cam_y)
+        };
 
         // Draw tilemap
         if let Some(current_level) = game.level_manager.current() {
-            draw_tilemap(
-                &tileset,
-                &current_level.tiles,
-                game_x,
-                game_y,
-                game.show_tile_indices,
-            );
+            let map_h = current_level.tiles.len();
+            if map_h > 0 {
+                let map_w = current_level.tiles[0].len();
+
+                // Calculate visible tile range
+                let start_x = (cam_x / TILE_SIZE as f32).floor() as usize;
+                let start_y = (cam_y / TILE_SIZE as f32).floor() as usize;
+                let end_x = ((cam_x + GAME_WIDTH as f32) / TILE_SIZE as f32).ceil() as usize;
+                let end_y = ((cam_y + GAME_HEIGHT as f32) / TILE_SIZE as f32).ceil() as usize;
+
+                let start_x = start_x.min(map_w);
+                let start_y = start_y.min(map_h);
+                let end_x = end_x.min(map_w);
+                let end_y = end_y.min(map_h);
+
+                // Draw tiles
+                for y in start_y..end_y {
+                    for x in start_x..end_x {
+                        let &tile = &current_level.tiles[y][x];
+                        if tile != 0 && tile < tileset.tile_count {
+                            let world_x = x as f32 * TILE_SIZE as f32;
+                            let world_y = y as f32 * TILE_SIZE as f32;
+                            let (sx, sy) = world_to_screen(world_x, world_y);
+
+                            tileset.draw_tile(tile, sx, sy, WHITE);
+                        }
+                    }
+                }
+            }
 
             // Draw entities
-            // Draw enemies (red rectangles)
             for enemy in game.entity_manager.enemies() {
-                if enemy.base.alive {
-                    let ex = game_x + enemy.base.x;
-                    let ey = game_y + enemy.base.y;
+                if enemy.base.alive
+                    && game.camera.is_rect_visible(
+                        enemy.base.x,
+                        enemy.base.y,
+                        enemy.base.width as f32,
+                        enemy.base.height as f32,
+                    )
+                {
+                    let (ex, ey) = world_to_screen(enemy.base.x, enemy.base.y);
                     draw_rectangle(
                         ex,
                         ey,
@@ -1082,11 +1175,14 @@ async fn main() {
                 }
             }
 
-            // Draw items (yellow circles for coins, green for health)
+            // Draw items
             for item in game.entity_manager.items() {
-                if item.base.alive {
-                    let ix = game_x + item.base.x;
-                    let iy = game_y + item.base.y;
+                if item.base.alive
+                    && game
+                        .camera
+                        .is_rect_visible(item.base.x, item.base.y, 8.0, 8.0)
+                {
+                    let (ix, iy) = world_to_screen(item.base.x, item.base.y);
                     let color = match item.item_type {
                         ItemType::Coin => GOLD,
                         ItemType::Health => LIME,
@@ -1099,9 +1195,16 @@ async fn main() {
 
             // Draw creatures from level
             for creature in &game.creatures {
-                if creature.visible && creature.base.alive {
-                    let cx = game_x + creature.base.x;
-                    let cy = game_y + creature.base.y;
+                if creature.visible
+                    && creature.base.alive
+                    && game.camera.is_rect_visible(
+                        creature.base.x,
+                        creature.base.y,
+                        creature.base.width as f32,
+                        creature.base.height as f32,
+                    )
+                {
+                    let (cx, cy) = world_to_screen(creature.base.x, creature.base.y);
 
                     // Use sprite_name from creature, fallback to default based on behavior
                     let obj_name = if !creature.sprite_name.is_empty() {
@@ -1152,9 +1255,10 @@ async fn main() {
             }
         }
 
-        // Draw player (spritesheet has directional frames, no flip needed)
+        // Draw player
         let pos = player_physics.position();
-        avatar.draw(&player_anim, game_x + pos.x, game_y + pos.y, WHITE);
+        let (player_screen_x, player_screen_y) = world_to_screen(pos.x, pos.y);
+        avatar.draw(&player_anim, player_screen_x, player_screen_y, WHITE);
 
         // Update parachute closing state
         let parachute_deployed = player_physics.parachute_active();
@@ -1189,10 +1293,11 @@ async fn main() {
                 w: 16.0,
                 h: 16.0,
             };
+            let (parachute_x, parachute_y) = world_to_screen(pos.x + 2.0, pos.y - 16.0);
             draw_texture_ex(
                 &avatar.texture,
-                game_x + pos.x + 2.0,  // x+2 offset per original
-                game_y + pos.y - 16.0, // 16px above head
+                parachute_x,
+                parachute_y,
                 WHITE,
                 DrawTextureParams {
                     source: Some(parachute_src),
@@ -1203,7 +1308,14 @@ async fn main() {
 
         // Debug: Draw collision box
         if game.debug {
-            draw_collision_box_debug(game_x, game_y, pos.x, pos.y, player_physics.on_ground);
+            let (debug_x, debug_y) = world_to_screen(pos.x, pos.y);
+            draw_collision_box_debug(
+                debug_x - screen_offset_x + cam_x,
+                debug_y - screen_offset_y + cam_y,
+                pos.x,
+                pos.y,
+                player_physics.on_ground,
+            );
         }
 
         // Draw particles (over everything)
@@ -1253,9 +1365,23 @@ async fn main() {
                 DARKGRAY,
             );
             draw_text(
-                &format!("On Ground: {}", player_physics.on_ground),
+                &format!("Camera: ({:.0}, {:.0})", cam_x, cam_y),
                 10.0,
                 90.0,
+                16.0,
+                DARKGRAY,
+            );
+            draw_text(
+                &format!("Screen: {:.0}x {:.0}", screen_width(), screen_height()),
+                10.0,
+                110.0,
+                16.0,
+                DARKGRAY,
+            );
+            draw_text(
+                &format!("On Ground: {}", player_physics.on_ground),
+                10.0,
+                130.0,
                 16.0,
                 DARKGRAY,
             );
