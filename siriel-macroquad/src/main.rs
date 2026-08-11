@@ -431,7 +431,7 @@ async fn main() {
         match game.current_game_mode {
             GameMode::MainMenu => {
                 // Update touch controls
-                let (_left, _right, _jump, esc) = game.touch_controls.update();
+                let (_left, _right, _jump, _touch_esc) = game.touch_controls.update();
 
                 // Set up touch areas for menu navigation
                 let (w, h) = (screen_width(), screen_height());
@@ -443,8 +443,8 @@ async fn main() {
                     .navigation_mut()
                     .set_item_positions(item_positions);
 
-                // ESC from touch or keyboard exits
-                if esc {
+                // Only keyboard ESC exits game in main menu (not touch ESC)
+                if is_key_pressed(KeyCode::Escape) {
                     break;
                 }
 
@@ -483,7 +483,7 @@ async fn main() {
             }
             GameMode::LevelSelector => {
                 // Update touch controls
-                let (_left, _right, _jump, esc) = game.touch_controls.update();
+                let (_left, _right, _jump, _touch_esc) = game.touch_controls.update();
 
                 // Set up touch areas for menu navigation
                 let (w, h) = (screen_width(), screen_height());
@@ -495,8 +495,8 @@ async fn main() {
                     .navigation_mut()
                     .set_item_positions(item_positions);
 
-                // ESC from touch or keyboard returns to main menu
-                if esc {
+                // ESC from keyboard returns to main menu (touch ESC via navigation cancel)
+                if is_key_pressed(KeyCode::Escape) {
                     game.current_game_mode = GameMode::MainMenu;
                 }
 
@@ -694,8 +694,12 @@ async fn main() {
         }
 
         // ESC to go to menu, exit if in menu already
+        // Use is_key_pressed (single-frame trigger) and exit immediately
         if is_key_pressed(KeyCode::Escape) {
             game.current_game_mode = GameMode::MainMenu;
+            next_frame().await;
+            game.frame_count += 1;
+            continue; // Skip rest of frame, start fresh in menu mode
         }
 
         // Debug: F3 to toggle tile indices display
@@ -743,6 +747,9 @@ async fn main() {
         // ESC from touch also exits to menu
         if touch_esc {
             game.current_game_mode = GameMode::MainMenu;
+            next_frame().await;
+            game.frame_count += 1;
+            continue; // Skip rest of frame, start fresh in menu mode
         }
 
         // Use touch input if any button pressed, otherwise use keyboard

@@ -192,6 +192,14 @@
             e.preventDefault();
         }, { passive: false });
 
+        // Filter unsupported keyboard keys (MetaLeft/Win key) that crash mobile WASM
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'MetaLeft' || e.key === 'MetaRight' || e.key === 'Meta') {
+                e.preventDefault();
+                return false;
+            }
+        }, { passive: false });
+
     </script>
 </body>
 </html>
