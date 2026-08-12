@@ -92,6 +92,8 @@ struct GameState {
     touch_controls: TouchControls,
     // Camera for viewport management
     camera: GameCamera,
+    // Quit flag for desktop exit
+    quit_requested: bool,
 }
 
 impl GameState {
@@ -152,6 +154,8 @@ impl GameState {
             MenuAction::GotoMode("level_selector".to_string()),
         );
         main_menu.add_separator();
+        // Only add Quit on desktop (not WASM/mobile)
+        #[cfg(not(target_arch = "wasm32"))]
         main_menu.add_item_with_key('Q', "Quit", MenuAction::Quit);
 
         // Create empty level selector (rebuilt after datadisc loads)
@@ -194,6 +198,7 @@ impl GameState {
             pending_player_spawn: None,
             touch_controls: TouchControls::new(),
             camera: GameCamera::new(),
+            quit_requested: false,
         }
     }
 
@@ -257,6 +262,9 @@ impl GameState {
         if self.timeout > 0 && self.frame_count >= self.timeout {
             return true;
         }
+        if self.quit_requested {
+            return true;
+        }
         false
     }
 
@@ -311,7 +319,7 @@ impl GameState {
                 }
             }
             MenuAction::Quit => {
-                // Will exit on next frame check
+                self.quit_requested = true;
             }
             _ => {}
         }
