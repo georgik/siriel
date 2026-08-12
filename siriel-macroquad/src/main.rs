@@ -214,30 +214,42 @@ impl GameState {
                 .count() as i32;
             self.collected_count = 0;
 
-            // Set camera bounds based on level size
+            // Set camera based on level size
             let level_w = current_level.tiles[0].len() as f32 * TILE_SIZE as f32;
             let level_h = current_level.tiles.len() as f32 * TILE_SIZE as f32;
 
-            // Allow camera to move to keep player visible
-            // Don't clamp - let camera show empty space if needed
-            // Only clamp if level is MUCH larger than screen
-            let max_x = if level_w > GAME_WIDTH as f32 * 2.0 {
-                level_w - GAME_WIDTH as f32
-            } else {
-                level_w // Allow showing beyond level edge
-            };
-            let max_y = if level_h > GAME_HEIGHT as f32 * 2.0 {
-                level_h - GAME_HEIGHT as f32
-            } else {
-                level_h
-            };
+            // Check if level fits in viewport
+            let fits_x = level_w <= GAME_WIDTH as f32;
+            let fits_y = level_h <= GAME_HEIGHT as f32;
 
-            self.camera.bounds = Some(CameraBounds {
-                min_x: -GAME_WIDTH as f32, // Allow showing empty space left
-                max_x,
-                min_y: -GAME_HEIGHT as f32, // Allow showing empty space above
-                max_y,
-            });
+            if fits_x && fits_y {
+                // Level fits completely - center camera, disable follow
+                self.camera.center_on_level(level_w, level_h);
+            } else {
+                // Level larger than viewport - enable follow with bounds
+                self.camera.follow_enabled = true;
+
+                // Allow camera to move to keep player visible
+                // Don't clamp - let camera show empty space if needed
+                // Only clamp if level is MUCH larger than screen
+                let max_x = if level_w > GAME_WIDTH as f32 * 2.0 {
+                    level_w - GAME_WIDTH as f32
+                } else {
+                    level_w // Allow showing beyond level edge
+                };
+                let max_y = if level_h > GAME_HEIGHT as f32 * 2.0 {
+                    level_h - GAME_HEIGHT as f32
+                } else {
+                    level_h
+                };
+
+                self.camera.bounds = Some(CameraBounds {
+                    min_x: -GAME_WIDTH as f32, // Allow showing empty space left
+                    max_x,
+                    min_y: -GAME_HEIGHT as f32, // Allow showing empty space above
+                    max_y,
+                });
+            }
         }
     }
 

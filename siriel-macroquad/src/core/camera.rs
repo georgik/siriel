@@ -15,6 +15,10 @@ pub struct Camera {
     pub target_x: Option<f32>,
     pub target_y: Option<f32>,
     pub bounds: Option<CameraBounds>,
+    /// Whether camera follows target. When `false`, camera stays static.
+    /// Set to `false` via `center_on_level()` when entire level fits viewport.
+    /// Set to `true` when level exceeds viewport dimensions.
+    pub follow_enabled: bool,
 }
 
 /// Camera bounds for level limits
@@ -38,6 +42,7 @@ impl Camera {
             target_x: None,
             target_y: None,
             bounds: None,
+            follow_enabled: true,
         }
     }
 
@@ -57,11 +62,15 @@ impl Camera {
                 min_y,
                 max_y,
             }),
+            follow_enabled: true,
         }
     }
 
     /// Set target position to follow
     pub fn follow(&mut self, x: f32, y: f32) {
+        if !self.follow_enabled {
+            return;
+        }
         self.target_x = Some(x);
         self.target_y = Some(y);
     }
@@ -74,6 +83,9 @@ impl Camera {
 
     /// Update camera position
     pub fn update(&mut self, _dt: f32) {
+        if !self.follow_enabled {
+            return;
+        }
         if let (Some(tx), Some(ty)) = (self.target_x, self.target_y) {
             // Calculate desired position (center on target)
             let desired_x = tx - self.width / 2.0;
@@ -92,6 +104,37 @@ impl Camera {
                 self.y = self.y.max(bounds.min_y).min(bounds.max_y);
             }
         }
+    }
+
+    /// Centers camera on level when entire level fits within viewport.
+    ///
+    /// Disables follow mode and positions camera to show the complete level centered.
+    /// Use this when both `level_w <= viewport_width` and `level_h <= viewport_height`.
+    ///
+    /// # Arguments
+    ///
+    /// * `level_w` - Level width in world units (typically pixels)
+    /// * `level_h` - Level height in world units (typically pixels)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// if level_w <= GAME_WIDTH && level_h <= GAME_HEIGHT {
+    ///     camera.center_on_level(level_w, level_h);
+    /// }
+    /// ```
+    pub fn center_on_level(&mut self, level_w: f32, level_h: f32) {
+        self.follow_enabled = false;
+        self.target_x = None;
+        self.target_y = None;
+
+        // Center the level in the viewport
+        self.x = (level_w - self.width) / 2.0;
+        self.y = (level_h - self.height) / 2.0;
+
+        // Clamp to not show negative space unnecessarily
+        self.x = self.x.max(0.0);
+        self.y = self.y.max(0.0);
     }
 
     /// Get camera position
