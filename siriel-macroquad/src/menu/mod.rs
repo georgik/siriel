@@ -44,9 +44,9 @@ impl Default for MenuConfig {
             width: 0.0,
             height: 0.0,
             title: String::new(),
-            primary_color: BLACK,
-            secondary_color: WHITE,
-            background_color: Color::new(0.52, 0.58, 0.67, 1.0), // #6C94D0
+            primary_color: crate::core::constants::ACCENT_COLOR,
+            secondary_color: crate::core::constants::TEXT_PRIMARY,
+            background_color: crate::core::constants::MENU_BG_COLOR,
         }
     }
 }

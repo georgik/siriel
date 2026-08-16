@@ -1,6 +1,6 @@
 .DS_Store
 SCORE.DAT
-**/dist/
+siriel-macroquad/dist/
 target/
 Cargo.lock
 

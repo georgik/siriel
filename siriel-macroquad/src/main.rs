@@ -142,9 +142,9 @@ impl GameState {
             x: 0.0, // Will be centered
             y: 0.0, // Will be centered
             title: "SIRIEL MACROQUAD".to_string(),
-            primary_color: BLACK,
-            secondary_color: WHITE,
-            background_color: Color::new(0.52, 0.58, 0.67, 1.0),
+            primary_color: crate::core::constants::ACCENT_COLOR,
+            secondary_color: crate::core::constants::TEXT_PRIMARY,
+            background_color: crate::core::constants::MENU_BG_COLOR,
             ..Default::default()
         });
         main_menu.center_on_screen();
@@ -164,9 +164,9 @@ impl GameState {
             x: 0.0, // Will be centered
             y: 0.0, // Will be centered
             title: "Select Level".to_string(),
-            primary_color: BLACK,
-            secondary_color: WHITE,
-            background_color: Color::new(0.52, 0.58, 0.67, 1.0),
+            primary_color: crate::core::constants::ACCENT_COLOR,
+            secondary_color: crate::core::constants::TEXT_PRIMARY,
+            background_color: crate::core::constants::MENU_BG_COLOR,
             ..Default::default()
         });
         // Note: center_on_screen called after levels are loaded (in rebuild_level_selector)
@@ -518,13 +518,19 @@ async fn main() {
                 }
 
                 // Render
-                clear_background(BLUE);
+                clear_background(crate::core::constants::BG_COLOR);
 
                 // Draw main menu
                 game.main_menu.draw();
 
                 // Draw title
-                draw_text_centered("SIRIEL MACROQUAD", screen_width() / 2.0, 80.0, 40.0, BLACK);
+                draw_text_centered(
+                    "Siriel Adventures",
+                    screen_width() / 2.0,
+                    80.0,
+                    40.0,
+                    crate::core::constants::ACCENT_COLOR,
+                );
 
                 // Draw touch navigation buttons
                 game.main_menu.navigation_mut().draw_touch_buttons();
@@ -573,7 +579,7 @@ async fn main() {
                 }
 
                 // Render
-                clear_background(WHITE);
+                clear_background(crate::core::constants::BG_COLOR);
                 game.level_selector.draw();
                 game.level_selector.navigation_mut().draw_touch_buttons();
 
@@ -640,7 +646,7 @@ async fn main() {
                 }
 
                 // Render level complete screen
-                clear_background(BLUE);
+                clear_background(crate::core::constants::BG_COLOR);
 
                 let (w, h) = (screen_width(), screen_height());
 
@@ -714,7 +720,7 @@ async fn main() {
                 }
 
                 // Render victory screen
-                clear_background(GOLD);
+                clear_background(crate::core::constants::BG_COLOR);
 
                 let (w, h) = (screen_width(), screen_height());
 
@@ -1124,7 +1130,7 @@ async fn main() {
         }
 
         // Render
-        clear_background(WHITE);
+        clear_background(BLACK);
 
         // Get camera offset (world to screen)
         let (cam_x, cam_y) = game.camera.position();

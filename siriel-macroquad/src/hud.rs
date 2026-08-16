@@ -40,7 +40,8 @@ impl Hud {
     /// Draw complete HUD
     ///
     /// Layout: [INVENTORY]  [LEVEL NAME]  [SCORE | LIVES]
-    /// Placed at BOTTOM of screen (matches original DOS - vypisy=460 on 480px screen)
+    /// Portrait: at BOTTOM (matches original DOS)
+    /// Landscape: at TOP (better mobile UX, doesn't block avatar)
     pub fn draw(
         &self,
         level_name: &str,
@@ -49,29 +50,22 @@ impl Hud {
         inventory_items: &[Option<&str>], // Up to 3 item sprite names
         objects: &crate::assets::ObjectsAtlas,
     ) {
-        let (screen_w, screen_h) = (screen_width(), screen_height());
-
-        // HUD at bottom of screen (original: vypisy=460 on 480px screen)
-        // Taller bar for proper spacing (original ~50px)
         let hud_height = 50.0;
-        let hud_y = screen_h - hud_height - 20.0; // 20px margin from bottom edge
         let hud_width = GAME_WIDTH as f32;
 
-        // Center HUD horizontally
-        let hud_x = (screen_w - hud_width) / 2.0;
+        // Top-left corner positioning
+        let margin = 10.0;
+        let hud_x = margin;
+        let hud_y = margin;
 
-        // Draw HUD background (dark gray border with lighter interior)
-        draw_rectangle(hud_x, hud_y, hud_width, hud_height, DARKGRAY);
+        // Very transparent background (0.2 alpha = barely visible)
         draw_rectangle(
-            hud_x + 2.0,
-            hud_y + 2.0,
-            hud_width - 4.0,
-            hud_height - 4.0,
-            Color::new(0.4, 0.4, 0.45, 1.0),
+            hud_x,
+            hud_y,
+            hud_width,
+            hud_height,
+            Color::new(0.1, 0.1, 0.15, 0.2),
         );
-
-        // Draw border frame
-        draw_rectangle_lines(hud_x, hud_y, hud_width, hud_height, 2.0, BLACK);
 
         // === LEFT SECTION: Inventory (3 items, like original) ===
         // Original: label at X=40, items at X=80,115,150 (35px spacing)
