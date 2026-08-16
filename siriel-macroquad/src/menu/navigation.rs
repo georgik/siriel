@@ -3,6 +3,12 @@
 
 use crate::menu::item::MenuItem;
 use macroquad::prelude::*;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+// Global timestamp of last touch activation (in milliseconds since epoch)
+// Used to prevent double-trigger across menu instances
+static LAST_TOUCH_ACTIVATION: AtomicU64 = AtomicU64::new(0);
+const TOUCH_ACTIVATION_COOLDOWN: u64 = 300; // ms
 
 /// Result of menu navigation
 #[derive(Clone, Debug, PartialEq)]
@@ -15,37 +21,63 @@ pub enum NavigationResult {
     Activate(usize),
     /// Menu cancelled (ESC pressed)
     Cancel,
+    /// Scroll offset changed (for menu scrolling)
+    Scroll(i32), // positive = scroll down, negative = scroll up
 }
 
 /// Menu navigation handler
 pub struct MenuNavigation {
-    /// Key repeat delay in seconds
+    /// Key repeat delay in seconds (keyboard)
     key_repeat_delay: f32,
+    /// Touch button repeat delay in seconds (slower for mobile)
+    touch_repeat_delay: f32,
     /// Time since last key press
     last_key_time: f32,
     /// Last touch position (for detecting tap vs hold)
     last_touch_pos: Option<(f32, f32)>,
     /// Touch start time
     touch_start_time: f32,
+    /// Last navigation button time (for repeat delay)
+    last_nav_button_time: f32,
+    /// Which nav button was last pressed (Some(Up) or Some(Down))
+    last_nav_button: Option<bool>, // true = up, false = down
     /// Virtual up button area (for touch navigation)
     pub up_area: Option<(f32, f32, f32, f32)>,
     /// Virtual down button area (for touch navigation)
     pub down_area: Option<(f32, f32, f32, f32)>,
     /// Menu items positions (for touch selection)
     item_positions: Vec<(usize, f32, f32, f32, f32)>, // (index, x, y, width, height)
+    /// Track mouse button state for release detection
+    mouse_was_pressed: bool,
+    /// Track touch start positions for tap validation
+    touch_start_positions: Vec<(usize, f32, f32)>, // (id, x, y)
+    /// Recently consumed touch IDs to prevent double-trigger
+    consumed_touches: Vec<(usize, f32)>, // (id, time_consumed)
+    /// Track swipe start positions (id, start_y)
+    swipe_start: Vec<(usize, f32)>,
+    /// Swipe detection threshold in pixels
+    swipe_threshold: f32,
 }
 
 impl MenuNavigation {
     /// Create new navigation handler
     pub fn new() -> Self {
         Self {
-            key_repeat_delay: 0.12, // 120ms like siriel-modern
+            key_repeat_delay: 0.12,   // 120ms like siriel-modern
+            touch_repeat_delay: 0.25, // 250ms for touch - slower, more controlled
             last_key_time: 0.0,
             last_touch_pos: None,
             touch_start_time: 0.0,
+            last_nav_button_time: 0.0,
+            last_nav_button: None,
             up_area: None,
             down_area: None,
             item_positions: Vec::new(),
+            mouse_was_pressed: false,
+            touch_start_positions: Vec::new(),
+            consumed_touches: Vec::new(),
+            swipe_start: Vec::new(),
+            swipe_threshold: 50.0, // 50px minimum swipe
         }
     }
 
@@ -58,11 +90,22 @@ impl MenuNavigation {
         _menu_height: f32,
     ) {
         let w = screen_width();
+        let h = screen_height();
+        let btn_size = 70.0;
+        let spacing = 15.0;
+        let margin = 15.0;
 
-        // Up button: top-left corner of screen
-        self.up_area = Some((w - 70.0, 80.0, 50.0, 50.0));
+        // Position buttons at right edge, vertically centered
+        // This avoids overlap with menu items which are typically left/center
+        let start_x = w - btn_size - margin;
+        let center_y = h / 2.0;
+        let total_height = btn_size * 2.0 + spacing;
+        let start_y = center_y - total_height / 2.0;
+
+        // Up button: right side, centered
+        self.up_area = Some((start_x, start_y, btn_size, btn_size));
         // Down button: below up button
-        self.down_area = Some((w - 70.0, 140.0, 50.0, 50.0));
+        self.down_area = Some((start_x, start_y + btn_size + spacing, btn_size, btn_size));
     }
 
     /// Set menu item positions for touch selection
@@ -82,43 +125,146 @@ impl MenuNavigation {
 
     /// Handle touch input
     fn handle_touch(&mut self, items: &[MenuItem], selected: usize) -> NavigationResult {
-        for touch in touches() {
+        let current_touches = touches();
+        let current_time_ms = (get_time() * 1000.0) as u64;
+
+        // Check if we're in cooldown period from previous activation
+        let last_activation = LAST_TOUCH_ACTIVATION.load(Ordering::Relaxed);
+        if current_time_ms.saturating_sub(last_activation) < TOUCH_ACTIVATION_COOLDOWN {
+            // Still process swipe/scroll during cooldown, just not activation
+        }
+
+        // Track active touch IDs
+        let active_ids: Vec<usize> = current_touches.iter().map(|t| t.id as usize).collect();
+
+        // Process new touches (record start position)
+        for touch in &current_touches {
+            let id = touch.id as usize;
             let x = touch.position.x;
             let y = touch.position.y;
 
-            // Check if this is a new touch
-            if self.last_touch_pos.is_none() {
-                self.last_touch_pos = Some((x, y));
-                self.touch_start_time = get_time() as f32;
-            }
+            // Check if this is a new touch (not in start positions)
+            if !self
+                .touch_start_positions
+                .iter()
+                .any(|(tid, _, _)| *tid == id)
+            {
+                // Only track if not recently consumed
+                if !self.consumed_touches.iter().any(|(tid, _)| *tid == id) {
+                    self.touch_start_positions.push((id, x, y));
+                    // Also track for swipe detection
+                    self.swipe_start.push((id, y));
+                }
+            } else {
+                // Check for swipe gesture on existing touches
+                if let Some(swipe_idx) = self.swipe_start.iter().position(|(tid, _)| *tid == id) {
+                    let start_y = self.swipe_start[swipe_idx].1;
+                    let dy = y - start_y;
 
-            // Check menu item tap (only on initial touch, not hold)
-            if let Some(item_idx) = self.check_item_touch(x, y) {
-                if item_idx < items.len() && !items[item_idx].is_separator() {
-                    // Instant activate on touch (short tap)
-                    return NavigationResult::Activate(item_idx);
+                    // Detect vertical swipe
+                    if dy.abs() > self.swipe_threshold {
+                        // Check if not on a menu item (swipe on empty space or background)
+                        let on_item = self.check_item_touch(x, y).is_some();
+
+                        if !on_item {
+                            // Swipe detected - trigger scroll
+                            // Swipe up (dy < 0) should show later items (scroll down)
+                            // Swipe down (dy > 0) should show earlier items (scroll up)
+                            let scroll_amount = if dy < 0.0 { 1 } else { -1 };
+                            return NavigationResult::Scroll(scroll_amount);
+                        }
+                    }
                 }
             }
+        }
 
-            // Check navigation buttons
+        // Process touches that ended (check for tap completion)
+        let mut result = NavigationResult::None;
+        let mut i = 0;
+        while i < self.touch_start_positions.len() {
+            let (id, start_x, start_y) = self.touch_start_positions[i];
+
+            // Check if this touch is still active
+            if !active_ids.contains(&id) {
+                // Remove from swipe tracking
+                self.swipe_start.retain(|(tid, _)| *tid != id);
+
+                // Touch ended - check if it was a tap on a menu item
+                if let Some(item_idx) = self.check_item_touch(start_x, start_y) {
+                    if item_idx < items.len() && !items[item_idx].is_separator() {
+                        // Check cooldown again for activation
+                        let last_activation = LAST_TOUCH_ACTIVATION.load(Ordering::Relaxed);
+                        if current_time_ms.saturating_sub(last_activation)
+                            >= TOUCH_ACTIVATION_COOLDOWN
+                        {
+                            // Set global cooldown
+                            LAST_TOUCH_ACTIVATION.store(current_time_ms, Ordering::Relaxed);
+                            result = NavigationResult::Activate(item_idx);
+                        }
+                    }
+                }
+                // Remove this touch from start positions
+                self.touch_start_positions.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        if result != NavigationResult::None {
+            return result;
+        }
+
+        // Handle navigation buttons (only while touching)
+        for touch in &current_touches {
+            let id = touch.id as usize;
+
+            // Skip if this touch was recently consumed
+            if self.consumed_touches.iter().any(|(tid, _)| *tid == id) {
+                continue;
+            }
+
+            let x = touch.position.x;
+            let y = touch.position.y;
+
             if let Some((ux, uy, uw, uh)) = self.up_area {
                 if x >= ux && x <= ux + uw && y >= uy && y <= uy + uh {
-                    return NavigationResult::Selected(
-                        self.find_previous_selectable(items, selected),
-                    );
+                    // Check if enough time passed since last nav
+                    if self.last_nav_button != Some(true)
+                        || (current_time_ms as f32 / 1000.0 - self.last_nav_button_time)
+                            >= self.touch_repeat_delay
+                    {
+                        self.last_nav_button = Some(true);
+                        self.last_nav_button_time = current_time_ms as f32 / 1000.0;
+                        return NavigationResult::Selected(
+                            self.find_previous_selectable(items, selected),
+                        );
+                    }
                 }
             }
 
             if let Some((dx, dy, dw, dh)) = self.down_area {
                 if x >= dx && x <= dx + dw && y >= dy && y <= dy + dh {
-                    return NavigationResult::Selected(self.find_next_selectable(items, selected));
+                    // Check if enough time passed since last nav
+                    if self.last_nav_button != Some(false)
+                        || (current_time_ms as f32 / 1000.0 - self.last_nav_button_time)
+                            >= self.touch_repeat_delay
+                    {
+                        self.last_nav_button = Some(false);
+                        self.last_nav_button_time = current_time_ms as f32 / 1000.0;
+                        return NavigationResult::Selected(
+                            self.find_next_selectable(items, selected),
+                        );
+                    }
                 }
             }
         }
 
-        // No active touches
-        if touches().is_empty() {
-            self.last_touch_pos = None;
+        // Clean up stale touch positions if list gets too large
+        if self.touch_start_positions.len() > 10 {
+            self.touch_start_positions.clear();
+        }
+        if self.swipe_start.len() > 10 {
+            self.swipe_start.clear();
         }
 
         NavigationResult::None
@@ -127,6 +273,34 @@ impl MenuNavigation {
     /// Set key repeat delay
     pub fn set_repeat_delay(&mut self, delay: f32) {
         self.key_repeat_delay = delay;
+    }
+
+    /// Check mouse click on menu items (only on release to prevent double-trigger)
+    fn handle_mouse_click(&mut self, items: &[MenuItem], _selected: usize) -> NavigationResult {
+        let is_pressed = is_mouse_button_down(MouseButton::Left);
+        let current_time_ms = (get_time() * 1000.0) as u64;
+
+        // Detect release (was pressed, now not)
+        if self.mouse_was_pressed && !is_pressed {
+            // Check cooldown
+            let last_activation = LAST_TOUCH_ACTIVATION.load(Ordering::Relaxed);
+            if current_time_ms.saturating_sub(last_activation) < TOUCH_ACTIVATION_COOLDOWN {
+                self.mouse_was_pressed = is_pressed;
+                return NavigationResult::None;
+            }
+
+            let (mx, my) = mouse_position();
+            if let Some(item_idx) = self.check_item_touch(mx, my) {
+                if item_idx < items.len() && !items[item_idx].is_separator() {
+                    // Set global cooldown
+                    LAST_TOUCH_ACTIVATION.store(current_time_ms, Ordering::Relaxed);
+                    return NavigationResult::Activate(item_idx);
+                }
+            }
+        }
+
+        self.mouse_was_pressed = is_pressed;
+        NavigationResult::None
     }
 
     /// Update navigation based on input
@@ -145,7 +319,13 @@ impl MenuNavigation {
             return NavigationResult::None;
         }
 
-        // Handle touch input first (takes priority on mobile)
+        // Handle mouse clicks (desktop direct activation)
+        let mouse_result = self.handle_mouse_click(items, selected);
+        if mouse_result != NavigationResult::None {
+            return mouse_result;
+        }
+
+        // Handle touch input (mobile direct activation)
         if Self::is_touch_active() {
             let touch_result = self.handle_touch(items, selected);
             if touch_result != NavigationResult::None {
@@ -231,18 +411,33 @@ impl MenuNavigation {
             return;
         }
 
+        // Check if buttons are currently pressed
+        let touches = touches();
+        let up_pressed = self.last_nav_button == Some(true) && !touches.is_empty();
+        let down_pressed = self.last_nav_button == Some(false) && !touches.is_empty();
+
         if let Some((ux, uy, uw, uh)) = self.up_area {
-            let color = Color::new(0.3, 0.3, 0.3, 0.6);
+            let color = if up_pressed {
+                Color::new(0.5, 0.5, 0.7, 0.8) // Highlighted when pressed
+            } else {
+                Color::new(0.3, 0.3, 0.3, 0.7)
+            };
             draw_rectangle(ux, uy, uw, uh, color);
-            draw_rectangle_lines(ux, uy, uw, uh, 2.0, WHITE);
-            draw_text("^", ux + 15.0, uy + 30.0, 24.0, WHITE);
+            draw_rectangle_lines(ux, uy, uw, uh, 3.0, WHITE);
+            // Draw larger arrow
+            draw_text("▲", ux + uw / 2.0 - 12.0, uy + uh / 2.0 + 10.0, 32.0, WHITE);
         }
 
         if let Some((dx, dy, dw, dh)) = self.down_area {
-            let color = Color::new(0.3, 0.3, 0.3, 0.6);
+            let color = if down_pressed {
+                Color::new(0.5, 0.5, 0.7, 0.8) // Highlighted when pressed
+            } else {
+                Color::new(0.3, 0.3, 0.3, 0.7)
+            };
             draw_rectangle(dx, dy, dw, dh, color);
-            draw_rectangle_lines(dx, dy, dw, dh, 2.0, WHITE);
-            draw_text("v", dx + 15.0, dy + 30.0, 24.0, WHITE);
+            draw_rectangle_lines(dx, dy, dw, dh, 3.0, WHITE);
+            // Draw larger arrow
+            draw_text("▼", dx + dw / 2.0 - 12.0, dy + dh / 2.0 + 10.0, 32.0, WHITE);
         }
     }
 

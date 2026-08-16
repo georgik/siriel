@@ -139,14 +139,15 @@ impl GameState {
 
         // Create main menu
         let mut main_menu = Menu::new(MenuConfig {
-            x: 200.0,
-            y: 150.0,
+            x: 0.0, // Will be centered
+            y: 0.0, // Will be centered
             title: "SIRIEL MACROQUAD".to_string(),
             primary_color: BLACK,
             secondary_color: WHITE,
             background_color: Color::new(0.52, 0.58, 0.67, 1.0),
             ..Default::default()
         });
+        main_menu.center_on_screen();
         main_menu.add_item_with_key('N', "New Game", MenuAction::NewGame);
         main_menu.add_item_with_key(
             'L',
@@ -160,14 +161,15 @@ impl GameState {
 
         // Create empty level selector (rebuilt after datadisc loads)
         let level_selector = Menu::new(MenuConfig {
-            x: 180.0,
-            y: 120.0,
+            x: 0.0, // Will be centered
+            y: 0.0, // Will be centered
             title: "Select Level".to_string(),
             primary_color: BLACK,
             secondary_color: WHITE,
             background_color: Color::new(0.52, 0.58, 0.67, 1.0),
             ..Default::default()
         });
+        // Note: center_on_screen called after levels are loaded (in rebuild_level_selector)
 
         Self {
             frame_count: 0,
@@ -406,8 +408,8 @@ async fn main() {
 
     // Rebuild level selector from datadisc
     game.level_selector = Menu::new(MenuConfig {
-        x: 180.0,
-        y: 120.0,
+        x: 0.0, // Will be centered
+        y: 0.0, // Will be centered
         title: "Select Level".to_string(),
         primary_color: BLACK,
         secondary_color: WHITE,
@@ -428,6 +430,7 @@ async fn main() {
         "Back",
         MenuAction::GotoMode("main_menu".to_string()),
     );
+    game.level_selector.center_on_screen();
 
     // Load levels from datadisc
     info!("=== Loading levels from datadisc ===");
@@ -493,6 +496,9 @@ async fn main() {
                     .navigation_mut()
                     .set_item_positions(item_positions);
 
+                // Update visible count for current screen size
+                game.main_menu.update_visible_count();
+
                 // Only keyboard ESC exits game in main menu (not touch ESC)
                 if is_key_pressed(KeyCode::Escape) {
                     break;
@@ -544,6 +550,9 @@ async fn main() {
                 game.level_selector
                     .navigation_mut()
                     .set_item_positions(item_positions);
+
+                // Update visible count for current screen size
+                game.level_selector.update_visible_count();
 
                 // ESC from keyboard returns to main menu (touch ESC via navigation cancel)
                 if is_key_pressed(KeyCode::Escape) {

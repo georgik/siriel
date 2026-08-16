@@ -131,14 +131,35 @@ impl Menu {
             NavigationResult::None => {}
             NavigationResult::Selected(index) => {
                 self.selected = index;
+                self.scroll_into_view(index);
             }
             NavigationResult::Activate(index) => {
+                // Update selection to match clicked item
+                self.selected = index;
+                self.scroll_into_view(index);
                 if let Some(_action) = self.items.get(index).and_then(|i| i.action.as_ref()) {
                     return NavigationResult::Activate(index);
                 }
             }
             NavigationResult::Cancel => {
                 return NavigationResult::Cancel;
+            }
+            NavigationResult::Scroll(amount) => {
+                // Scroll the visible window
+                let new_first = if amount > 0 {
+                    // Scroll down - show later items
+                    self.first_visible.saturating_add(amount as usize)
+                } else {
+                    // Scroll up - show earlier items
+                    self.first_visible.saturating_sub((-amount) as usize)
+                };
+
+                // Clamp to valid range
+                let max_first = self.items.len().saturating_sub(self.visible_count.max(1));
+                self.first_visible = new_first.min(max_first);
+
+                // Don't return Scroll result to caller - it's handled internally
+                return NavigationResult::None;
             }
         }
 
@@ -161,16 +182,32 @@ impl Menu {
 
         // Draw menu items
         let item_start_y = self.config.y + 24.0; // Offset for title
+        let item_x = self.config.x + 32.0; // Offset for decoration
+        let item_width = width - 64.0;
+
         self.renderer.draw_items(
             &self.items,
             self.selected,
             self.first_visible,
             self.visible_count,
-            self.config.x + 32.0, // Offset for decoration
+            item_x,
             item_start_y,
-            width - 64.0,
+            item_width,
             self.config.primary_color,
             self.config.secondary_color,
+        );
+
+        // Draw scrollbar if needed
+        let items_height =
+            self.visible_count.min(self.items.len()) as f32 * self.renderer.line_height();
+        self.renderer.draw_scrollbar(
+            item_x,
+            item_start_y,
+            item_width,
+            items_height,
+            self.first_visible,
+            self.items.len(),
+            self.visible_count,
         );
 
         // Draw title
@@ -189,13 +226,16 @@ impl Menu {
         let width = if self.config.width > 0.0 {
             self.config.width
         } else {
-            // Auto calculate based on items
+            // Auto calculate based on actual text measurement
             let max_width = self
                 .items
                 .iter()
-                .map(|i| i.text.len() as f32 * 8.0)
+                .map(|i| {
+                    let text = i.display_text();
+                    measure_text(&text, None, self.renderer.item_font_size() as u16, 1.0).width
+                })
                 .fold(0.0_f32, |a, b| a.max(b));
-            max_width + 64.0 // Padding for decoration
+            max_width + 64.0 // Padding for decoration + scrollbar
         };
 
         let height = if self.config.height > 0.0 {
@@ -205,13 +245,48 @@ impl Menu {
             let title_height = if self.config.title.is_empty() {
                 0.0
             } else {
-                24.0
+                self.renderer.title_font_size() + 8.0 // Title + spacing
             };
-            let items_height = self.visible_count.min(self.items.len()) as f32 * 16.0;
+            let items_height =
+                self.visible_count.min(self.items.len()) as f32 * self.renderer.line_height();
             title_height + items_height + 32.0 // Padding
         };
 
         (width, height)
+    }
+
+    /// Center menu on screen
+    pub fn center_on_screen(&mut self) {
+        let (width, height) = self.calculate_dimensions();
+        let screen_w = screen_width();
+        let screen_h = screen_height();
+
+        self.config.x = (screen_w - width) / 2.0;
+        self.config.y = (screen_h - height) / 2.0;
+    }
+
+    /// Scroll to ensure item is visible
+    fn scroll_into_view(&mut self, index: usize) {
+        if self.items.is_empty() || self.visible_count == 0 {
+            return;
+        }
+
+        // Keep selected item in middle third of visible area
+        let padding = 2; // Show 2 items above/below selection
+        let _effective_visible = self.visible_count.saturating_sub(padding * 2);
+
+        // If selection is before visible area
+        if index < self.first_visible + padding {
+            self.first_visible = index.saturating_sub(padding);
+        }
+        // If selection is after visible area
+        else if index >= self.first_visible + self.visible_count - padding {
+            self.first_visible = index + padding + 1 - self.visible_count;
+        }
+
+        // Clamp to valid range
+        let max_first = self.items.len().saturating_sub(1);
+        self.first_visible = self.first_visible.min(max_first);
     }
 
     /// Get selected action
@@ -224,6 +299,23 @@ impl Menu {
         self.items.clear();
         self.selected = 0;
         self.first_visible = 0;
+    }
+
+    /// Update visible count based on screen size
+    pub fn update_visible_count(&mut self) {
+        let screen_h = screen_height();
+        let line_height = self.renderer.line_height();
+        let title_height = if self.config.title.is_empty() {
+            0.0
+        } else {
+            24.0
+        };
+        let padding = 32.0;
+
+        // Calculate how many items fit in available space
+        let available_height = screen_h - self.config.y - padding - title_height;
+        self.visible_count = (available_height / line_height).floor() as usize;
+        self.visible_count = self.visible_count.max(3); // Minimum 3 items
     }
 
     /// Load decoration textures (GLIST tiles)
@@ -242,17 +334,31 @@ impl Menu {
         let item_start_y = self.config.y + 24.0;
         let item_x = self.config.x + 32.0;
         let item_width = width - 64.0;
-        let item_height = 16.0;
+        let font_size = self.renderer.item_font_size();
+        let line_height = self.renderer.line_height();
 
         let mut positions = Vec::new();
         for (i, item) in self.items.iter().enumerate() {
             if !item.is_separator() {
-                let y = item_start_y + (i as f32 - self.first_visible as f32) * item_height;
+                // Text baseline position (same as draw_items)
+                let text_baseline_y =
+                    item_start_y + (i as f32 - self.first_visible as f32) * line_height;
+                // Text visual area (for touch detection)
+                let text_visual_top = text_baseline_y - font_size * 0.85;
+                let text_visual_height = font_size;
+
                 // Only include if potentially visible
-                if y >= item_start_y - item_height
-                    && y <= item_start_y + (self.visible_count as f32 * item_height)
+                if text_baseline_y >= item_start_y - line_height
+                    && text_baseline_y <= item_start_y + (self.visible_count as f32 * line_height)
                 {
-                    positions.push((i, item_x, y, item_width, item_height));
+                    // Touch area with padding
+                    positions.push((
+                        i,
+                        item_x - 8.0,
+                        text_visual_top - 4.0,
+                        item_width + 16.0,
+                        text_visual_height + 8.0,
+                    ));
                 }
             }
         }
@@ -261,6 +367,10 @@ impl Menu {
 
     /// Draw menu with touch support
     pub fn draw_with_touch(&mut self) {
+        // Update item positions for touch detection
+        let positions = self.get_item_positions();
+        self.navigation.set_item_positions(positions);
+
         self.draw();
         // Draw touch navigation buttons
         self.navigation.draw_touch_buttons();
