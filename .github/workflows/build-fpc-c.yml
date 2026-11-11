@@ -1,0 +1,95 @@
+name: Build siriel-fpc-c (two-process macOS app)
+
+# Builds the FPC + C + Raylib two-process Siriel 3.5 port:
+#
+#   cdrv_engine  (FPC + C)   drives Siriel, writes the framebuffer to shm
+#   cdrv_window  (C + Raylib) reads that shm and DISPLAYS it (no FPC)
+#   cdrv_run     (C)         launches both, exits when either stops
+#
+# The build is macOS-only on purpose: FPC cannot drive the AppKit window
+# without SIGILL (see siriel-fpc-c/C-DRIVES-PASCAL-RECIPE.md), so the engine
+# is headless and a tiny C+Raylib process renders it. That means Cocoa/IOKit
+# frameworks, the -WM27.0 macOS FPC flag and activate_macos.m — none of which
+# link on Linux. Run on a macOS runner.
+#
+# Build scripts live in siriel-fpc-c/build/:
+#   make_stub.sh      -> out/libsiriel_bgi.dylib (link-time BGI symbol shim)
+#   build_cdrv_shm.sh -> out/cdrv_engine + out/cdrv_window + out/cdrv_run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "siriel-fpc-c/**"
+      - ".github/workflows/build-fpc-c.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "siriel-fpc-c/**"
+      - ".github/workflows/build-fpc-c.yml"
+  workflow_dispatch:
+
+# Uses actions/upload-artifact@v7, which runs on Node 24 — the current,
+# non-deprecated Actions runtime. (v4/v5 pinned the now-deprecated Node 20,
+# which is why the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION hack used to be
+# needed here.) No deprecation warning, no insecure-runtime bypass.
+
+jobs:
+  build:
+    name: Build (macOS)
+    # Pin macos-14 (arm64) so the run never silently migrates to a new macOS
+    # major that could change the toolchain / framework versions. Matches the
+    # arm64 binaries produced on the developer machine.
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install Free Pascal Compiler
+        # GitHub-hosted macOS runners ship Homebrew; installing fpc pulls the
+        # same 3.2.2 the dev build validated against. No fpc submodule.
+        run: brew install fpc
+
+      - name: Build raylib static library (CMake)
+        # raylib v6 ships no Makefile; it builds via Zig or CMake. We use
+        # CMake and build only the `raylib` target (glfw is pulled in as a
+        # static dep). Output lands in _cmbuild/raylib/libraylib.a.
+        working-directory: siriel-fpc-c
+        run: |
+          cmake -S third-party/raylib -B third-party/raylib/_cmbuild -DCMAKE_BUILD_TYPE=Release
+          cmake --build third-party/raylib/_cmbuild --target raylib -j"$(sysctl -n hw.ncpu)"
+
+      - name: Install raylib static lib where the build expects it
+        # build_cdrv_shm.sh links against third-party/raylib/src/libraylib.a.
+        working-directory: siriel-fpc-c
+        run: cp third-party/raylib/_cmbuild/raylib/libraylib.a third-party/raylib/src/libraylib.a
+
+      - name: Build BGI symbol stub
+        working-directory: siriel-fpc-c
+        run: ./build/make_stub.sh
+
+      - name: Build two-process app
+        working-directory: siriel-fpc-c
+        run: ./build/build_cdrv_shm.sh
+
+      - name: List build outputs
+        if: always()
+        working-directory: siriel-fpc-c
+        run: |
+          ls -la out/cdrv_engine out/cdrv_window out/cdrv_run out/libsiriel_bgi.dylib || true
+          file out/cdrv_engine out/cdrv_window out/cdrv_run || true
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: siriel-fpc-c-macos-arm64
+          path: |
+            siriel-fpc-c/out/cdrv_engine
+            siriel-fpc-c/out/cdrv_window
+            siriel-fpc-c/out/cdrv_run
+            siriel-fpc-c/out/libsiriel_bgi.dylib
+          retention-days: 14
