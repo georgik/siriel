@@ -37,10 +37,7 @@ on:
 jobs:
   build:
     name: Build (macOS)
-    # Pin macos-14 (arm64) so the run never silently migrates to a new macOS
-    # major that could change the toolchain / framework versions. Matches the
-    # arm64 binaries produced on the developer machine.
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
