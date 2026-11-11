@@ -286,7 +286,7 @@ var mode : word;                                (*current mode, mode passed to i
     write_palette : twritepal;
     screen : pimage;
     (* Phase 2: the 8-bit framebuffer the mode-0 (MCGA) path writes to.
-       Exported so the SDL2 video backend (vid.pas) can present it. *)
+       Exported so the display backend (vid.pas) can present it. *)
     VideoBuffer: array[0..640*480-1] of byte;
     done_graf : tdone;
     getmaxx, getmaxy : integer;
@@ -494,11 +494,10 @@ begin maxavail := 8 * 1024 * 1024; end;
   mem[$a000:...].  On aarch64 there is no physical 0xA0000 segment, so:
   * intr() is a no-op: the x86-DOS/BIOS interrupt call has no aarch64 equivalent;
   * VideoBuffer stands in for the 640x480x256 framebuffer (Phase 2 binds it to
-    the SDL/ubgi surface);
+    the BGI surface);
   * the move/fill routines are reimplemented with the Move/Fill intrinsics.  *)
 
-(* NOTE: `VideoBuffer` is now declared in the INTERFACE section so the SDL2
-   video backend (vid.pas) can present it. Kept here as documentation. *)
+(* NOTE: `VideoBuffer` is now declared in the INTERFACE section so the display backend (vid.pas) can present it. Kept here as documentation. *)
 
 procedure intr(intno: byte; var r: registers);
 begin end;
@@ -704,7 +703,7 @@ procedure umcgaputpixel(bitmap : pimage;x, y : word;coul : longint);
 begin
      (* Phase 2: real framebuffer write. Mode 0 is 320x200x8 MCGA; the row
         stride is 320, exactly like umcgawrite_line below. VideoBuffer is the
-        backing store that vid.pas uploads to the SDL texture. *)
+        backing store that vid.pas uploads to the framebuffer. *)
      VideoBuffer[y*320+x] := byte(coul);
 end;
 
@@ -716,7 +715,6 @@ end;
 
 procedure umcgawrite_line(bitmap : pimage;var line : tline;ordonnee : word;number : word);
 begin
-     writeln('[UMCGA] ordonnee=', ordonnee, ' number=', number, ' h=', bitmap^.height);
      move8bitse(line, VideoBuffer[ordonnee*320], number);
 end;
 
@@ -1455,7 +1453,7 @@ begin
                 the framebuffer (VideoBuffer) is 640x480 real Pascal memory,
                 so emulate the VESA 640x480x8 mode (mode $101 = 257) in
                 software: uvesetmode/ukesaputpixel8 write into VideoBuffer at
-                640 stride and the SDL2 backend (vid.pas) presents it. *)
+                640 stride and the display backend (vid.pas) presents it. *)
              mode:=257;
              getmaxx_required:=640;
              getmaxy_required:=480;

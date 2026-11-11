@@ -320,11 +320,9 @@ begin
      if name[1]='>' then begin
 	    name:=out_string(name);
 	    _ok:=draw_gif_block(screen,zvukovy_subor,name,x,y,palx);
-	    if (name='GVECI')or(name='GTEXT')or(name='GTREEP')or(name='GOUTRO')or(name='GANIM')or(name='GLOGO')then writeln('[DRIT] block ',name,' ok=',_ok);
      end
      else begin
 	    _ok:=draw_gif(screen,name,x,y,palx);
-	    if (name='GVECI')or(name='GTEXT')or(name='GTREEP')or(name='GOUTRO')or(name='GANIM')or(name='GLOGO')then writeln('[DRIT] plain ',name,' ok=',_ok);
      end;
     end;
 end;
@@ -690,10 +688,9 @@ begin
 end;
 
 procedure load_predmet2(sub:string);
-const maxbuf=32767;
-	posuv=15;
+const maxbuf=32767;	posuv=15;
 type arm             = array[0..maxbuf] of byte;
-var m,fm,l           : word;
+var m,fm,l,err           : word;
     s,sx,sc          : string;
     bl,stop,reloaded : boolean;
     arr              : ^arm;
@@ -755,7 +752,7 @@ begin
 		   inc(l);
 		   nahrane_veci:=l;
 {               sx:=out_string(sx);}
-		   val(sx,vec^[l].inf1,vec^[l].inf1);
+		   val(sx,vec^[l].inf1,err);
 		   vec^[l].meno:=sx;
 		   get_funk(s,sx);
 		   mov_num(sx,vec^[l].obr,count);
@@ -803,7 +800,7 @@ begin
 		end else
             FOR fm:=1 to num_opt do begin
 		     if sc=option[fm] then begin
-			  get_funk_normal(s,sx);
+			   get_funk_normal(s,sx);
 			  case fm of
 				 1:begin
 					   check_lan(st.meno,sx);
@@ -843,7 +840,7 @@ begin
 				 6:check_lan(snd_credit,sx);
 				 7:check_lan(snd_zober,sx);
 				 8:begin
-					  val(sx,m,m);
+					  val(sx,m,err);
 					  gravity:=(m div 3)+7;
 					  ROLLING:=m;
 				   end;
@@ -852,12 +849,12 @@ begin
 				11:check_lan(snd_port,sx);
 				13:check_lan(next_miestnost,sx);
 				14:begin
-					  val(sx,m,m);
+					  val(sx,m,err);
 					  st.stav:=m;
 				   end;
 				15:textura:=sx;
 				16:begin
-					  val(sx,m,m);
+					  val(sx,m,err);
 					  if m=0 then m:=def_invisible;
 					  invisible:=m;
 				   end;
@@ -885,7 +882,7 @@ begin
 				38:check_lan(msg[3],sx);
 				39:check_lan(msg[4],sx);
 				40:check_lan(msg[5],sx);
-				41:val(sx,timer,timer);
+				41:val(sx,timer,err);
 				42:if sx=yes then fli_abile:=true else fli_abile:=false;
 				43:begin
 					for ja:=1 to num_lang do begin
@@ -907,9 +904,9 @@ begin
 					  check_lan2(sc,s);
 					  if sc<>'' then uloz_text(sc,m);
 				    end;
-				47:val(sx,inusable,inusable);
+				47:val(sx,inusable,err);
 				49:begin
-				    val(sx,m,m);
+				    val(sx,m,err);
 					  for linex:=0 to mie_y do begin
 					   for znak:=0 to mie_x do begin
 					     if bl then begin
@@ -925,7 +922,7 @@ begin
 					 reloaded:=true;
 				    end;
 				  50:begin
-				    val(sx,m,m);
+				    val(sx,m,err);
 				    aktual:=m;
 				  end;
 				 51:if sx=yes then crc_checking:=true else crc_checking:=false;
@@ -950,7 +947,7 @@ begin
 					 reload_sound(m+basic_snd-1,zvukovy_subor,zvuky[m+basic_snd]);
 				  end;
                           63:begin
-                                  val(sx,m,m);
+                                  val(sx,m,err);
                                   start_stage:=m;
                              end;
                           64:begin         {SETFREEZ}
@@ -979,22 +976,12 @@ begin
   end;
    if reloaded then load_map(aktual);
    if aktual>1 then miestnost:=aktual+126 else miestnost:=1;
-     {debug: report parsed objects}
-     if nahrane_veci>10 then begin
-	writeln('[LOADD] sub=',sub,' nahrane_veci=',nahrane_veci,' miestnost=',miestnost);
-     end;
-     for f:=1 to (nahrane_veci) do begin
-	if f>40 then break;
-	writeln('[LOADD] vec[',f,'] meno=',vec^[f].meno,' x=',vec^[f].x,' y=',vec^[f].y,' funk=',vec^[f].funk,' take=',vec^[f].take,' visible=',vec^[f].visible);
-     end;
-     writeln('[LOADD] LAST s=',s,' sx=',sx);
 end;
 
 procedure load_predmet;
 begin
 {     if not handles[2].used then create_handle(handles[2],vec_count*256);}
      draw_it(veci,0,0);
-     writeln('[LOADP] veci=',veci,' gif_x=',gif_x,' gif_y=',gif_y,' ha4.used=',handles[4].used,' nahrane_veci=',nahrane_veci);
  for ff:=0 to 11 do begin
   for f:=0 to 19 do begin
 	getsegxms(handles[4],f*resx,ff*resy,resx,resy,f+ff*20);
@@ -1002,7 +989,6 @@ begin
  end;
   for f:=0 to 14 do
 	getsegxms(handles[4],f*resx,ff*resy,resx,resy,f+400);
-     writeln('[LOADP] after copy ha4.used=',handles[4].used);
 end;
 
 procedure print_predmet;
@@ -1023,7 +1009,6 @@ begin
 	  inc(_n);
      end;
     end;
-     writeln('[PP] drawn=',_n,' miestnost=',miestnost);
 	clear_key_buffer;
    for wq:=1 to nahrane_veci do begin
 	if vec^[wq].meno[2]='A' then begin
@@ -1066,7 +1051,6 @@ begin
 	  inc(_n);
      end;
    end;
-   writeln('[PP2] nahrane_veci=',nahrane_veci,' miestnost=',miestnost,' drawn=',_n);
 end;
 
 

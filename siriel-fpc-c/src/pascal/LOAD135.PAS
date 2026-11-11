@@ -65,7 +65,7 @@ begin
    end;
    clear_key_buffer;
    enable_ctrl_break;
-   (* Phase 2: release the SDL2 video backend before exiting. *)
+   (* Phase 2: release the display backend before exiting. *)
    vid_shutdown;
    if varovanie='' then halt(0) else halt(2);
 end;

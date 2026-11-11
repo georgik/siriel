@@ -9,7 +9,6 @@ uses {$IFDEF Darwin} LineInfo, {$ENDIF}
      flik,geo2,jxxms,xms2,aktiv35,jxzvuk,load135,crcr35,jxefekt,
      load235,process,jxvar,vidif,vidbase;
 
-procedure info;forward;
 procedure briefing;forward;
 
 { The C host provides host_main() (formerly "main").  The Pascal program body
@@ -451,158 +450,164 @@ var cool:integer;
 
 
 
-{vyber datadisk}
-procedure select_datadisk;
-var mex:^jxmenu_typ;
-    f,vybr,fl,ff:word;
-    fatal:boolean;
-label znovku;
+{--- Phase 13: non-blocking, step-able form of the datadisk selector. The
+     original select_datadisk() blocked inside vyber_jxmenu() waiting for a key,
+     which is incompatible with the C host feeding one key per engine_step().
+     Split into an init() that paints the disk list once (mirroring
+     select_level_init), and a step() that advances the cursor and commits on
+     demand (mirroring select_level_step). The disk list is populated by the
+     scan-only load_basic_config() before init() runs. ---}
+procedure select_datadisk_init;
+var f,ff,fl:word;
 begin
-   writeln('[SD] enter');
-   dump_font_globals;
-   writeln('[SP] SD enter stack=', stackdepth);
-   { dump all_disks[1] record to see if disk loading populated it }
-   move(data_disks^[1], dbg_scr_bytes, 42);
-   writeln('[SP] adisk1: meno.len=', ord(dbg_scr_bytes[0]),
-     ' sub.len=', ord(dbg_scr_bytes[26]),
-     ' verzia=', ord(dbg_scr_bytes[39]) or (ord(dbg_scr_bytes[40]) shl 8)); flush(output);
    g_sp := stackdepth;
-   fatal:=false;
+   sd_fatal := false;
+   sd_hint  := false;
+   sd_end   := false;
    write_palette(blackx,0,256);
-   dump_font_globals;
-   writeln('[SD] after write_palette');
    clear_bitmap(screen);
-   writeln('[SP] SD after clear_bitmap 1 stack=', stackdepth);
-   writeln('[SD] after clear_bitmap 1');
-   dump_font_globals;
-   new(mex);
-   dump_font_globals;
-   writeln('[SD] after new(mex)');
-znovku:
-   clear_bitmap(screen);
-   writeln('[SP] SD znovku clear_bitmap stack=', stackdepth);
-   writeln('[SD] znovku clear_bitmap');
-   dump_font_globals;
-   init_jxmenu(200,40,0,15,0,tx2[ja,2],mex^);
-   dump_font_globals;
-   writeln('[SP] SD after init_jxmenu stack=', stackdepth);
-   writeln('[SD] after init_jxmenu');
-    writeln('[SD] post-init marker');
-    for f:=1 to num_disks do begin
-	    diskd.meno:='';
-	    for ff:=f to num_disks do begin
-		    if diskd.meno<data_disks^[ff].meno then begin
-			  diskd.meno:=data_disks^[ff].meno;
-			  fl:=ff;
-		    end;
-	    end;
-			  diskd:=data_disks^[f];
-			  data_disks^[f]:=data_disks^[fl];
-			  data_disks^[fl]:=diskd;
-    end;
-    writeln('[SD] after sort loop');
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] sort: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-    {swapne to}
-    for f:=1 to num_disks div 2 do begin
-			  diskd:=data_disks^[f];
-			  data_disks^[f]:=data_disks^[num_disks-f+1];
-			  data_disks^[num_disks-f+1]:=diskd;
-    end;
-    writeln('[SD] after swap loop');
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] swap: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-    for f:=1 to num_disks do begin
-		    if data_disks<>nil then begin
-		      writeln('[SD] about vloz_jxmenu2 iter', f);
-		      vloz_jxmenu2(data_disks^[f].meno,mex^,0);
-		      writeln('[SD] after vloz_jxmenu2 iter', f);
-		    end;
-    end;
-     vloz_jxmenu2(tx[ja,6],mex^,0);
-    writeln('[SD] after last vloz_jxmenu2');
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] vloz: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-   if num_disks>1 then begin
-{     increase_palette(blackx,palx,10);}
-     writeln('[SD] about old_frame.draw');
-     old_frame.draw(200,40,12,2+num_disks);
-     writeln('[SD] after old_frame.draw');
-     move(data_disks^[1], dbg_scr_bytes, 42);
-     writeln('[SP] afterdraw: meno.len=', ord(dbg_scr_bytes[0]), ' sub.len=', ord(dbg_scr_bytes[26]), ' verzia=', ord(dbg_scr_bytes[39]) or (ord(dbg_scr_bytes[40]) shl 8)); flush(output);
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] frame: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-     size_jxmenu(192,288,mex^);
-     writeln('[SD] after size_jxmenu');
-     draw_jxmenu3(mex^);
-     dump_font_globals;
-     writeln('[SD] after draw_jxmenu3');
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] drawmenu: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-     write_palette(palx,0,256);
-     writeln('[SD] after write_palette (menu)');
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] palette: data_disks=',
-      ord(dbg_scr_bytes[0]) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24), ' addr=');
-     (* Phase 2 validation hook: the menu is fully painted into VideoBuffer
-        here (before vyber_jxmenu blocks for input). Presenting now triggers
-        the one-shot SG_DUMPFILE PPM capture so we can validate the engine
-        actually renders. *)
-     vid_present;
-     writeln('[SD] pre-vyber vid_present done');
-    { --- Phase 2 capture hook: write the painted menu frame to a PPM so the
-         C host (or a later step) can read a real engine-rendered image even
-         though select_datadisk/vyber_jxmenu block below. --- }
-    (* screenshot is captured by the C driver's dump_ppm (P6 PNM) from FrameRGB;
-       the engine does not write its own image file. *)
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-    writeln('[SP] afterpresent: data_disks=',
-      (ord(dbg_scr_bytes[0]) shl 0) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24));
-     vyber_jxmenu(mex^,vybr);
-     writeln('[SD] after vyber_jxmenu');
-     writeln('[SP] A aftervyber st=',stackdepth,' dis=',integer(data_disks)); flush(output);
-     dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-     writeln('[SP] A2 disfull=',
-       (ord(dbg_scr_bytes[7]) shl 56) or (ord(dbg_scr_bytes[6]) shl 48) or (ord(dbg_scr_bytes[5]) shl 40) or (ord(dbg_scr_bytes[4]) shl 32) or
-       (ord(dbg_scr_bytes[3]) shl 24) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[0]) shl 0), ' hex='); flush(output);
-    dbg_ptr := @data_disks; move(dbg_ptr, dbg_scr_bytes, 8);
-     writeln('[SP] B disbytes=',
-       (ord(dbg_scr_bytes[0]) shl 0) or (ord(dbg_scr_bytes[1]) shl 8) or (ord(dbg_scr_bytes[2]) shl 16) or (ord(dbg_scr_bytes[3]) shl 24),' st=',stackdepth);
-     move(screen, dbg_scr_bytes, 8);
-     writeln('[SP] C screenbytes st=',stackdepth); flush(output);
-     writeln('[SP] D addrs st=',stackdepth,' dis_lo=',integer(data_disks)); flush(output);
-     writeln('[SP] E postmenu st=',stackdepth,' sw=',screen^.width,' sh=',screen^.height); flush(output);
-     move(data_disks^[1], dbg_scr_bytes, 42);
-     writeln('[SP] postE2: meno.len=', ord(dbg_scr_bytes[0]), ' sub.len=', ord(dbg_scr_bytes[26]), ' verzia=', ord(dbg_scr_bytes[39]) or (ord(dbg_scr_bytes[40]) shl 8)); flush(output);
-  end
-  else vybr:=1;
-    if (vybr=mex^.pocet) or (vybr=0) then ending('')
-    else
-    if vybr<mex^.pocet then begin
-		zvukovy_subor:=data_disks^[vybr].subor;
-		meno_disku:=data_disks^[vybr].meno;
-    end;
-   if data_disks^[vybr].verzia>ver then begin
-	    printc(screen,440,tx3[ja,1],12,0);
-	    clear_key_buffer;
-	    kkey;
-     if num_disks=1 then fatal:=true else
-	    goto znovku
+   new(sd_menu);
+   (* init the menu structure (dimensions/colors/title) before populating --
+      mirrors the original select_datadisk() so draw_jxmenu3/normal_jxmenu get
+      a valid menu instead of uninitialized fields. *)
+   init_jxmenu(200,40,0,15,0,tx2[ja,2],sd_menu^);
+   (* sort disks by lesser name with a simple bubble sort, then reverse --
+      identical ordering to the original select_datadisk() so the list renders
+      the same way.  The swap is a whole-record copy (diskx), so name/subor/
+      version stay together.  The old tracker-based swap separated those fields
+      on re-init, which garbled the disk names after returning to the menu. *)
+   for f:=1 to num_disks-1 do begin
+	   for ff:=f+1 to num_disks do begin
+		   if data_disks^[ff].meno < data_disks^[f].meno then begin
+			   diskd := data_disks^[f];
+			   data_disks^[f] := data_disks^[ff];
+			   data_disks^[ff] := diskd;
+		   end;
+	   end;
    end;
-   dispose(mex);
-   if fatal then ending('');
+   for f:=1 to num_disks div 2 do begin
+		  diskd:=data_disks^[f];
+		  data_disks^[f]:=data_disks^[num_disks-f+1];
+		  data_disks^[num_disks-f+1]:=diskd;
+	   end;
+   for f:=1 to num_disks do
+      vloz_jxmenu2(data_disks^[f].meno,sd_menu^,0);
+   vloz_jxmenu2(tx[ja,6],sd_menu^,0);
+   (* single disk: no interactive menu, auto-select -- matches the original
+      "else vybr:=1" path. *)
+   if num_disks<=1 then begin
+      if num_disks>=1 then begin
+         zvukovy_subor:=data_disks^[1].subor;
+         meno_disku:=data_disks^[1].meno;
+      end;
+      sd_result := 1;
+      sd_done := true;
+   end
+   else begin
+      (* multiple disks: paint the interactive menu. *)
+      old_frame.draw(200,40,12,2+num_disks);
+      size_jxmenu(192,288,sd_menu^);
+      draw_jxmenu3(sd_menu^);
+      write_palette(palx,0,256);
+      vid_present;
+      sd_f := 1;
+      sd_result := 0;
+      sd_done := false;
+   end;
+   sd_init := true;
 end;
+
+procedure select_datadisk_step;
+var k,vybr:word;
+    version_bad: boolean;
+begin
+   (* version-mismatch interstitial: show the warning, wait for a key, then
+      restart the menu. Mirrors the original "goto znovku" branch. *)
+   if sd_hint then begin
+      printc(screen,440,tx3[ja,1],12,0);
+      vid_present;
+      if kkey2 <> 0 then begin
+         clear_key_buffer;
+         sd_hint := false;
+         sd_f := 1;
+         sd_result := 0;
+         sd_done := false;
+      end;
+      exit;
+   end;
+   (* Single-disk auto path: init() already set zvukovy_subor/meno_disku to
+      data_disks^[1]; here we only run the version check. The multi-disk menu
+      commit is handled in the interactive block below -- state 0 consumes
+      sd_done on the same step, so the disk selection can no longer be deferred
+      here (that used to leave zvukovy_subor stuck at the load_basic_config
+      placeholder = disk 0, CAULDRON, no matter what was selected). *)
+   if sd_done then begin
+      vybr := sd_result;
+      version_bad := (vybr>0) and (vybr<=num_disks) and
+                     (data_disks^[vybr].verzia > ver);
+      if version_bad then begin
+         if num_disks<=1 then sd_fatal := true
+         else sd_hint := true;
+      end;
+      exit;
+   end;
+   (* interactive multi-disk selection: read exactly one pending key, like
+      select_level_step / choice_step / acc_step. Never blocks. *)
+   hi_jxmenu(sd_f, sd_menu^);
+   k := kkey2;
+   if k <> 0 then begin
+      clear_key_buffer;
+      normal_jxmenu(sd_f, sd_menu^);
+      (* navigate up/down, rolling the menu when the list is long *)
+      case k of
+        $4800,$4b00,$4838,$4b34,$4a2d:
+           if sd_f>1 then begin dec(sd_f);
+              if sd_f-1<sd_menu^.posuv then begin roll_menu_down(sd_menu^);
+                 if sd_f>1 then normal_jxmenu(sd_f-1, sd_menu^); end;
+           end
+           else if sd_menu^.pocet<=sd_menu^.roll then sd_f:=sd_menu^.pocet;
+        $5000,$4d00,$5032,$4d36,$4e2b:
+           if sd_f<sd_menu^.pocet then begin inc(sd_f);
+              if sd_f>sd_menu^.posuv+sd_menu^.roll then begin roll_menu_up(sd_menu^);
+                 if sd_menu^.pocet>sd_f then normal_jxmenu(sd_f+1, sd_menu^); end;
+           end
+           else if sd_menu^.pocet<=sd_menu^.roll then sd_f:=sd_menu^.pocet;
+      end;
+      (* commit: Enter / Space -> chosen item; ESC -> end-of-game (0). This is
+         the fix for the selector always booting disk 0: record the actually
+         selected disk HERE, because state 0 consumes sd_done on this same step
+         and the selection can no longer be deferred to a later step.
+         NOTE: sd_done := true MUST live inside each commit branch -- if it ran
+         unconditionally it would fire on navigation keys (DOWN/UP) too,
+         committing sd_result=0 (the placeholder disk) after the first arrow. *)
+      if k=$011b then begin
+         sd_result := 0;
+         sd_end := true;
+         sd_done := true;
+      end
+      else if (k=$1c0d) or (k=$3920) then begin
+         sd_result := sd_f;
+         if (sd_f>0) and (sd_f<=num_disks) then begin
+            zvukovy_subor := data_disks^[sd_f].subor;
+            meno_disku := data_disks^[sd_f].meno;
+            sd_end := false;
+            (* version check exactly once, mirroring the original
+               post-vyber_jxmenu() branch *)
+            if data_disks^[sd_f].verzia > ver then
+               if num_disks<=1 then sd_fatal := true
+               else sd_hint := true;
+         end
+         else
+            sd_end := true;   { trailing End/Quit item -> quit }
+         sd_done := true;
+      end;
+      vid_present;
+   end;
+end;
+
 
 {nacita zoznam datadiskov}
 procedure load_basic_config;
-type polo=array[0..maxlen] of byte;
-var pole:^polo;
-    f,countx:word;
 
   {* Scan one filename pattern and append every file that passes the game
      block-header check into the global data_disks/num_disks tables.  Called
@@ -629,7 +634,7 @@ var pole:^polo;
                         block_ver[1]*10+block_ver[2];
               data_disks^[num_disks].subor:=sr.name;
               data_disks^[num_disks].meno:='';
-              load_level_list(sr.name,pole^);
+              load_level_list(sr.name, sd_pole_buf);
            end;
         end;
         findnext(sr);
@@ -638,32 +643,27 @@ var pole:^polo;
 
 begin
      {$IFDEF Darwin} install_crash_handler; {$ENDIF}
-     writeln('[LBC] enter');
      set_def;
-     writeln('[SP] after set_def stack=', stackdepth);
-     writeln('[LBC] after set_def');
-     new(pole);
      new(data_disks);
-		for f:=1 to maxlen do pole^[f]:=0;
 		num_disks:=0;
 		scan_disks('*.dat');
 		scan_disks('*.DAT');
-		dump_font_globals;
-		writeln('[SP] after scan_disks stack=', stackdepth);
-		writeln('[LBC] after scan_disks, num_disks=', num_disks);
 		 if num_disks=0 then errormes(3);
-		 writeln('[LBC] before select_datadisk');
-		 writeln('[SP] before select_datadisk stack=', stackdepth);
-		 if longint(screen)=0 then writeln('[LBC] screen NIL');
-		 select_datadisk;
-   dump_font_globals;
-		 writeln('[LBC] after select_datadisk');
-		 load_level_list(zvukovy_subor,pole^);
-		 load_defaults;
-     dispose(data_disks);
-     dispose(pole);
-     if crc_checking then verify_crc(zvukovy_subor);
-     writeln('[LBC] done');
+	 (* Phase 13: the disk-selection menu is driven non-blocking by state 0
+	      (select_datadisk_init/step), so do NOT block here and do NOT dispose
+	      the disk table -- init() builds its menu from data_disks. The scratch
+	      buffer is the persistent global sd_pole_buf, reused by
+	      load_level_list() after the selection commits. Pick the first disk as
+	      a placeholder subor so the boot-time sound loading in do_fatal_restart
+	      has a valid source; the real selection reloads SFX afterwards. *)
+		 if num_disks>=1 then begin
+			 zvukovy_subor := data_disks^[1].subor;
+			 meno_disku := data_disks^[1].meno;
+		 end;
+		sd_init := false;
+		sd_done := false;
+		sd_fatal := false;
+		sd_hint := false;
 end;
 
 procedure ppoint;
@@ -718,15 +718,11 @@ begin
     out_sounds_to_def;
     load_defaults;
     set_def;
-    dump_font_globals;
     bolx:=false;
     smart_jump:=true;              {SKOK}
    write_palette(blackx,0,256);
-   dump_font_globals;
    load_pohyby;
-   dump_font_globals;
    load_basic_config;
-   dump_font_globals;
    if (zvuk) and (not zvuk_loaded) then begin
     LoadSounds;
     Stop := false;
@@ -756,7 +752,6 @@ for ff:=0 to 3 do
  for f:=0 to 19 do begin
    getseg(16*f,ff*16,16,16,f+ff*20,anim^);
  end;
-   dump_font_globals;
 
    score:=0;
    basic_score:=0;
@@ -767,9 +762,7 @@ for ff:=0 to 3 do
    load_predmet;
    load_anim_def;
    load_texture;
-   dump_font_globals;
    clear_bitmap(screen);
-   dump_font_globals;
 
 {   editor:=true;}
 {    test:=true;}
@@ -780,7 +773,6 @@ for ff:=0 to 3 do
    sipka_limit(8,9,612,398,4,use_joystick,5,false,false,true,true);
    if use_joystick then joystick_kaliber;
    oldpol:=poloha;
-   dump_font_globals;
 {   write_palette(palx,0,256);}
 end;
 
@@ -789,7 +781,6 @@ procedure engine_init;
 var
   fil: file;   {was program-body local in the original monolithic body}
   fl:  word;   {was program-body local in the original monolithic body}
-  _dbg_i: word;
 begin
    {$IFDEF Darwin} install_crash_handler; {$ENDIF}
    (* Phase 3: the C host owns the clock. From here on GetClock returns the
@@ -826,32 +817,24 @@ if not subor_exist(input_file) then ending(tx3[ja,2]);
         it. load_palette_block reads the PALETA resource (256 RGB triplets)
         straight from input_file via the BLOCKX DAT reader (no C involved). }
    load_palette_block(input_file, '>PALETA', palx);
-   writeln('[SD] palette loaded from ', input_file, ' (PALETA)');
-   { --- TEMP diagnostic: dump loaded palette --- }
-   for _dbg_i:=0 to 15 do writeln('[SDPAL] palx[',_dbg_i,']=',palx[_dbg_i].r,',',palx[_dbg_i].v,',',palx[_dbg_i].b);
    flush(output);
 if memavail>minimummem then begin
    writeln;
    writeln('Init...');
-   writeln('[SP] start stack=', stackdepth);
      use_joystick:=false;
      initclock;
      randomize;
      init_keyboard(0);
      keyboard_speed(0,0);
      set_def;
-   writeln('[SP] after set_def(1) stack=', stackdepth);
-   writeln('[SDPAL3] after engine_init set_def palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
      zvuk_loaded:=false;
      crc_checking:=true;
      set_defaults;  {nastavi zakladne parametre prikazoveho modu W}
-   writeln('[SDPAL3] after set_defaults palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
      scrx:=640;
      scry:=480;
      resx:=16;
      resy:=16;
    check_crc;      {kontorla CRC pre MIAN.DAT}
-   writeln('[SDPAL3b] after check_crc palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
    new(hraci);
    for f:=1 to 10 do begin
 		 hraci^[f].meno:=anonymous;
@@ -875,7 +858,6 @@ if memavail>minimummem then begin
 	  init_handles(max_handles,handles);
 	    XMSDriverCheck;
 	    GetXMSFunct;
-   writeln('[SP] after XMS stack=', stackdepth);
    end
    else begin
 	writeln(tx[1,24]);
@@ -912,7 +894,6 @@ if memavail>minimummem then begin
     load_config;
     scrx:=2;
    writeln(' O.K.');
-   writeln('[SDPAL3c] after load_config palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
   if zvuk then begin
    write('Please wait, initializing SFX...');
    time:=getclock+inicializacna_pauza;
@@ -920,29 +901,18 @@ if memavail>minimummem then begin
   end;
   if zvuk then Initsbx;
    grafika_init(scrx,scry,8);
-   (* Phase 2: SDL2 video backend + headless auto-input. *)
+   (* Phase 2: display backend + headless auto-input. *)
    auto_input_enabled := true;
-   writeln('[MAIN] pre-vid_init GetEnv=', GetEnv('SG_DUMPFILE'));
    flush(output);
    vid_init;
-   writeln('[SP] after vid_init stack=', stackdepth);
-   writeln('[SDPAL3d] after vid_init palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
     write_palette(blackx,0,256);
-   writeln('[SDPAL3e] after write_palette(blackx) palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
     old_frame.init(no_handle,input_file,frame_gif,false);
-   writeln('[SDPAL3g] after old_frame.init palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
     napis.init(2,2,15,0,0,true,true);
-   writeln('[SDPAL3g] after napis.init palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
     napis2.init(2,2,15,0,0,true,false);
-   writeln('[SDPAL3g] after napis2.init palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
     aktivita_snd:=false;
     animabl:=false;
     check_sound:=false;
     set_font(def_font);
-   dump_font_globals;
-   writeln('[SDPAL3g] after set_font palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
-   writeln('[SP] after fonts stack=', stackdepth);
-   writeln('[SDPAL3f] END engine_init palx[1]=',palx[1].r,',',palx[1].v,',',palx[1].b);
 {    out_sounds_to_def;
    zvuk_loaded:=false;}
 end;   {end if memavail>minimummem}
@@ -995,7 +965,10 @@ end;
 var
   es_state    : integer;   { 0=boot, 10=intro menu, 11=menu tick, 12=level
                              selector, 13=quit confirm, 21=gameplay,
-                             22=level-complete dialog, 9=done }
+                             22=level-complete dialog, 24=password prompt,
+                             30=objective dialog, 40=info/help,
+                             41=hi-scores,
+                             9=done }
   es_selector : byte;
 
 {--- C host observes the selected intro-menu item (1=Game,2=Info,..,0=ESC) ---}
@@ -1011,17 +984,58 @@ begin
 end;
 
 procedure engine_step;
-var _nz,_i:longint;
+var _nz,_i:longint; f: word; _dcb,_ll:word; sel_key:word;
+      sd_meno_save: array[1..19] of string[25];
 begin
-  dump_font_globals;
   case es_state of
-  0: begin {first boot — run the re-runnable setup ONCE. This loads the data
-            disks and drives the disk-selection menu (auto-advances in the
-            headless build via auto_input_enabled). Returns to the C host
-            afterwards so it can read the framebuffer and feed keys.}
-       do_fatal_restart;
-       dump_font_globals;
-       es_state := 10;
+  0: begin {first boot — run the heavy setup ONCE (do_fatal_restart scans the
+            DAT disks via the scan-only load_basic_config), then drive the
+            datadisk-selection menu non-blocking, one key per engine_step,
+            exactly like the level selector (state 12). On a committed,
+            version-valid selection the chosen disk's levels + defaults are
+            loaded and the engine enters the intro menu (state 10).}
+       if not sd_boot then begin
+          do_fatal_restart;
+          sd_boot := true;
+       end
+       else begin
+          if not sd_init then select_datadisk_init;
+          select_datadisk_step;
+          vid_present;
+          if sd_fatal then begin
+             ending('');
+          end
+          else if sd_end then begin
+             ending('');
+          end
+          else if sd_hint then begin
+             (* version warning already shown by select_datadisk_step; wait for
+                a key there before the menu restarts -- do NOT load yet. *)
+          end
+          else if sd_done then begin
+             (* committed + version OK: load the chosen disk's levels +
+                defaults, reload SFX for that disk, then the intro menu. *)
+             (* load_level_list() has a side effect: when the disk config
+                contains a MENO field it writes data_disks^[num_disks].meno.
+                During scan num_disks is the freshly-added index, so that is
+                correct. Here, at commit time, num_disks is the TOTAL count,
+                so the call would overwrite an unrelated disk's display name
+                (e.g. disk 3) with the committed disk's name, which the
+                subsequent sort then duplicates/garbles. Save and restore the
+                display names across the call so the disk table is untouched. *)
+             for _dcb:=1 to num_disks do sd_meno_save[_dcb]:=data_disks^[_dcb].meno;
+             load_level_list(zvukovy_subor, sd_pole_buf);
+             writeln('[LEVELS] disk=',zvukovy_subor,' pocet=',levely^.pocet); flush(output);
+             for _dcb:=1 to num_disks do data_disks^[_dcb].meno:=sd_meno_save[_dcb];
+             load_defaults;
+             if zvuk_loaded then
+                for f:=1 to num_snd do
+                   reload_sound(f-1, zvukovy_subor, zvuky[f]);
+             if crc_checking then verify_crc(zvukovy_subor);
+             dispose(sd_menu);
+             es_state := 10;
+          end;
+       end;
      end;
   10: begin {intro-menu entry — run once, paints the menu + cursor setup}
        set_def;
@@ -1043,34 +1057,127 @@ begin
           was painted only in state 10, so navigation was invisible). *)
        vid_present;
        if ch_done then begin
-         es_selector := choice_result;
+         es_selector := choice_result;   (* 0 = ESC, else 1-based index into me^.dat *)
+         (* Capture the selected item's DOS key word BEFORE disposing the menu,
+            so we can route by the item's identity (position-independent)
+            rather than by its index. Quit ($1071) exits no matter where it
+            sits in the menu, and DATADISK ($2064) is matched by key too. *)
+         if es_selector > 0 then sel_key := me^.dat[es_selector].k
+         else sel_key := 0;               (* ESC: no item key selected *)
          dispose(me);
-         case es_selector of
-          {--- Phase 5: item 1 is 'Game'. Show the graphical level selector
-              (state 12) instead of auto-picking level 1, matching the
-              original `menu_pointer:=1; select_level; goto skip`. ---}
-          1: begin sl_init := false; es_state := 12; end;
-          0,4: es_state := 9;                 {ESC / Quit -> exit}
-          2,3: es_state := 10;                {Info / Hi-scores -> back}
-          else es_state := 9;
+         if es_selector = 0 then begin
+            (* ESC -> exit *)
+            es_state := 9;
+         end else if sel_key = $1071 then begin
+            (* Quit -> exit *)
+            es_state := 9;
+         end else if (sel_key = $2064) and (num_disks > 1) then begin
+            (* DATADISK item: return to the datadisk selector. Re-init
+               resets all flags and re-paints the disk list. *)
+            sd_init := false;
+            es_state := 0;
+         end else begin
+            (*--- Phase 5: route by the selected item's key. Game ($2267)
+                shows the graphical level selector (state 12) instead of
+                auto-picking level 1, matching the original
+                `menu_pointer:=1; select_level; goto skip`. ---*)
+            case sel_key of
+             $2267: begin sl_init := false; es_state := 12; end;
+             $1769: begin {Phase 12: Info/Help screen} info_ret := 10; info_started := false; es_state := 40; end;
+             $2368: begin {Phase 12: Hi-scores screen} hs_started := false;  es_state := 41; end;
+             else es_state := 9;
+            end;
          end;
        end;
      end;
   12: begin {Phase 5: level selector — one menu tick per engine_step.
              select_level_init() paints the level list once; select_level_step()
              advances the cursor. On commit a chosen level starts the game
-             (state 21); Back/ESC returns to the intro menu (state 10).}
-       if not sl_init then select_level_init;
+             (state 21); Back/ESC returns to the intro menu (state 10).
+             Password-protected levels (subtitle prefixed with '>') prompt for
+             the password first via state 24.}
+       if not sl_init then begin select_level_init; end;
        select_level_step;
        vid_present;
        if sl_done then begin
           dispose(sl_menu);
           if sl_result > 0 then begin
-             old_level := sl_result;
-             hra_init;
-             es_state := 21;
+             (* Phase 10: detect a password-protected level before starting.
+                level_needs_password() loads the subtitle and, if protected,
+                stores the password in pw_password and returns true. *)
+             if level_needs_password(sl_result) then begin
+                pw_init := false;
+                es_state := 24;
+             end
+             else begin
+                hra_init;
+                briefing_started := false;
+                es_state := 30;
+             end;
           end
           else es_state := 10;          { Back / ESC -> back to intro menu }
+       end;
+     end;
+  24: begin {Phase 10: password prompt for password-protected levels. writeln('[S24] ENTER',flush(output));
+             password_init() paints the ' Password:' prompt and field once;
+             password_step() reads one key per engine_step. Correct -> start
+             the game (state 21); wrong password or ESC -> feedback and back
+             to the level selector (state 12).}
+       if not pw_init then password_init;
+       password_step;
+       vid_present;
+       if pw_done then begin
+          pw_init := false;
+          if pw_ok then begin
+             hra_init;
+             briefing_started := false;
+             es_state := 30;          { objective -> gameplay }
+          end
+          else begin
+             (* wrong / ESC: back to the level selector, freshly re-painted *)
+             sl_init := false;
+             es_state := 12;
+          end;
+       end;
+     end;
+  30: begin {Phase 11: level-start objective dialog. hra_init() (run when
+             entering this state) already loaded the level data (msg[]) and
+             drew the game screen. briefing_init() paints the objective text
+             once; briefing_step() reads one key per engine_step. On
+             Enter / Space / ESC the objective is dismissed, the game screen
+             is redrawn, and gameplay begins (state 21). Levels with no
+             objective text skip straight to gameplay.}
+       if not briefing_started then begin briefing_init; briefing_started := true; end;
+       briefing_step;
+       vid_present;
+       if briefing_done then begin
+          briefing_started := false;
+          redraw(true);                 { restore the game screen the objective replaced }
+          es_state := 21;               { -> gameplay }
+       end;
+     end;
+  40: begin {Phase 12: Info/Help screen (main menu item 2, and the in-game help
+             key). info_init() draws the credits page and sets up the scrolling
+             help; info_step() advances one frame per engine_step. On
+             Enter/Space/ESC return to info_ret (10=main menu, 21=gameplay).}
+       if not info_started then begin info_init; info_started := true; end;
+       info_step;
+       vid_present;
+       if info_done then begin
+          info_started := false;
+          if info_ret = 21 then redraw(true);   { restore the game screen the Info replaced }
+          es_state := info_ret;
+       end;
+     end;
+  41: begin {Phase 12: Hi-scores screen (main menu item 3). show_hi_score_init()
+             paints the table once; show_hi_score_step() waits for
+             Enter/Space/ESC, then returns to the main menu (state 10).}
+       if not hs_started then begin show_hi_score_init; hs_started := true; end;
+       show_hi_score_step;
+       vid_present;
+       if hs_done then begin
+          hs_started := false;
+          es_state := 10;
        end;
      end;
   21: begin {gameplay — exactly one frame per engine_step. The C host owns the
@@ -1098,14 +1205,26 @@ begin
              quit_result := 2;
              es_state := 13;
           end
+          else if help_pending then begin
+             (* Phase 12: help key during gameplay opens the Info/Help screen.
+                info_ret is already 21 (set by help_in_game). Clear the flag
+                and reset info_started so info_init() re-paints the screen fresh. *)
+             help_pending := false;
+             info_started := false;
+             info_done := false;
+             es_state := 40;
+          end
           else if inv_pending then begin
              (* Phase 9: Enter/Space during gameplay opens the inventory /
                 pause overlay. Clear inv_init so menu_init() re-paints the
-                overlay fresh in es_state=23. *)
+                overlay fresh in es_state=23. Also clear any queued item-
+                activation dialog so menu_init/menu_step start fresh. *)
              inv_pending   := false;
              inv_init      := false;
              inv_done      := false;
              inv_direct_done := false;
+             pp_pending    := false;
+             pp_started    := false;
              es_state := 23;
           end
           else begin
@@ -1124,9 +1243,14 @@ begin
           if acc_last then begin
              es_state := 10;          { last level: ending shown -> menu }
           end else begin
-             inc(old_level);          { hra_init() sets vybrane:=old_level }
+             inc(old_level);          { advance to next level }
+             (* The user just unlocked this level by finishing the previous
+                one, so NO password is required here. The password only gates
+                the Level Selector (state 12), where a player may SKIP AHEAD to
+                a locked level. Go straight to the briefing, then gameplay. *)
              hra_init;
-             es_state := 21;
+             briefing_started := false;
+             es_state := 30;
           end;
        end;
      end;
@@ -1150,28 +1274,62 @@ begin
        end;
      end;
   23: begin {Phase 9: inventory / pause overlay — one menu tick per engine_step.
-             menu_init() paints the overlay (or applies a direct-use object)
-             once; menu_step() advances the cursor on each key press via the
-             non-blocking kkey2 (like state 12 / 13). On commit, if the used
-             item completed the level (the_koniec) finalise like state 21
-             does: won (acc_init_flag) -> state 22, game over -> state 10.
-             Otherwise resume gameplay (state 21).}
-       if not inv_init then menu_init;
-       menu_step;
-       vid_present;
-       if the_koniec then begin
-          (* the used item finished the level — finalise like state 21 *)
-          if acc_init_flag then begin
-             hra_step_final;
-             es_state := 22;          { level won -> congratulations dialog }
-          end else begin
-             hra_step_final;
-             es_state := 10;          { game over -> intro menu }
+             Two sub-phases, selected by a flag:
+               * pp_pending: an item-activation [TEXT] dialog was queued by
+                 menu_init/menu_step (a direct-use 'V' object, or a committed
+                 inventory item used from its activation zone). pouzi_predmet_
+                 init() already painted the first line; pouzi_predmet_step()
+                 advances one command/text token per engine_step (converting
+                 the old blocking wait_for_key / pulzx into per-step advances).
+                 When pp_done, finalise like state 21 if the dialog won the
+                 level (the_koniec via THEEND/LOSELIFE), else resume gameplay.
+               * otherwise: the inventory / pause overlay. menu_init() paints
+                 it (or applies a direct-use object) once; menu_step() advances
+                 the cursor on each key press via the non-blocking kkey2 (like
+                 state 12 / 13). On commit, if the used item completed the
+                 level (the_koniec) finalise like state 21 does.
+             The pp_pending dialog takes precedence so the item-activation
+             screens step-able like briefing (es_state=30).}
+       if pp_pending then begin
+          pouzi_predmet_step;
+          vid_present;
+          if pp_done then begin
+             (* DONTUSE (command 47): the item was not consumed, so put it
+                back into the level (pp_z>0 only for a committed inventory
+                item; a direct-use 'V' dialog has pp_z=0 and nothing to return). *)
+             if (pp_z>0) and (not pp_return) then vec^[pp_z].mie:=miestnost;
+             pp_pending := false;
+             pp_started := false;
+             if the_koniec then begin
+                (* the dialog finished the level — finalise like state 21 *)
+                if acc_init_flag then begin
+                   hra_step_final;
+                   es_state := 22;          { level won -> congratulations }
+                end else begin
+                   hra_step_final;
+                   es_state := 10;          { game over -> intro menu }
+                end;
+             end else es_state := 21;          { dialog done — resume gameplay }
           end;
        end
-       else if (inv_direct_done) or (inv_done) then begin
-          (* menu interaction finished, level not over — resume gameplay *)
-          es_state := 21;
+       else begin
+          if not inv_init then menu_init;
+          menu_step;
+          vid_present;
+          if the_koniec then begin
+             (* the used item finished the level — finalise like state 21 *)
+             if acc_init_flag then begin
+                hra_step_final;
+                es_state := 22;          { level won -> congratulations dialog }
+             end else begin
+                hra_step_final;
+                es_state := 10;          { game over -> intro menu }
+             end;
+          end
+          else if (inv_direct_done) or (inv_done) then begin
+             (* menu interaction finished, level not over — resume gameplay *)
+             es_state := 21;
+          end;
        end;
      end;
   end;

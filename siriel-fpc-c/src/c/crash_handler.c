@@ -10,8 +10,8 @@
 
 static void print_resolved(void) __attribute__((constructor));
 static void print_resolved(void) {
-    void *fn = dlsym(RTLD_DEFAULT, "SDL_Init");
-    fprintf(stderr, "=== crash_handler: dlsym(SDL_Init) = %p ===\n", fn);
+    void *fn = dlsym(RTLD_DEFAULT, "detectgraph");
+    fprintf(stderr, "=== crash_handler: dlsym(detectgraph, BGI runtime) = %p ===\n", fn);
     fflush(stderr);
 }
 

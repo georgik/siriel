@@ -1,0 +1,47 @@
+# =====================================================================
+# Build artifacts for the Siriel 3.5 FPC port (two-process shm + Raylib).
+#
+# All generated output is written to out/ and ignored wholesale. The
+# patterns below are a safety net for anything that might land outside
+# out/ (e.g. stray FPC .ppu files).
+# =====================================================================
+
+# --- Generated build output directory (everything lives here) ---
+out/
+
+# --- FPC / Free Pascal build outputs ---
+*.o
+*.ppu
+*.stat
+*.exe
+*.app
+
+# --- C / link scratch ---
+*.res
+*.log
+errors.json
+fpcdebug.txt
+
+# --- Generated stub intermediates ---
+.stub.c
+.stub.symbols
+
+# --- Runtime stub library (in case built outside out/) ---
+*.dylib
+
+# --- Engine / window / launcher binaries (in case built elsewhere) ---
+cdrv_engine
+cdrv_window
+cdrv_run
+
+# --- Frame dumps ---
+*.ppm
+*.png
+
+# =====================================================================
+# Game data: tracked content. (The repo root .gitignore ignores
+# SCORE.DAT for a sibling project, so re-track our data here.)
+# =====================================================================
+!data/
+!data/*.DAT
+!data/*.CFG

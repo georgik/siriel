@@ -12,7 +12,7 @@
 {   * SetIntVec   - install an interrupt vector                         }
 {                                                                       }
 { Phase 1 is compile-only; the bodies are harmless no-ops. Real         }
-{ behaviour (SDL audio IRQ for SMIX, etc.) is a Phase-2 concern.        }
+{ behaviour (audio IRQ for SMIX, etc.) is a Phase-2 concern.        }
 {=======================================================================}
 {$packrecords 1}   {TP7 port: pack records to match TP7 binary layout}
 unit DOSIO;

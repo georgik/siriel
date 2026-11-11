@@ -198,6 +198,12 @@ int host_main(void)
     }
 
     fprintf(stderr, "[host] published frames; shutting engine down\n");
+    /* Tell the window to exit too. The engine owns no display; when it stops
+     * (Quit from the menu -> state==9, CTRL+C, or the window asking us to stop)
+     * the window must not keep showing a frozen last frame. The shm object
+     * outlives this munmap, so the window observes engine_quit from its own
+     * mapping. Symmetric with the window's own hdr->quit signal. */
+    h->engine_quit = 1;
     P$SIRIEL3_$$_ENGINE_SHUTDOWN();
     fb_shm_close(shm);
     fprintf(stderr, "[host] engine_shutdown() returned; host exit 0\n");

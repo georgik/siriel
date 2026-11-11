@@ -69,6 +69,7 @@ void *fb_shm_open_writer(void)
     h->bpp    = 24;
     h->reserved = 0;
     h->quit     = 0;   /* no quit requested */
+    h->engine_quit = 0;  /* engine has not quit */
     return seg;
 }
 

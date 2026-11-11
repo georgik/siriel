@@ -1,0 +1,3 @@
+[submodule "siriel-fpc-c/third-party/raylib"]
+	path = siriel-fpc-c/third-party/raylib
+	url = https://github.com/raysan5/raylib.git

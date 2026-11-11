@@ -65,12 +65,19 @@ static uint16_t dos_key_word(int key)
         case KEY_DOWN:     return 0x5000;   /* scan 0x50            */
         case KEY_LEFT:     return 0x4b00;   /* scan 0x4b            */
         case KEY_RIGHT:    return 0x4d00;   /* scan 0x4d            */
+        /* WASD -> arrow alias (gameplay convenience). The engine only reads
+         * the scan code, so it sees exactly the same key as the arrow. */
+        case KEY_W:        return 0x4800;   /* W -> UP    */
+        case KEY_A:        return 0x4b00;   /* A -> LEFT  */
+        case KEY_S:        return 0x5000;   /* S -> DOWN  */
+        case KEY_D:        return 0x4d00;   /* D -> RIGHT */
         case KEY_HOME:     return 0x4700;   /* scan 0x47            */
         case KEY_END:      return 0x4f00;   /* scan 0x4f            */
         case KEY_ENTER:
         case KEY_KP_ENTER: return 0x1c0d;   /* scan 0x1c, ascii 0x0d */
         case KEY_ESCAPE:   return 0x011b;   /* scan 0x01, ascii 0x1b */
         case KEY_SPACE:    return 0x3920;   /* scan 0x39, ascii 0x20 */
+        case KEY_BACKSPACE: return 0x0e08;   /* scan 0x0e, ascii 0x08 (kb_back) */
         default:           return 0;        /* letters/digits/other */
     }
 }
@@ -86,12 +93,18 @@ static uint16_t dos_release_word(int key)
         case KEY_DOWN:     scan = 0x50; break;
         case KEY_LEFT:     scan = 0x4b; break;
         case KEY_RIGHT:    scan = 0x4d; break;
+        /* WASD release: clear the same arrow Klx[] slot the press set. */
+        case KEY_W:        scan = 0x48; break;   /* UP release    */
+        case KEY_A:        scan = 0x4b; break;   /* LEFT release  */
+        case KEY_S:        scan = 0x50; break;   /* DOWN release  */
+        case KEY_D:        scan = 0x4d; break;   /* RIGHT release */
         case KEY_HOME:     scan = 0x47; break;
         case KEY_END:      scan = 0x4f; break;
         case KEY_ENTER:
         case KEY_KP_ENTER: scan = 0x1c; break;
         case KEY_ESCAPE:   scan = 0x01; break;
         case KEY_SPACE:    scan = 0x39; break;
+        case KEY_BACKSPACE: scan = 0x0e; break;
         default:           return 0;
     }
     return (uint16_t)(((scan | 0x80) << 8) | 0x00);
@@ -222,6 +235,13 @@ int main(void)
             fprintf(stderr, "[win] closing; signalling engine to quit\n");
             break;
         }
+        /* Engine told us to quit (Quit from its menu -> state==9, CTRL+C, or
+         * the engine otherwise stopped). Exit immediately instead of showing a
+         * frozen last frame. Symmetric with the engine reading hdr->quit. */
+        if (hdr->engine_quit) {
+            fprintf(stderr, "[win] engine quitting; exiting\n");
+            break;
+        }
         /* Give the window a chance to (re)grab KEY-window focus early on. */
         /* Give the window a chance to (re)grab KEY-window focus early on. */
         if (focus_frames > 0) {
@@ -284,7 +304,6 @@ int main(void)
              * DrawTexture -> the game went dark for one 16.6 ms frame, then
              * returned -> a regular ~30 fps flicker. */
             DrawTexture(tex, 0, 0, WHITE);
-            DrawFPS(8, 8);
         EndDrawing();
 
         /* If the engine has gone away, keep showing the last frame for a

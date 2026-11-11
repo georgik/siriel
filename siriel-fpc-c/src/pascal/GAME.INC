@@ -9,6 +9,32 @@ var
    quit_init   : boolean;       { has quit_confirm_init() run for this entry? }
    quit_pending: boolean;       { ESC pressed during gameplay -> enter confirm }
 
+{--- Phase 11: step-able level-start objective dialog flags (briefing_init /
+     briefing_step, driven by es_state=30 in engine_step). Declared up top so
+     briefing_init/briefing_step (declared below) can reference them. ---}
+   briefing_started : boolean;  { has briefing_init() run for this entry? }
+   briefing_done    : boolean;  { objective dismissed (Enter/Space/ESC) or none }
+
+{--- Phase 12: step-able Info/Help (state 40) and Hi-scores (state 41) screens
+     from the main menu, plus the scrolling-help state shared by the Info
+     screen and the in-game help key. Declared up top so the routines below
+     (info_init/step, show_hi_score_init/step, scroll_text_init/step) can use
+     them. ---}
+var
+   info_started : boolean;  { has info_init() run for this Info screen? }
+   info_done    : boolean;  { Info/Help dismissed (Enter/Space/ESC) }
+   info_ret     : integer;  { state to return to after Info (10=menu, 21=play) }
+   hs_started   : boolean;  { has show_hi_score_init() run? }
+   hs_done      : boolean;  { Hi-scores dismissed }
+   help_pending : boolean;  { help key pressed during gameplay -> Info screen }
+
+   {--- scrolling-help text state (used by info) ---}
+   scroll_plocha  : array[0..maxlen] of byte;
+   scroll_counter, scroll_inter, scroll_smer, scroll_size : integer;
+   scroll_posuv, scroll_poloha : byte;
+   scroll_started, scroll_done : boolean;
+   scroll_oldfont : string;     { font active before scroll_text_init(); restored on exit }
+
 procedure pauza;
 var f:byte;
 begin
@@ -65,11 +91,10 @@ end;
 
 procedure help_in_game;
 begin
-	decrease_palette(palx,20);
-	info;
-	decrease_palette(palx,20);
-	redraw(true);
-	increase_palette(blackx,palx,20);
+   (* Phase 12: the Info/Help screen is now step-able (engine_state=40). Flag
+      it and let engine_step hand off; info_ret points back to gameplay (21). *)
+   info_ret := 21;
+   help_pending := true;
 end;
 
 
@@ -94,7 +119,6 @@ begin
 end;
 
 procedure arcade_step;
-label retry;
 var k2,b,c        : word;
     old5,old7     : boolean;
 begin
@@ -103,7 +127,6 @@ begin
       frame, mirroring the natural use_vec(funk=9)->accomplished path, so the
       state-21 -> state-22 transition and Enter-advance can be exercised. *)
    if win_now then begin accomplished; win_now:=false; end;
-   retry:
 	  if rollup=0 then oldkey:=0;
 	  k:=0;
 	  vypis_skore;
@@ -247,7 +270,7 @@ begin
 		   si.oldy:=si.y;
 		   oldpol:=poloha;
 	   zisti_vec;
-   (* Phase 2: present the framebuffer to the SDL2 backend. *)
+   (* Phase 2: present the framebuffer to the display backend. *)
    vid_present;
    (* Phase 3: loop exits here instead of via goto gotta *)
    if (the_koniec) or (restart) then arc_done := true;
@@ -268,50 +291,63 @@ begin
 end;
 
 procedure maze_step;
-label retry;
+var kdir: word;
 begin
    if maze_done then exit;
-   retry:
+   writeln('[POS] x=', si.x, ' y=', si.y);
 	  if rollup=0 then oldkey:=0;
 	  k:=0;
 	  vypis_skore;
    time:=getclock+wait_point;    { Phase 3: C paces the tick (was a blocking wait) }
 		sipka_joystick;
-		(* Phase 7: same key fix as arcade_step — geo's Jxgraf.Keypressed
-	     (auto_input queue), not crt's keypressed, so ESC is seen in the window. *)
+		get_keyboard;      { Phase 14: populate Klx[] from the injected key so the
+		                      physical-key table reflects the C host's press (press
+		                      sets, release clears) before we read it below. }
 		if Jxgraf.Keypressed then begin
 			k:=key;
 			clear_key_buffer;
 		   case k of
-		    $4b00:begin pl(2); sipka_fake(k,si.x,si.y); end;
-		    $4d00:begin pl(3); sipka_fake(k,si.x,si.y); end;
-		    $4800:begin pl(7); sipka_fake(k,si.x,si.y); end;
-		    $5000:begin pl(1); sipka_fake(k,si.x,si.y); end;
-		    $3b00,$2368:begin help_in_game; rewait; end;
-		    $3e00,$1970:pauza;
-		    $011b:begin quit_pending := true; clear_key_buffer; end;
-		    $1c0d,$3920:begin (* Phase 9: open the inventory/pause overlay
+			$3b00,$2368:begin help_in_game; rewait; end;
+			$3e00,$1970:pauza;
+			$011b:begin quit_pending := true; clear_key_buffer; end;
+			$1c0d,$3920:begin (* Phase 9: open the inventory/pause overlay
 								(es_state=23) instead of the old blocking menu. *)
 								inv_pending := true;
-							end;
-		    $3f00,3062:briefing_in_game;
+				end;
+			$3f00,3062:briefing_in_game;
 		   end;
-
-     if (not quit_pending) and ((not po3(si.x-movx,si.y-movy))  or
-	  (not po3(si.x+mova,si.y-movy)) or
-	  (not po3(si.x-movx,si.y))     or
-	  (not po3(si.x+mova,si.y)))
-	  then sipka_spat(si.x,si.y);
-
-			   aktivuj_texturu;
-	  end;
+		end;
+		{--- Phase 14: maze movement is driven by the PHYSICAL key held, not just
+		     the injected press event. Klx[] stays set while the key is held (the
+		     C host forwards a press word on down and a break word on release), so
+		     reading zmack() every frame makes the avatar walk continuously until
+		     the key is released -- key repeat. This matches arcade_step, which
+		     steers from zmack() each frame. ---}
+		kdir := 0;
+		if zmack(75) then kdir := $4b00;   { LEFT }
+		if zmack(77) then kdir := $4d00;   { RIGHT }
+		if zmack(72) then kdir := $4800;   { UP }
+		if zmack(80) then kdir := $5000;   { DOWN }
+		if kdir > 0 then begin
+		   case kdir of
+			  $4b00: begin pl(2); sipka_fake(kdir, si.x, si.y); end;
+			  $4d00: begin pl(3); sipka_fake(kdir, si.x, si.y); end;
+			  $4800: begin pl(7); sipka_fake(kdir, si.x, si.y); end;
+			  $5000: begin pl(1); sipka_fake(kdir, si.x, si.y); end;
+		   end;
+		   if (not quit_pending) and ((not po3(si.x-movx,si.y-movy))  or
+			  (not po3(si.x+mova,si.y-movy)) or
+			  (not po3(si.x-movx,si.y))     or
+			  (not po3(si.x+mova,si.y)))
+			  then sipka_spat(si.x,si.y);
+		   aktivuj_texturu;
+		end;
 			   panak;
 			   si.oldx:=si.x;
 			   si.oldy:=si.y;
 			   oldpol:=poloha;
 		   zisti_vec;
-   (* DEBUG *) writeln('[MOV] st.sav=',st.stav,' si.x=',si.x,' k=',k); flush(output);
-   (* Phase 2: present the framebuffer to the SDL2 backend. *)
+   (* Phase 2: present the framebuffer to the display backend. *)
    vid_present;
    (* Phase 3: loop exits here instead of via goto gotta *)
    if (the_koniec) or (restart) then maze_done := true;
@@ -337,8 +373,43 @@ begin
 	end;
 end;
 
+{--- Phase 11: step-able form of the level-start objective dialog. The
+	blocking briefing() above (used by briefing_in_game for the in-game F1
+	review) is kept as-is; these two routines drive the objective shown when
+	a level is started (briefing() in the original hra_init). briefing_init()
+	paints the objective text once; briefing_step() reads exactly one key per
+	engine_step and dismisses on Enter / Space / ESC (like acc_step / state 22). ---}
+procedure briefing_init;
+begin
+   briefing_done := false;
+   if (msg[1]<>'') or (msg[2]<>'') or (msg[3]<>'') or (msg[4]<>'')
+	or (msg[5]<>'') then begin
+		zhasni;
+		clear_bitmap(screen);
+		for f:=1 to 5 do
+			printc(screen,f*(chardy*2)+150,msg[f],15,0);
+		rozsviet;
+		clear_key_buffer;
+   end
+   else briefing_done := true;      { no objective text -> nothing to show }
+end;
+
+procedure briefing_step;
+var k:word;
+begin
+   if briefing_done then exit;
+   (* Phase 11: non-blocking key wait. One key per engine_step (C paces the
+      ticks). Dismiss on Enter / Space / ESC. A key-RELEASE word has bit 15
+      set and carries no character, so ignore it. *)
+   k := kkey2;
+   if k <> 0 then begin
+      clear_key_buffer;
+      if (k and $8000) = 0 then
+         if (k=kb_enter) or (k=kb_esc) or (k=$3920) then briefing_done := true;
+   end;
+end;
+
 procedure hra_init;
-var myy,mxx:integer; mline:string;
 begin
    if priechody	= nil then new(priechody);
    if lift		= nil then new(lift);
@@ -395,7 +466,6 @@ begin
 		 mova:=0;
 	    end;
   end;
-   briefing;
    play_ani(flik_start);
    if start_stage>1 then begin
       load_map(start_stage);
@@ -414,8 +484,14 @@ begin
   anim_count:=0;
   decrease_palette(palx,30);
   if start_action>0 then begin
+     (* Level-start [TEXT] dialog. The old blocking pouzi_predmet() was split
+        into pouzi_predmet_init()/pouzi_predmet_step(); initialise the dialog
+        here and let engine_step drive it (es_state=23). No level sets
+        start_action, so this branch is currently never taken, but it must
+        still compile. *)
      clear_bitmap(screen);
-     pouzi_predmet(0,false);
+     pp_started := false;
+     pp_pending := pouzi_predmet_init(0,false);
   end else redraw(true);
   init_charakter(resx,resy,si.x+px,si.y+py,poloha,si.buf,ar^);
   redraw_score;
@@ -435,15 +511,6 @@ begin
   end;
   hra_playing := true;
   hra_final_run := false;
-  writeln('[MAPSTART]');
-  for myy:=0 to 26 do begin
-    mline:='';
-    for mxx:=0 to 38 do begin
-      if st.mie[mxx,myy]>inusable then mline:=mline+'#' else mline:=mline+'.';
-    end;
-    writeln('[MAP] ',mline);
-  end;
-  writeln('[MAPEND]');
 end;
 
 procedure hra_step;
@@ -451,7 +518,6 @@ begin
    (* Phase 3: exactly one game frame per call. The loop itself is external,
       gated by arc_done/maze_done, driven by the C run loop. *)
    if not hra_playing then exit;
-   writeln('[HRASTEP] stav=',st.stav,' arc_done=',arc_done,' maze_done=',maze_done,' playing=',hra_playing); flush(output);
    case st.stav of
       1: arcade_step;
       2,3,4,5: maze_step;
@@ -506,27 +572,17 @@ end;
 procedure show_intro_page;
 var x,y:word;
 begin
-    Writeln('[TR] sip enter'); flush(output);
-    writeln('[TR] sip CharDX=',CharDX,' FSX=',FontScaleX,' CharDY=',CharDY); flush(output);
-    dump_font_globals;
-	    Writeln('[TR] sip check handles1'); flush(output);
     if not handles[1].used then begin
-	    Writeln('[TR] sip clear_bitmap'); flush(output);
     clear_bitmap(screen);
-	    Writeln('[TR] sip draw_it intro_obr'); flush(output);
 		draw_it(intro_obr,0,0);
             set_death_color(13);
-	    Writeln('[TR] sip draw_gif_block GLOGO'); flush(output);
 		draw_gif_block(screen,input_file,'GLOGO',460,100,palx);
             set_death_color(256);
-	    Writeln('[TR] sip save_scr'); flush(output);
 		save_scr(handles[1],0,0,640,480);
 	    end
 	    else
 		draw_scr(handles[1],0,0,640,480);
-	    Writeln('[TR] sip print_zoom_shadow 1'); flush(output);
 	    print_zoom_shadow(screen,250,20,version,14,2,2,3,3,0);
-	    Writeln('[TR] sip print_zoom_shadow 2'); flush(output);
 	    print_zoom_shadow(screen,230,60,'DISK: '+meno_disku,11,1,2,3,3,0);
 
 	    me^.pocet:=1;
@@ -567,11 +623,9 @@ begin
 	    y:=300;
 	  k:=$1071;
 	  end;
-    Writeln('[TR] sip norm_it loop'); flush(output);
    for f:=1 to me^.pocet do begin
 		norm_it(me^.dat[f]);
 	   end;
-    Writeln('[TR] sip done'); flush(output);
 end;
 
 procedure linew;
@@ -588,80 +642,90 @@ begin
   printx2(screen,31,200+posuv,chr(poloha),15,2,2,0,0);
 end;
 
-procedure scroll_text;
-type ploch=array[0..maxlen] of byte;
-var counter,inter,smer:integer;
-    plocha:^ploch;
+procedure scroll_text_init;
+var f:word;
     pch:string;
-    sr:searchrec;
-    size,f:word;
-    posuv,poloha:byte;
 begin
- set_font(def_font2);
- linew;
- posuv:=0;
- smer:=1;
- poloha:=1;
-  counter:=0;
-  new(plocha);
-  for f:=0 to maxlen do plocha^[f]:=0;
-  if not checkblock_info(zvukovy_subor,scroll_sub) then scroll_sub:=scroll_subor;
-  if checkblock_info(zvukovy_subor,scroll_sub) then
-     begin
-	loadblock_array(zvukovy_subor,scroll_sub,plocha^);
-  f:=0;
-  repeat
-     if plocha^[f]>0 then plocha^[f]:=ord(plocha^[f])+2;
-     inc(f);
-  until (plocha^[f]=0) or (f>maxlen);
-  end
-  else begin
-	 pch:=tx[ja,14];
-	 for f:=0 to length(pch)-1 do begin
-	     plocha^[f]:=ord(pch[f+1]);
-	 end;
-	 size:=length(pch);
-  end;
-  size:=f;
- if size<maxlen-60 then begin
-  for f:=size downto 0 do begin
-	plocha^[f+32]:=plocha^[f];
-  end;
-  inc(size,33);
-  for f:=0 to 31 do begin
-	plocha^[f]:=ord(' ');
-	plocha^[f+size]:=ord(' ');
-  end;
-  inc(size,32);
- end;
-  inter:=0;
-  repeat
-  pulz(2);
-  inc(inter);
-  if inter=4 then begin inter:=0; inc(counter);end;
-  if counter>size-30 then counter:=0;
-  pch:='';
-  for f:=1 to 30 do pch:=pch+chr(plocha^[counter+f]);
-
-  posuv:=posuv+smer;
-  if (posuv=10) or (posuv=0) then begin
-     smer:=-smer;
-     inc(poloha);
-     if poloha=7 then poloha:=1;
-  end;
-  printx2(screen,40-inter*2,200+posuv,pch+' ',64,2,2,1,0);
-  linew2(posuv,poloha);
-   sipka_joystick;
-  until keypressed;
-{key;}
-  clear_key_buffer;
-  dispose(plocha);
-  set_font(def_font);
+   scroll_started := true;
+   scroll_done := false;
+   scroll_oldfont := font;      { remember active font; scroll uses def_font2 }
+   set_font(def_font2);
+   linew;
+   scroll_posuv:=0;
+   scroll_smer:=1;
+   scroll_poloha:=1;
+   scroll_counter:=0;
+   for f:=0 to maxlen do scroll_plocha[f]:=0;
+   if not checkblock_info(zvukovy_subor,scroll_sub) then scroll_sub:=scroll_subor;
+   if checkblock_info(zvukovy_subor,scroll_sub) then
+      begin
+      loadblock_array(zvukovy_subor,scroll_sub,scroll_plocha);
+      f:=0;
+      repeat
+         if scroll_plocha[f]>0 then scroll_plocha[f]:=ord(scroll_plocha[f])+2;
+         inc(f);
+      until (scroll_plocha[f]=0) or (f>maxlen);
+      end
+   else begin
+      pch:=tx[ja,14];
+      for f:=0 to length(pch)-1 do begin
+          scroll_plocha[f]:=ord(pch[f+1]);
+      end;
+   end;
+   scroll_size:=f;
+   if scroll_size<maxlen-60 then begin
+    for f:=scroll_size downto 0 do begin
+    scroll_plocha[f+32]:=scroll_plocha[f];
+    end;
+    inc(scroll_size,33);
+    for f:=0 to 31 do begin
+    scroll_plocha[f]:=ord(' ');
+    scroll_plocha[f+scroll_size]:=ord(' ');
+    end;
+    inc(scroll_size,32);
+   end;
+   scroll_inter:=0;
 end;
 
-
-procedure info;
+function scroll_text_step:boolean;
+var pch:string;
+    k,f:word;
 begin
+   (* Phase 12: step-able. The original scrolled with a blocking pulz(2) delay
+      and 'until keypressed' (crt's keypressed, always false in the C model).
+      Here C paces the ticks: the inter counter advances the text every 4
+      steps, and we read the C-driven input queue for Enter/Space/ESC. *)
+   scroll_text_step := false;
+   if scroll_done then exit;
+   inc(scroll_inter);
+   if scroll_inter=4 then begin scroll_inter:=0; inc(scroll_counter);end;
+   if scroll_counter>scroll_size-30 then scroll_counter:=0;
+   pch:='';
+   for f:=1 to 30 do pch:=pch+chr(scroll_plocha[scroll_counter+f]);
+
+   scroll_posuv:=scroll_posuv+scroll_smer;
+   if (scroll_posuv=10) or (scroll_posuv=0) then begin
+      scroll_smer:=-scroll_smer;
+      inc(scroll_poloha);
+      if scroll_poloha=7 then scroll_poloha:=1;
+   end;
+   printx2(screen,40-scroll_inter*2,200+scroll_posuv,pch+' ',64,2,2,1,0);
+   linew2(scroll_posuv,scroll_poloha);
+    sipka_joystick;
+   if Jxgraf.Keypressed then begin
+      k := key;
+      clear_key_buffer;
+      if (k=$1c0d) or (k=$3920) or (k=$011b) then begin
+         scroll_done := true;
+         set_font(scroll_oldfont);   { restore the menu font before leaving Info }
+         scroll_text_step := true;
+      end;
+   end;
+end;
+
+procedure info_init;
+begin
+   info_done := false;
   draw_scr(handles[1],0,0,640,480);
   old_frame.draw(125,2,21,6);
   old_frame.draw(125,150,21,6);
@@ -684,9 +748,19 @@ begin
  linew;
  increase_palette(blackx,palx,20);
   clear_key_buffer;
-  scroll_text;
+  scroll_text_init;
   pust(3);
 end;
+
+procedure info_step;
+begin
+   (* Phase 12: advance the scrolling help one frame per engine_step. When
+      the user presses Enter/Space/ESC scroll_text_step sets scroll_done,
+      which we propagate to info_done. *)
+   if not scroll_text_step then exit;
+   info_done := true;
+end;
+
 
 
 {--- Phase 2: step-able form of choice(). C drives one menu tick per call:
@@ -865,6 +939,134 @@ var
    sl_done : boolean;       { a selection was committed }
    sl_result : byte;        { chosen level (0 = Back / ESC) }
    sl_init : boolean;       { has select_level_init() run for this entry? }
+
+{--- Phase 13: step-able form of the datadisk selector. The original
+     select_datadisk() blocked inside vyber_jxmenu(), incompatible with the C
+     host feeding one key per engine_step. Split into an init() that paints the
+     disk list once (mirroring select_level_init) and a step() that advances
+     the cursor and commits on demand (mirroring select_level_step). The disk
+     list is populated by the scan-only load_basic_config() before init() runs. ---}
+   sd_menu     : ^jxmenu_typ;   { datadisk selector menu (disk list + end) }
+   sd_f        : word;          { current selection within sd_menu }
+   sd_done     : boolean;       { a selection was committed }
+   sd_result   : word;          { chosen disk item (pocet/0 = end-of-game) }
+   sd_init     : boolean;       { has select_datadisk_init() run? }
+   sd_boot     : boolean;       { has do_fatal_restart() (disk scan) run? }
+   sd_fatal    : boolean;       { only disk has a wrong version -> end the game }
+   sd_hint     : boolean;       { wrong version on a multi-disk pick: show the
+                                 message, wait for a key, then restart the menu }
+   sd_end      : boolean;       { user committed the trailing "Konec"/End item
+                                 (or ESC) -> quit the game instead of loading }
+   sd_pole_buf : array[0..maxlen] of byte;  { scratch for load_level_list; must
+                                             persist across the selection step }
+
+{--- Phase 10: step-able password prompt for password-protected levels. When a
+     level is selected whose subtitle is prefixed with '>' the engine prompts
+     the player for the password (the level name without the '>'). Correct ->
+     gameplay (state 21); wrong or ESC -> feedback and back to the level
+     selector (state 12). The blocking insert_password() is split into an
+     init() that paints the prompt/field once, and a step() that reads exactly
+     one key per engine_step (like acc_step / state 22 and the menus above). ---}
+   pw_password  : string;   { password required for the selected level }
+   pw_field     : string;   { current password input field (with placeholder) }
+   pw_init      : boolean;  { has password_init() run for this entry? }
+   pw_done      : boolean;  { a password was submitted }
+   pw_ok        : boolean;  { was the submitted password correct? }
+
+{--- Loads level f's subtitle to detect whether it is password-protected.
+     Detection uses the subor '>' marker (the same signal load_predmet2's
+     `bl` uses); the password value is out_string(st.meno), matching the
+     original select_level() branch. Sets old_level and, for protected
+     levels, pw_password. Returns true iff a password is required. Non-protected
+     levels are NOT loaded here -- the caller starts them via hra_init(). ---}
+function level_needs_password(f:byte):boolean;
+var sub:string;
+begin
+   old_level := f;
+   sub := levely^.lev[f].subor;
+   if sub<>'' then begin
+      load_predmet2(sub);
+      if st.meno[1]='>' then begin
+         pw_password := out_string(st.meno);
+         upcased(pw_password,pw_password);
+         level_needs_password := true;
+      end
+      else level_needs_password := false;
+   end
+   else level_needs_password := false;
+end;
+
+procedure password_init;
+begin
+   (* Paint the ' Password:' prompt and the (empty) input field once. *)
+   napis.print(0,400,tx[ja,17]+tx[ja,16]+':');
+   napis2.set_color(14);
+   pw_field := '';
+   pw_field := pw_field + napis2.opt^.input_char;   { single placeholder '<' }
+   napis2.print(0,420,pw_field);
+   pw_init := true;
+   pw_done := false;
+   pw_ok   := false;
+end;
+
+procedure password_step;
+var k:word;
+    pw_cmp:string;
+begin
+   if pw_done then exit;
+   (* one key tick per engine_step, via geo's non-blocking kkey2 (same as the
+      intro / level-selector / quit-confirm menus) so the key always comes from
+      the C-fed auto_input queue via Jxgraf.Keypressed -- never blocks. *)
+   k := kkey2;
+   if k <> 0 then begin
+      clear_key_buffer;
+      (* A key-RELEASE word has bit 15 set (scan byte >= $80). It carries no
+         character -- it only clears the held-key flag in gameplay -- so it
+         must never be typed inside this text field. Ignore release words. *)
+      if (k and $8000) = 0 then begin
+         (* printable char: replace the trailing placeholder, add a new one *)
+         if (k<>kb_esc) and (k<>kb_back) and (k<>kb_enter) and (length(pw_field)<=10)
+             and (k<>kb_up) and (k<>kb_down) and (k<>kb_left) and (k<>kb_right) then begin
+            napis2.print_col(0,420,pw_field,0);
+            pw_field[length(pw_field)] := chr(k);
+            pw_field := pw_field + napis2.opt^.input_char;
+            napis2.print(0,420,pw_field);
+         end
+         else if (k<>kb_esc) and (k<>kb_back) and (k<>kb_enter) then
+            napis2.print(0,420,pw_field);                    { refresh, ignore nav key }
+         (* backspace / submit *)
+         if k=kb_back then begin
+            if length(pw_field)>1 then begin
+               napis2.print_col(0,420,pw_field,0);
+               pw_field[0]:=chr(length(pw_field)-2);
+               pw_field := pw_field + napis2.opt^.input_char;
+               napis2.print(0,420,pw_field);
+            end
+            else napis2.print(0,420,napis2.opt^.input_char);
+         end
+         else if (k=kb_enter) or (k=kb_esc) then begin
+            napis2.print_col(0,420,pw_field,0);
+            if k=kb_esc then pw_field:=''
+            else pw_field[0]:=chr(length(pw_field)-1);   { drop trailing placeholder }
+            napis2.print(0,420,pw_field);
+            (* validate: case-insensitive compare against the level password *)
+            upcased(pw_field,pw_cmp);
+            pw_ok := (pw_cmp = pw_password);
+            pw_done := true;
+            if pw_ok then begin
+               napis2.set_color(15);
+               napis2.print_col(0,440,tx[ja,18]+tx[ja,16]+' !',12);   { Correct }
+               pust(0);
+            end else begin
+               napis2.set_color(15);
+               napis2.print_col(0,440,tx[ja,19]+tx[ja,16]+' !',12);   { Incorrect }
+               reload_sound(3,zvukovy_subor,snd_strata);
+               pust(3);
+            end;
+         end;
+      end;
+   end;
+end;
 
 procedure select_level_init;
 var f:word;
@@ -1060,10 +1262,11 @@ begin
    def_snd_change	:=snd_change;
 end;
 
-procedure show_hi_score;
+procedure show_hi_score_init;
 var f:word;
     s:string;
 begin
+   hs_done := false;
  old_frame.draw(180,140,14,10);
  printc(screen,145,tx[ja,12],15,0);
  for f:=1 to 10 do begin
@@ -1075,6 +1278,19 @@ begin
  reload_sound(3,zvukovy_subor,snd_acces);
   pust(3);
   clear_key_buffer;
-  kkey;
-  pust(3);
+end;
+
+procedure show_hi_score_step;
+var k:word;
+begin
+   (* Phase 12: step-able key wait. The original blocked on kkey; here C paces
+      the ticks, so we read one key per engine_step and finish on
+      Enter/Space/ESC. *)
+   if hs_done then exit;
+   k := kkey2;
+   if k <> 0 then begin
+      clear_key_buffer;
+      if (k and $8000) = 0 then
+         if (k=kb_enter) or (k=kb_esc) or (k=$3920) then hs_done := true;
+   end;
 end;

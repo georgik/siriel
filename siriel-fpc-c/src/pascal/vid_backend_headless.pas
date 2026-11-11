@@ -137,12 +137,12 @@ procedure headless_present;
 var srgb: int64; j: LongInt;
 begin
   inc(frame_count);
-  { --- C-owns-the-window mode (env SDL_WINDOW=1): the C host uploads
-     FrameRGB into its own SDL window and presents. This Pascal backend is
+  { --- C-owns-the-window mode (env C_DISPLAY=1): the C host uploads
+     FrameRGB into its own window and presents. This Pascal backend is
      then a pure no-op — skip the srgb accounting and any SHMEM export,
      since C is responsible for display. expand_frame (in vid_present) still
      runs and keeps FrameRGB fresh for the C host to read. --- }
-  if env_on('SDL_WINDOW') then exit;
+  if env_on('C_DISPLAY') then exit;
   srgb := 0;
   for j := 0 to FB_RGB-1 do srgb := srgb + ord(FrameRGB[j]);
   dbg('headless_present #' + IntToStr(frame_count) + ' framergb=' + IntToStr(srgb) + ' fd=' + IntToStr(fd));

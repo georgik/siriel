@@ -57,6 +57,10 @@ typedef struct {
     uint32_t bpp;      /* bits per pixel (24)        */
     uint32_t reserved; /* alignment / future use     */
     uint64_t quit;     /* window->engine: 1 when the window is closing */
+    uint64_t engine_quit; /* engine->window: 1 when the ENGINE is
+                            quitting (Quit from its menu / engine exit).
+                            The window polls this and exits, instead of
+                            showing a frozen last frame forever. */
 } fb_shm_hdr;
 
 #define FB_SHM_HDR_SZ  sizeof(fb_shm_hdr)

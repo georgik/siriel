@@ -425,7 +425,16 @@ begin
     printat(screen,x,y,medz+' ',0,0,0);
   end;
   if (KL<>$011b) and (kl<>$0e08) and (KL<>$1c0d) and (length(vypis)<=maxinput)
-     and (KL<>$4800) and (KL<>$4b00) and (KL<>$4d00) and (KL<>$5000) then begin
+     and (KL<>$4800) and (KL<>$4b00) and (KL<>$4d00) and (KL<>$5000)
+     (* Current word exclusions: navigation words (arrows, incl. the WASD alias
+        mapped in the window) and their release/break words carry ascii=0, so
+        chr(kl) would type a null/garbage char. Exclude them from text entry.
+        This also fixes real arrow keys corrupting text fields before. *)
+     and (kl<>$4800) and (kl<>$4b00) and (kl<>$4d00) and (kl<>$5000)
+     (* Release/break words carry the scan code high bit set: UP=$c800, LEFT=$cb00,
+        RIGHT=$cd00 (scan 0x4d | 0x80 = 0xcd), DOWN=$d000. These carry ascii=0 and
+        would type a null/garbage char, so exclude them too. *)
+     and (kl<>$c800) and (kl<>$cb00) and (kl<>$cd00) and (kl<>$d000) then begin
     vypis[length(vypis)]:=chr(kl);
     vypis:=vypis+charl;
     print_normal(screen,x,y,vypis,col,rol);

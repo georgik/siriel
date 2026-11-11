@@ -1,9 +1,9 @@
 (*
-  ubgi - Object Pascal bindings for SDL_bgi library.@br
+  ubgi - Object Pascal bindings for the siriel_bgi library.@br
   Copyright (C) 2020 I. Kakoulidis, <ioulianos.kakoulidis@hotmail.com>@br
   https://github.com/JulStrat/ubgi
 
-  SDL_bgi - Borland Graphics Library implementation based on SDL2.@br
+  siriel_bgi - Borland Graphics Library implementation used by the Siriel FPC/C port.@br
   Copyright (C) 2014-2021 Guido Gonzato, PhD <guido.gonzato@gmail.com>@br
   http://libxbgi.sourceforge.net/
 
@@ -38,13 +38,13 @@ interface
 
 {$IF Defined(MSWINDOWS) or Defined(Linux)}
 const
-  LIB_UBGI = 'SDL_bgi';
+  LIB_UBGI = 'siriel_bgi';
   LIB_FNPFX = '';
 {$ELSEIF Defined(Darwin)}
-(* macOS: load the co-located libSDL_bgi.dylib. The full filename is used so
-   the dynamic loader finds it exactly (see make_stub.sh / run.sh). *)
+(* macOS: load the co-located libsiriel_bgi.dylib. The full filename is used so
+   the dynamic loader finds it exactly (see build/make_stub.sh). *)
 const
-  LIB_UBGI = 'libSDL_bgi.dylib';
+  LIB_UBGI = 'libsiriel_bgi.dylib';
   LIB_FNPFX = '';
 {$ELSE}
   {$MESSAGE Error 'Unsupported platform'}
@@ -55,7 +55,7 @@ const
   YEAH = 1;
 
 const
-  SDL_BGI_VERSION = '3.0.0';
+  SIRIEL_BGI_VERSION = '3.0.0';
   UBGI_VERSION = '0.3.3';
 
   BGI_WINTITLE_LEN = 512;
@@ -67,116 +67,116 @@ const
 
 (* mouse handling *)
 const
-  SDL_BUTTON_LEFT = 1;
-  SDL_BUTTON_MIDDLE = 2;
-  SDL_BUTTON_RIGHT = 3;
-  SDL_MOUSEMOTION = $400;
-  SDL_MOUSEWHEEL = SDL_MOUSEMOTION + 3;
-  SDL_USEREVENT = $8000;
+  BGI_BUTTON_LEFT = 1;
+  BGI_BUTTON_MIDDLE = 2;
+  BGI_BUTTON_RIGHT = 3;
+  BGI_MOUSEMOTION = $400;
+  BGI_MOUSEWHEEL = BGI_MOUSEMOTION + 3;
+  BGI_USEREVENT = $8000;
 
 const
-  WM_LBUTTONDOWN = SDL_BUTTON_LEFT;
-  WM_MBUTTONDOWN = SDL_BUTTON_MIDDLE;
-  WM_RBUTTONDOWN = SDL_BUTTON_RIGHT;
-  WM_WHEEL = SDL_MOUSEWHEEL;
-  WM_WHEELUP = SDL_USEREVENT;
-  WM_WHEELDOWN = SDL_USEREVENT + 1;
-  WM_MOUSEMOVE = SDL_MOUSEMOTION;
+  WM_LBUTTONDOWN = BGI_BUTTON_LEFT;
+  WM_MBUTTONDOWN = BGI_BUTTON_MIDDLE;
+  WM_RBUTTONDOWN = BGI_BUTTON_RIGHT;
+  WM_WHEEL = BGI_MOUSEWHEEL;
+  WM_WHEELUP = BGI_USEREVENT;
+  WM_WHEELDOWN = BGI_USEREVENT + 1;
+  WM_MOUSEMOVE = BGI_MOUSEMOTION;
 
 (* keyboard handling *)
 const
-  SDLK_HOME = $4000004A;
-  SDLK_LEFT = $40000050;
-  SDLK_UP = $40000052;
-  SDLK_RIGHT = $4000004F;
-  SDLK_DOWN = $40000051;
-  SDLK_PAGEUP = $4000004B;
-  SDLK_PAGEDOWN = $4000004E;
-  SDLK_END = $4000004D;
-  SDLK_INSERT = $40000049;
-  SDLK_DELETE = $7F;
+  BGI_KB_HOME = $4000004A;
+  BGI_KB_LEFT = $40000050;
+  BGI_KB_UP = $40000052;
+  BGI_KB_RIGHT = $4000004F;
+  BGI_KB_DOWN = $40000051;
+  BGI_KB_PAGEUP = $4000004B;
+  BGI_KB_PAGEDOWN = $4000004E;
+  BGI_KB_END = $4000004D;
+  BGI_KB_INSERT = $40000049;
+  BGI_KB_DELETE = $7F;
 
-  SDLK_KP_MINUS = 1073741910;
-  SDLK_KP_PLUS = 1073741911;
+  BGI_KB_KP_MINUS = 1073741910;
+  BGI_KB_KP_PLUS = 1073741911;
 
-  SDLK_F1 = $4000003A;
-  SDLK_F2 = $4000003B;
-  SDLK_F3 = $4000003C;
-  SDLK_F4 = $4000003D;
-  SDLK_F5 = $4000003E;
-  SDLK_F6 = $4000003F;
-  SDLK_F7 = $40000040;
-  SDLK_F8 = $40000041;
-  SDLK_F9 = $40000042;
-  SDLK_F10 = $40000043;
-  SDLK_F11 = $40000044;
-  SDLK_F12 = $40000045;
+  BGI_KB_F1 = $4000003A;
+  BGI_KB_F2 = $4000003B;
+  BGI_KB_F3 = $4000003C;
+  BGI_KB_F4 = $4000003D;
+  BGI_KB_F5 = $4000003E;
+  BGI_KB_F6 = $4000003F;
+  BGI_KB_F7 = $40000040;
+  BGI_KB_F8 = $40000041;
+  BGI_KB_F9 = $40000042;
+  BGI_KB_F10 = $40000043;
+  BGI_KB_F11 = $40000044;
+  BGI_KB_F12 = $40000045;
 
-  SDLK_CAPSLOCK = $40000039;
-  SDLK_LCTRL = $400000E0;
-  SDLK_RCTRL = $400000E4;
-  SDLK_LSHIFT = $400000E1;
-  SDLK_RSHIFT = $400000E5;
-  SDLK_LALT = $400000E2;
-  SDLK_RALT = $400000E6;
-  SDLK_MODE =  $40000101;
-  SDLK_LGUI = $400000E3;
-  SDLK_RGUI = $400000E7;
-  SDLK_MENU = $40000076;
-  SDLK_TAB = $09;
-  SDLK_BACKSPACE = $08;
-  SDLK_RETURN = $0D;
-  SDLK_PAUSE = $40000048;
-  SDLK_SCROLLLOCK = $40000047;
-  SDLK_ESCAPE = $1B;
-  SDL_QUIT = $100;
+  BGI_KB_CAPSLOCK = $40000039;
+  BGI_KB_LCTRL = $400000E0;
+  BGI_KB_RCTRL = $400000E4;
+  BGI_KB_LSHIFT = $400000E1;
+  BGI_KB_RSHIFT = $400000E5;
+  BGI_KB_LALT = $400000E2;
+  BGI_KB_RALT = $400000E6;
+  BGI_KB_MODE =  $40000101;
+  BGI_KB_LGUI = $400000E3;
+  BGI_KB_RGUI = $400000E7;
+  BGI_KB_MENU = $40000076;
+  BGI_KB_TAB = $09;
+  BGI_KB_BACKSPACE = $08;
+  BGI_KB_RETURN = $0D;
+  BGI_KB_PAUSE = $40000048;
+  BGI_KB_SCROLLLOCK = $40000047;
+  BGI_KB_ESCAPE = $1B;
+  BGI_QUIT = $100;
 
 const
-  KEY_HOME = SDLK_HOME;
-  KEY_LEFT = SDLK_LEFT;
-  KEY_UP = SDLK_UP;
-  KEY_RIGHT = SDLK_RIGHT;
-  KEY_DOWN = SDLK_DOWN;
-  KEY_PGUP = SDLK_PAGEUP;
-  KEY_PGDN = SDLK_PAGEDOWN;
-  KEY_END = SDLK_END;
-  KEY_INSERT = SDLK_INSERT;
-  KEY_DELETE = SDLK_DELETE;
+  KEY_HOME = BGI_KB_HOME;
+  KEY_LEFT = BGI_KB_LEFT;
+  KEY_UP = BGI_KB_UP;
+  KEY_RIGHT = BGI_KB_RIGHT;
+  KEY_DOWN = BGI_KB_DOWN;
+  KEY_PGUP = BGI_KB_PAGEUP;
+  KEY_PGDN = BGI_KB_PAGEDOWN;
+  KEY_END = BGI_KB_END;
+  KEY_INSERT = BGI_KB_INSERT;
+  KEY_DELETE = BGI_KB_DELETE;
 
-  KEY_KP_MINUS = SDLK_KP_MINUS;
-  KEY_KP_PLUS = SDLK_KP_PLUS;
+  KEY_KP_MINUS = BGI_KB_KP_MINUS;
+  KEY_KP_PLUS = BGI_KB_KP_PLUS;
 
-  KEY_F1 = SDLK_F1;
-  KEY_F2 = SDLK_F2;
-  KEY_F3 = SDLK_F3;
-  KEY_F4 = SDLK_F4;
-  KEY_F5 = SDLK_F5;
-  KEY_F6 = SDLK_F6;
-  KEY_F7 = SDLK_F7;
-  KEY_F8 = SDLK_F8;
-  KEY_F9 = SDLK_F9;
-  KEY_F10 = SDLK_F10;
-  KEY_F11 = SDLK_F11;
-  KEY_F12 = SDLK_F12;
+  KEY_F1 = BGI_KB_F1;
+  KEY_F2 = BGI_KB_F2;
+  KEY_F3 = BGI_KB_F3;
+  KEY_F4 = BGI_KB_F4;
+  KEY_F5 = BGI_KB_F5;
+  KEY_F6 = BGI_KB_F6;
+  KEY_F7 = BGI_KB_F7;
+  KEY_F8 = BGI_KB_F8;
+  KEY_F9 = BGI_KB_F9;
+  KEY_F10 = BGI_KB_F10;
+  KEY_F11 = BGI_KB_F11;
+  KEY_F12 = BGI_KB_F12;
 
-  KEY_CAPSLOCK = SDLK_CAPSLOCK;
-  KEY_LEFT_CTRL = SDLK_LCTRL;
-  KEY_RIGHT_CTRL = SDLK_RCTRL;
-  KEY_LEFT_SHIFT = SDLK_LSHIFT;
-  KEY_RIGHT_SHIFT = SDLK_RSHIFT;
-  KEY_LEFT_ALT = SDLK_LALT;
-  KEY_RIGHT_ALT = SDLK_RALT;
-  KEY_ALT_GR = SDLK_MODE;
-  KEY_LGUI = SDLK_LGUI;
-  KEY_RGUI = SDLK_RGUI;
-  KEY_MENU = SDLK_MENU;
-  KEY_TAB = SDLK_TAB;
-  KEY_BS = SDLK_BACKSPACE;
-  KEY_RET = SDLK_RETURN;
-  KEY_PAUSE = SDLK_PAUSE;
-  KEY_SCR_LOCK = SDLK_SCROLLLOCK;
-  KEY_ESC = SDLK_ESCAPE;
-  QUIT = SDL_QUIT;
+  KEY_CAPSLOCK = BGI_KB_CAPSLOCK;
+  KEY_LEFT_CTRL = BGI_KB_LCTRL;
+  KEY_RIGHT_CTRL = BGI_KB_RCTRL;
+  KEY_LEFT_SHIFT = BGI_KB_LSHIFT;
+  KEY_RIGHT_SHIFT = BGI_KB_RSHIFT;
+  KEY_LEFT_ALT = BGI_KB_LALT;
+  KEY_RIGHT_ALT = BGI_KB_RALT;
+  KEY_ALT_GR = BGI_KB_MODE;
+  KEY_LGUI = BGI_KB_LGUI;
+  KEY_RGUI = BGI_KB_RGUI;
+  KEY_MENU = BGI_KB_MENU;
+  KEY_TAB = BGI_KB_TAB;
+  KEY_BS = BGI_KB_BACKSPACE;
+  KEY_RET = BGI_KB_RETURN;
+  KEY_PAUSE = BGI_KB_PAUSE;
+  KEY_SCR_LOCK = BGI_KB_SCROLLLOCK;
+  KEY_ESC = BGI_KB_ESCAPE;
+  QUIT = BGI_QUIT;
 
 (* BGI fonts *)
 const
@@ -273,36 +273,36 @@ const
 (* graphics modes. Expanded from the original GRAPHICS.H *)
 const
   DETECT = -1;
-  SDL = 0;
+  BGI = 0;
   (* all modes @ 320x200 *)
-  SDL_320x200 = 1; SDL_CGALO = 1; CGA = 1; CGAC0 = 1; CGAC1 = 1;
+  BGI_320x200 = 1; BGI_CGALO = 1; CGA = 1; CGAC0 = 1; CGAC1 = 1;
   CGAC2 = 1; CGAC3 = 1; MCGAC0 = 1; MCGAC1 = 1; MCGAC2 = 1;
   MCGAC3 = 1; ATT400C0 = 1; ATT400C1 = 1; ATT400C2 = 1; ATT400C3 = 1;
   (* all modes @ 640x200 *)
-  SDL_640x200 = 2; SDL_CGAHI = 2; CGAHI = 2; MCGAMED = 2;
+  BGI_640x200 = 2; BGI_CGAHI = 2; CGAHI = 2; MCGAMED = 2;
   EGALO = 2; EGA64LO = 2;
   (* all modes @ 640x350 *)
-  SDL_640x350 = 3; SDL_EGA = 3; EGA = 3; EGAHI = 3;
+  BGI_640x350 = 3; BGI_EGA = 3; EGA = 3; EGAHI = 3;
   EGA64HI = 3; EGAMONOHI = 3;
   (* all modes @ 640x480 *)
-  SDL_640x480 = 4; SDL_VGA = 4; VGA = 4; MCGAHI = 4; VGAHI = 4;
+  BGI_640x480 = 4; BGI_VGA = 4; VGA = 4; MCGAHI = 4; VGAHI = 4;
   IBM8514LO = 4;
   (* all modes @ 720x348 *)
-  SDL_720x348 = 5; SDL_HERC = 5;
+  BGI_720x348 = 5; BGI_HERC = 5;
   (* all modes @ 720x350 *)
-  SDL_720x350 = 6; SDL_PC3270 = 6; HERCMONOHI = 6;
+  BGI_720x350 = 6; BGI_PC3270 = 6; HERCMONOHI = 6;
   (* all modes @ 800x600 *)
-  SDL_800x600 = 7; SDL_SVGALO = 7; SVGA = 7;
+  BGI_800x600 = 7; BGI_SVGALO = 7; SVGA = 7;
   (* all modes @ 1024x768 *)
-  SDL_1024x768 = 8; SDL_SVGAMED1 = 8;
+  BGI_1024x768 = 8; BGI_SVGAMED1 = 8;
   (* all modes @ 1152x900 *)
-  SDL_1152x900 = 9; SDL_SVGAMED2 = 9;
+  BGI_1152x900 = 9; BGI_SVGAMED2 = 9;
   (* all modes @ 1280x1024 *)
-  SDL_1280x1024 = 10; SDL_SVGAHI = 10;
+  BGI_1280x1024 = 10; BGI_SVGAHI = 10;
   (* all modes @ 1366x768 *)
-  SDL_1366x768 = 11; SDL_WXGA = 11;
-  (* SDL_1920x1080 = XX, other *)
-  SDL_USER = 12; SDL_FULLSCREEN = 13;
+  BGI_1366x768 = 11; BGI_WXGA = 11;
+  (* BGI_1920x1080 = XX, other *)
+  BGI_USER = 12; BGI_FULLSCREEN = 13;
 
 (* BGI error constants *)
 const
@@ -347,26 +347,26 @@ const
 (*
 // libXbgi compatibility
 const
-  X11_CGALO = SDL_CGALO;
-  X11_CGAHI = SDL_CGAHI;
-  X11_EGA = SDL_EGA;
-  X11 = SDL;
-  X11_VGA = SDL_VGA;
-  X11_640x480 = SDL_640x480;
-  X11_HERC = SDL_HERC;
-  X11_PC3270 = SDL_PC3270;
-  X11_SVGALO = SDL_SVGALO;
-  X11_800x600 = SDL_800x600;
-  X11_SVGAMED1 = SDL_SVGAMED1;
-  X11_1024x768 = SDL_1024x768;
-  X11_SVGAMED2 = SDL_SVGAMED2;
-  X11_1152x900 = SDL_1152x900;
-  X11_SVGAHI = SDL_SVGAHI;
-  X11_1280x1024 = SDL_1280x1024;
-  X11_WXGA = SDL_WXGA;
-  X11_1366x768 = SDL_1366x768;
-  X11_USER = SDL_USER;
-  X11_FULLSCREEN = SDL_FULLSCREEN;
+  X11_CGALO = BGI_CGALO;
+  X11_CGAHI = BGI_CGAHI;
+  X11_EGA = BGI_EGA;
+  X11 = BGI;
+  X11_VGA = BGI_VGA;
+  X11_640x480 = BGI_640x480;
+  X11_HERC = BGI_HERC;
+  X11_PC3270 = BGI_PC3270;
+  X11_SVGALO = BGI_SVGALO;
+  X11_800x600 = BGI_800x600;
+  X11_SVGAMED1 = BGI_SVGAMED1;
+  X11_1024x768 = BGI_1024x768;
+  X11_SVGAMED2 = BGI_SVGAMED2;
+  X11_1152x900 = BGI_1152x900;
+  X11_SVGAHI = BGI_SVGAHI;
+  X11_1280x1024 = BGI_1280x1024;
+  X11_WXGA = BGI_WXGA;
+  X11_1366x768 = BGI_1366x768;
+  X11_USER = BGI_USER;
+  X11_FULLSCREEN = BGI_FULLSCREEN;
 *)
 
 (* Bar constants *)
@@ -837,7 +837,7 @@ procedure SetPalette(
   color: Integer);
   cdecl; external LIB_UBGI name LIB_FNPFX + 'setpalette';
 
-(* SDL extensions ?*)
+(* siriel_bgi extensions *)
 procedure SetRGBPalette(
   colorNum, redValue, greenValue, blueValue: Integer);
   cdecl; external LIB_UBGI name LIB_FNPFX + 'setrgbpalette';
@@ -895,7 +895,7 @@ function TextWidth(
   cdecl; external LIB_UBGI name LIB_FNPFX + 'textwidth';
 
 (******************)
-(* SDL extensions *)
+(* siriel_bgi extensions *)
 (******************)
 
 (*
@@ -1002,7 +1002,7 @@ function Event(): Integer;
 
 (*
   Returns the type of the last event;
-  either SDL KEYPRESS or SDL MOUSEBUTTONDOWN.
+  either a key press or a mouse button down.
 *)
 function EventType(): Integer;
   cdecl; external LIB_UBGI name LIB_FNPFX + 'eventtype';
@@ -1023,7 +1023,7 @@ procedure GetCurrentWindow();
   cdecl; external LIB_UBGI name LIB_FNPFX + 'getcurrentwindow';
 
 (*
-  Waits for a keypress, mouse click, or SDL QUIT event,
+  Waits for a keypress, mouse click, or QUIT event,
   and returns the code of the key, mouse button, or QUIT.
 *)
 function GetEvent(): Integer;
@@ -1134,7 +1134,7 @@ procedure ResetWinOptions (
   cdecl; external LIB_UBGI name LIB_FNPFX + 'resetwinoptions';
 (*
   Initialises the palette to the standard 16 colours.
-  If the environment variable SDL_BGI_PALETTE equals BGI,
+  If the environment variable siriel_bgi_PALETTE equals BGI,
   the first 16 colours will use the same RGB values as Turbo C 2.01;
   otherwise, a brighter palette will be used.
 *)
@@ -1143,7 +1143,7 @@ procedure InitPalette ();
 
 (*
   Initializes the graphics system, opening a widthxheight window.
-  If either width or height is 0, then SDL_FULLSCREEN will be used.
+  If either width or height is 0, then BGI_FULLSCREEN will be used.
   Multiple windows can be created, unless a fullscreen window
   is already present.
 
@@ -1289,7 +1289,7 @@ procedure WriteImageFile(
 (*
   Returns 1 when a key is pressed, excluding special keys
   (Ctrl, Shift, etc.); in 'slow mode', a screen refresh is performed.
-  If an SDL_QUIT event occurs, QUIT is returned.
+  If an BGI_QUIT event occurs, QUIT is returned.
 *)
 function KbHit(): Integer;
   cdecl; external LIB_UBGI name LIB_FNPFX + 'k_bhit';
@@ -1297,7 +1297,7 @@ function KbHit(): Integer;
 (*
   Returns 1 when any key is pressed, including special keys
   (Ctrl, Shift, etc.) in 'slow mode', a screen refresh is performed.
-  If an SDL QUIT event occurs, QUIT is returned.
+  If a QUIT event occurs, QUIT is returned.
 *)
 function XKbHit(): Integer;
   cdecl; external LIB_UBGI name LIB_FNPFX + 'xkb_hit';
@@ -1308,7 +1308,7 @@ function KeyPressed(): Boolean; inline;
 (*
   Waits for a key and returns its ASCII code.
   In 'slow mode', a screen refresh is performed.
-  If an SDL_QUIT event occurs, QUIT is returned.
+  If an BGI_QUIT event occurs, QUIT is returned.
 *)
 function GetCh(): Integer;
   cdecl; external LIB_UBGI name LIB_FNPFX + 'bgi_getch';

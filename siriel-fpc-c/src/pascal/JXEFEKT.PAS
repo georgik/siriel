@@ -261,39 +261,26 @@ end;
 procedure TFrame.draw_PO(var AP1,AP2:TPoint);
 var f     : word;
 begin
-   writeln('[DF] enter size_x=',size_x,' size_y=',size_y,' ha.h=',ha_frame.h,' ha.used=',ha_frame.used,' save=',save);
     if save then
        if ha_back.used then put_back;
     P1.x:=AP1.x;
     P1.y:=AP1.y;
     P2.x:=AP2.x;
     P2.y:=AP2.y;
-    writeln('[DF] after P1/P2 set');
     if save then get_back;
-    writeln('[DF] about rectangle2');
     rectangle2(screen,P1.x+size_x,P1.y+size_y,(P2.x-2)*size_x,(P2.y-2)*size_y,fill_color);
-    writeln('[DF] after rectangle2');
     putseg2xms(ha_frame,P1.x,P1.y,size_x,size_y,0,13);
-    writeln('[DF] after putseg2xms #1');
     putseg2xms(ha_frame,P1.x+(P2.x-1)*size_x,P1.y,size_x,size_y,2,13);
-    writeln('[DF] after putseg2xms #2');
     putseg2xms(ha_frame,P1.x,P1.y+(P2.y-1)*size_y,size_x,size_y,5,13);
-    writeln('[DF] after putseg2xms #3');
     putseg2xms(ha_frame,P1.x+(P2.x-1)*size_x,P1.y+(P2.y-1)*size_y,size_x,size_y,7,13);
-    writeln('[DF] after putseg2xms #4');
     for f:=1 to P2.x-2 do begin
       putseg2xms(ha_frame,P1.x+f*size_x,P1.y,size_x,size_y,1,13);
-      writeln('[DF] after putseg2xms col1 f=',f);
       putseg2xms(ha_frame,P1.x+f*size_x,P1.y+(P2.y-1)*size_y,size_x,size_y,6,13);
-      writeln('[DF] after putseg2xms col6 f=',f);
     end;
     for f:=1 to P2.y-2 do begin
       putseg2xms(ha_frame,P1.x,P1.y+f*size_y,size_x,size_y,3,13);
-      writeln('[DF] after putseg2xms col3 f=',f);
       putseg2xms(ha_frame,P1.x+(P2.x-1)*size_x,P1.y+f*size_y,size_x,size_y,4,13);
-      writeln('[DF] after putseg2xms col4 f=',f);
     end;
-    writeln('[DF] done draw_PO');
 end;
 
 destructor TFrame.done;

@@ -3,8 +3,8 @@
 {                                                                       }
 { The original engine used the Turbo Pascal 7.0 BGI unit "graph"         }
 { (graph.tpu). That unit cannot be rebuilt for FPC, so this wrapper      }
-{ re-exposes the BGI API on top of the SDL2-based ubgi library          }
-{ (JulStrat/ubgi, Object Pascal bindings for SDL_bgi).                   }
+{ re-exposes the BGI API on top of the siriel_bgi ubgi library          }
+{ (JulStrat/ubgi, Object Pascal bindings for siriel_bgi).                   }
 {                                                                       }
 { Why a wrapper and not `uses ubgi` directly:                           }
 {  * The engine writes `graph.putpixel`, `graph.getpixel`,               }
