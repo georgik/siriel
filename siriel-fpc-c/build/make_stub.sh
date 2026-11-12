@@ -58,8 +58,14 @@ echo "extracted $(wc -l < "$SYMBOLS") symbols from $UBGI"
 if command -v gcc >/dev/null 2>&1; then CC=gcc
 elif command -v clang >/dev/null 2>&1; then CC=clang
 else echo "ERROR: need gcc or clang to build the stub library." >&2; exit 1; fi
-# Install the stub with a location-independent install_name (@executable_path)
-# so the engine records a runtime path that resolves next to the binary, rather
-# than a hardcoded absolute path from wherever this script was first run.
-$CC -shared -fPIC -O2 -install_name @executable_path/libsiriel_bgi.dylib -o "$STUB_SO" "$STUB_C"
+# macOS needs a .dylib with a location-independent install_name so the engine
+# records a runtime path that resolves next to the binary, rather than a
+# hardcoded absolute path from wherever this script was first run. On Linux we
+# emit a conventional .so with a GNU soname instead (no install_name).
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    $CC -shared -fPIC -O2 -install_name @executable_path/libsiriel_bgi.dylib -o "$STUB_SO" "$STUB_C"
+else
+    # -soname must reach the linker via -Wl (gcc/clang reject a bare -soname).
+    $CC -shared -fPIC -O2 -Wl,-soname,libsiriel_bgi.so -o "$STUB_SO" "$STUB_C"
+fi
 echo "built $STUB_SO ($(wc -l < "$STUB_C") exports)"

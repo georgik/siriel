@@ -1,0 +1,109 @@
+name: Build siriel-fpc-c (two-process Linux app)
+
+# Builds the FPC + C + Raylib two-process Siriel 3.5 port for Linux:
+#
+#   cdrv_engine  (FPC + C)   drives Siriel, writes the framebuffer to shm
+#   cdrv_window  (C + Raylib) reads that shm and DISPLAYS it (no FPC)
+#   cdrv_run     (C)         launches both, exits when either stops
+#
+# This is the Linux counterpart of build-fpc-c.yml (macOS). The two-process
+# architecture is shared; only the platform bits differ:
+#   * macOS links Cocoa/Foundation/IOKit frameworks, uses the -WM27.0 FPC
+#     flag, activate_macos.m and uploads a .dylib stub.
+#   * Linux links the system GL/X11 stack (-lGL -lX11 -lXcursor ...), uses a
+#     .so stub, and records an $ORIGIN RUNPATH so the engine finds its stub
+#     next to itself. All platform-specific code is guarded (#if defined
+#    (__APPLE__) / uname -s == Darwin), so both builds share the same source.
+#
+# Build scripts live in siriel-fpc-c/build/:
+#   make_stub.sh         -> out/libsiriel_bgi.so (link-time BGI symbol shim)
+#   build_cdrv_shm_linux.sh -> out/cdrv_engine + out/cdrv_window + out/cdrv_run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "siriel-fpc-c/**"
+      - ".github/workflows/build-fpc-c-linux.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "siriel-fpc-c/**"
+      - ".github/workflows/build-fpc-c-linux.yml"
+  workflow_dispatch:
+
+# actions/upload-artifact@v7 runs on Node 24 (current, non-deprecated runtime).
+
+jobs:
+  build:
+    name: Build (Linux x86_64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install toolchain and system libraries
+        # fpc (same 3.2.x the dev build validated against), cmake/gcc/clang for
+        # the C side, and the GL/X11 dev headers Raylib+GLFW link against on
+        # Linux. raylib bundles its own GLFW, so libglfw3-dev is NOT needed.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fpc cmake build-essential \
+            libgl1-mesa-dev libglu1-mesa-dev \
+            libx11-dev libxext-dev libxcursor-dev \
+            libxrandr-dev libxi-dev libxinerama-dev
+          fpc -version | head -1
+
+      - name: Build raylib static library (CMake)
+        # raylib v6 builds via CMake. We build only the `raylib` target: its
+        # bundled GLFW is an OBJECT library merged into libraylib.a, so the
+        # archive already carries the glfw objects (resolved at final link
+        # against the system GL/X11 libs below). Output: _cmbuild/raylib.a.
+        working-directory: siriel-fpc-c
+        run: |
+          cmake -S third-party/raylib -B third-party/raylib/_cmbuild -DCMAKE_BUILD_TYPE=Release
+          cmake --build third-party/raylib/_cmbuild --target raylib -j"$(nproc)"
+
+      - name: Install raylib static lib where the build expects it
+        # build_cdrv_shm_linux.sh links against third-party/raylib/src/libraylib.a.
+        working-directory: siriel-fpc-c
+        run: cp third-party/raylib/_cmbuild/raylib/libraylib.a third-party/raylib/src/libraylib.a
+
+      - name: Build BGI symbol stub
+        # Emits out/libsiriel_bgi.so (GNU soname) on Linux; the script keeps
+        # the Darwin -install_name path for the macOS build.
+        working-directory: siriel-fpc-c
+        run: ./build/make_stub.sh
+
+      - name: Build two-process app (Linux)
+        working-directory: siriel-fpc-c
+        run: ./build/build_cdrv_shm_linux.sh
+
+      - name: Sanity-check linked binaries
+        # Confirm the engine resolves its stub via $ORIGIN RUNPATH and the
+        # window pulled in the Raylib/GL/X11 symbols.
+        if: always()
+        working-directory: siriel-fpc-c
+        run: |
+          ls -la out/cdrv_engine out/cdrv_window out/cdrv_run out/libsiriel_bgi.so || true
+          file out/cdrv_engine out/cdrv_window out/cdrv_run || true
+          echo "--- engine RUNPATH/NEEDED ---"
+          readelf -d out/cdrv_engine | grep -iE "runpath|needer|needed" || true
+          echo "--- window GL/glfw symbols present ---"
+          nm -C out/cdrv_window | grep -E " T (InitWindow|glfwCreateWindow)" || true
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: siriel-fpc-c-linux-x86_64
+          path: |
+            siriel-fpc-c/out/cdrv_engine
+            siriel-fpc-c/out/cdrv_window
+            siriel-fpc-c/out/cdrv_run
+            siriel-fpc-c/out/libsiriel_bgi.so
+          retention-days: 14

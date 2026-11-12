@@ -43,8 +43,12 @@
 
 /* macOS window-visibility/focus helpers (activate_macos.m). Passing the
  * NSWindow* lets us promote the window to the KEY window so GLFW receives
- * keystrokes (the Terminal otherwise keeps the key slot). */
+ * keystrokes (the Terminal otherwise keeps the key slot). Only built/linked
+ * on macOS (see build_cdrv_shm_linux.sh for the Linux path, which needs no
+ * such helper). */
+#if defined(__APPLE__)
 void siel_activate_app(void *nsWindow);
+#endif
 
 /* --------------------------------------------------------------------- */
 /* Keyboard -> engine. Siriel's JXGRAF menu matcher (GAME.INC.choice_step)
@@ -204,8 +208,13 @@ int main(void)
     /* Promote the window to visible + KEY window so GLFW delivers keystrokes.
      * We do NOT register our own GLFW key callback (see header note): Raylib
      * already owns keyboard input and exposes it via GetKeyPressed(). */
-    void *wh = GetWindowHandle();          /* Cocoa NSWindow* on macOS */
+    void *wh = GetWindowHandle();          /* Cocoa NSWindow* on macOS, GLFWwindow* on Linux */
+#if defined(__APPLE__)
+    /* Promote the window to visible + KEY window so GLFW delivers keystrokes.
+     * We do NOT register our own GLFW key callback (see header note): Raylib
+     * already owns keyboard input and exposes it via GetKeyPressed(). */
     if (wh) siel_activate_app(wh);
+#endif
 
     Image img;
     img.data = calloc(1, FB_RGB);   /* placeholder; real frame comes from shm */
@@ -245,7 +254,9 @@ int main(void)
         /* Give the window a chance to (re)grab KEY-window focus early on. */
         /* Give the window a chance to (re)grab KEY-window focus early on. */
         if (focus_frames > 0) {
+#if defined(__APPLE__)
             if (wh) siel_activate_app(wh);
+#endif
             focus_frames--;
         }
 
